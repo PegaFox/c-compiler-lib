@@ -26,6 +26,7 @@
 * If statements
 * For loops
 * Null expressions
+* Ternary operators
 
 #### In progress
 
