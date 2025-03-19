@@ -343,6 +343,13 @@ void PrintAST::printExpression(const Expression* expression)
 {
   switch (expression->expressionType)
   {
+    case Expression::ExpressionType::Null:
+      depth++;
+
+      std::cout << depthPadding() << "Null Expression\n";
+
+      depth--;
+      break;
     case Expression::ExpressionType::Constant:
       printConstant((Constant*)expression);
       break;

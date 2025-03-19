@@ -22,7 +22,7 @@
 
 int main(int argc, char* argv[])
 {
-  #ifndef NDEBUG
+  /*#ifndef NDEBUG
   {
     argc = 4;
 
@@ -34,7 +34,7 @@ int main(int argc, char* argv[])
     };
     argv = args;
   }
-  #endif // NDEBUG
+  #endif // NDEBUG*/
 
   if (handleArgs(argc, argv))
   {
@@ -48,11 +48,18 @@ int main(int argc, char* argv[])
   if (doPreprocess)
   {
     fileText = preprocess(fileText);
+    std::cout << "Preprocessed:\n" << fileText << '\n';
   }
 
   if (doCompile)
   {
     std::list<Token> code = lex(fileText);
+    std::cout << "Tokens:\n";
+
+    for (const Token& token: code)
+    {
+      std::cout << Token::typeStrings[token.type] << ": \"" << token.data << "\"\n";
+    }
   
     Program AST = parse(code);
 
@@ -63,6 +70,7 @@ int main(int argc, char* argv[])
 
     removeSubExpressions(AST);
   
+    std::cout << "AST:\n";
     PrintAST printer(AST);
 
     std::vector<Operation> asmCode = generateIR(AST);
@@ -73,7 +81,7 @@ int main(int argc, char* argv[])
     }
 
     fileText = printIR(asmCode);
-    std::cout << fileText << '\n';
+    std::cout << "Intermediate Representation:\n" << fileText << '\n';
   }
 
   return 0;

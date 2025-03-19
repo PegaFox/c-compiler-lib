@@ -225,6 +225,10 @@ ASTiterator& ASTiterator::operator++()
           Expression* expression = (Expression*)statement;
           switch (expression->expressionType)
           {
+            case Expression::ExpressionType::Null:
+              ptr = path.back().first;
+              goto topOfConditionals;
+              break;
             case Expression::ExpressionType::Constant: {
               Constant* constant = (Constant*)expression;
               if (firstTime(constant))
@@ -667,6 +671,9 @@ Program parse(std::list<Token> code)
             i = code.end();
           }
           break;
+        /*default:
+          std::cout << "Parse error: Expected DataType, received " << Token::typeStrings[i->type] << "\n";
+          break;*/
       }
     }
   }
@@ -705,9 +712,9 @@ FunctionDeclaration* parseFunctionDeclaration(std::list<Token>& code)
   return functionDeclaration;
 }
 
-Statement* parseStatement(std::list<Token>& code)
+Statement* parseStatement(std::list<Token>& code, bool canParseVariableDeclarations)
 {
-  Statement* statement;
+  Statement* statement = nullptr;
 
   if (code.front().type == Token::Keyword)
   {
@@ -745,6 +752,7 @@ Statement* parseStatement(std::list<Token>& code)
     {
       statement = parseForLoop(code);
     } else if (
+      canParseVariableDeclarations && (
       code.front().data == "signed" ||
       code.front().data == "unsigned" ||
       code.front().data == "static" ||
@@ -754,7 +762,7 @@ Statement* parseStatement(std::list<Token>& code)
       code.front().data == "int" ||
       code.front().data == "long" ||
       code.front().data == "float" ||
-      code.front().data == "double")
+      code.front().data == "double"))
     {
       statement = parseVariableDeclaration(code);
     }
@@ -772,6 +780,12 @@ Statement* parseStatement(std::list<Token>& code)
     code.pop_front();
   }
 
+  if (statement == nullptr)
+  {
+    std::cout << "Parse error: Expected a statement\n";
+    throw ParseError();
+  }
+
   return statement;
 }
 
@@ -784,7 +798,13 @@ CompoundStatement* parseCompoundStatement(std::list<Token>& code)
 
   while (code.front().data != "}")
   {
-    compoundStatement->body.emplace_back(parseStatement(code));
+    compoundStatement->body.emplace_back(parseStatement(code, true));
+
+    if (code.empty())
+    {
+      std::cout << "Parse error: Unexpected End of File\n";
+      throw ParseError();
+    }
   }
   code.pop_front();
 
@@ -896,7 +916,7 @@ IfConditional* parseIfConditional(std::list<Token>& code)
   parseExpect(code.front().data, "(");
   code.pop_front();
 
-  ifConditional->condition = std::unique_ptr<Expression>(parseExpression(code));
+  ifConditional->condition = std::unique_ptr<Expression>(parseExpression(code, false));
 
   parseExpect(code.front().data, ")");
   code.pop_front();
@@ -919,7 +939,7 @@ SwitchCase* parseSwitchCase(std::list<Token>& code)
   parseExpect(code.front().data, "case");
   code.pop_front();
 
-  switchCase->requirement = std::unique_ptr<Expression>(parseExpression(code));
+  switchCase->requirement = std::unique_ptr<Expression>(parseExpression(code, false));
 
   parseExpect(code.front().data, ":");
   code.pop_front();
@@ -950,7 +970,7 @@ SwitchConditional* parseSwitchConditional(std::list<Token>& code)
   parseExpect(code.front().data, "(");
   code.pop_front();
 
-  switchConditional->value = std::unique_ptr<Expression>(parseExpression(code));
+  switchConditional->value = std::unique_ptr<Expression>(parseExpression(code, false));
 
   parseExpect(code.front().data, ")");
   code.pop_front();
@@ -975,7 +995,7 @@ DoWhileLoop* parseDoWhileLoop(std::list<Token>& code)
   parseExpect(code.front().data, "(");
   code.pop_front();
 
-  doWhileLoop->condition = std::unique_ptr<Expression>(parseExpression(code));
+  doWhileLoop->condition = std::unique_ptr<Expression>(parseExpression(code, false));
 
   parseExpect(code.front().data, ")");
   code.pop_front();
@@ -996,7 +1016,7 @@ WhileLoop* parseWhileLoop(std::list<Token>& code)
   parseExpect(code.front().data, "(");
   code.pop_front();
 
-  whileLoop->condition = std::unique_ptr<Expression>(parseExpression(code));
+  whileLoop->condition = std::unique_ptr<Expression>(parseExpression(code, false));
 
   parseExpect(code.front().data, ")");
   code.pop_front();
@@ -1034,9 +1054,9 @@ ForLoop* parseForLoop(std::list<Token>& code)
   return forLoop;
 }
 
-Expression* parseExpression(std::list<Token>& code)
+Expression* parseExpression(std::list<Token>& code, bool allowNullExpression)
 {
-  Expression* expression;
+  Expression* expression = nullptr;
   
   if (code.front().data == "(" && (code.begin()++)->type != Token::Keyword)
   {
@@ -1044,7 +1064,7 @@ Expression* parseExpression(std::list<Token>& code)
 
     expression = new SubExpression;
     
-    ((SubExpression*)expression)->expression = std::unique_ptr<Expression>(parseExpression(code));
+    ((SubExpression*)expression)->expression = std::unique_ptr<Expression>(parseExpression(code, false));
 
     parseExpect(code.front().data, ")");
     code.pop_front();
@@ -1099,6 +1119,10 @@ Expression* parseExpression(std::list<Token>& code)
           break;
       }
     }
+  } else if (allowNullExpression && (code.front().data == ")" || code.front().data == ";"))
+  {
+    expression = new Expression;
+    expression->expressionType = Expression::ExpressionType::Null;
   } else
   {
     std::cout << "Parse error: Expected an expression, received \"" << code.front().data << "\"\n";
@@ -1185,7 +1209,7 @@ Expression* parsePreUnary(std::list<Token>& code)
 
   code.pop_front();
 
-  ((PreUnaryOperator*)preUnary)->operand = std::unique_ptr<Expression>(parseExpression(code));
+  ((PreUnaryOperator*)preUnary)->operand = std::unique_ptr<Expression>(parseExpression(code, false));
 
   if (((PreUnaryOperator*)preUnary)->operand->expressionType == Expression::ExpressionType::BinaryOperator)
   {
@@ -1342,7 +1366,7 @@ BinaryOperator* parseBinary(std::list<Token>& code, Expression* leftOperand)
 
   code.pop_front();
 
-  binary->rightOperand = std::unique_ptr<Expression>(parseExpression(code));
+  binary->rightOperand = std::unique_ptr<Expression>(parseExpression(code, false));
 
   if (binary->binaryType == BinaryOperator::BinaryType::Subscript)
   {
@@ -1363,7 +1387,7 @@ BinaryOperator* parseBinary(std::list<Token>& code, Expression* leftOperand)
       binary->rightOperand = std::unique_ptr<Expression>(operand->leftOperand.release());
       operand->leftOperand = std::unique_ptr<Expression>(binary);
       binary = operand;
-    } else if (BinaryOperator::precedence[(uint8_t)operand->binaryType] == BinaryOperator::precedence[(uint8_t)binary->binaryType])
+    } else if (BinaryOperator::precedence[(uint8_t)operand->binaryType] == BinaryOperator::precedence[(uint8_t)binary->binaryType] && binary->binaryType != BinaryOperator::BinaryType::VariableAssignment)
     {
       BinaryOperator* bottomOperand = operand;
       while (
@@ -1502,7 +1526,7 @@ VariableAccess* parseVariableAccess(std::list<Token>& code)
 
 DataType* parseDataType(std::list<Token>& code)
 {
-  DataType* dataType;
+  DataType* dataType = nullptr;
 
   PrimitiveType* primitiveType = new PrimitiveType;
 
@@ -1689,7 +1713,7 @@ VariableDeclaration* parseVariableDeclaration(std::list<Token>& code)
   if (code.front().data == "=")
   {
     code.pop_front();
-    variableDeclaration->value = std::unique_ptr<Expression>(parseExpression(code));
+    variableDeclaration->value = std::unique_ptr<Expression>(parseExpression(code, false));
   }
 
   parseExpect(code.front().data, ";");

@@ -20,21 +20,24 @@
 * Bitwise NOT
 * Logical negate
 * Global memory management
-* Register management
-
-#### In progress
-
-* Constant integral values
-* Main function declaration
-* Program stack management
 * Return statement
-
-#### Unimplemented
-
 * Operator precidence
 * While loops
 * If statements
 * For loops
+* Null expressions
+
+#### In progress
+
+* Constant integral values
+* Externally linked values
+* Pointers
+* Pointer arithmatic
+* Main function declaration
+* Program stack management
+
+#### Unimplemented
+
 * Local variables
 * Multi-byte datatypes
 * Logical OR

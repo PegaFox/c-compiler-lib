@@ -136,6 +136,7 @@ struct Expression : public Statement
   enum class ExpressionType
   {
     Undefined, // if a node has this type, something went wrong
+    Null,
     Constant,
     FunctionCall,
     VariableAccess,
@@ -477,7 +478,7 @@ Program parse(std::list<Token> code);
 
 FunctionDeclaration* parseFunctionDeclaration(std::list<Token>& code);
 
-Statement* parseStatement(std::list<Token>& code);
+Statement* parseStatement(std::list<Token>& code, bool canParseVariableDeclarations = false);
 
 CompoundStatement* parseCompoundStatement(std::list<Token>& code);
 
@@ -507,7 +508,7 @@ WhileLoop* parseWhileLoop(std::list<Token>& code);
 
 ForLoop* parseForLoop(std::list<Token>& code);
 
-Expression* parseExpression(std::list<Token>& code);
+Expression* parseExpression(std::list<Token>& code, bool allowNullExpression = true);
 
 Expression* parsePreUnary(std::list<Token>& code);
 

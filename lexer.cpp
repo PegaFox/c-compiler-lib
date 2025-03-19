@@ -1,6 +1,12 @@
 #include "lexer.hpp"
 
+#include <iostream>
 #include <algorithm>
+
+struct LexError
+{
+
+};
 
 // tokens array must be sorted by string length
 const std::string tokens[] = {
@@ -86,6 +92,8 @@ const std::string tokens[] = {
   "}"
 };
 
+const std::string whitespace = " \t\n\v\f\r";
+
 const std::string letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 const std::string numbers = "0123456789";
@@ -109,6 +117,12 @@ std::list<Token> lex(std::string code)
 
     if (test.find_last_not_of("_"+letters+numbers) != test.npos && test.find_first_of("_"+letters) < test.find_last_not_of("_"+letters+numbers))
     {
+      if (test.find_first_not_of("_"+whitespace+letters+numbers) < test.find_first_of("_"+letters+numbers))
+      {
+        std::cout << "Lex error: Expected identifier, received \"" << test.substr(0, test.find_first_of("_"+letters+numbers)) << "\"\n";
+        throw LexError();
+      }
+
       std::string identifierStr = test.substr(test.find_first_of("_"+letters), test.find_last_of("_"+letters+numbers)-test.find_first_of("_"+letters)+1);
       if (std::find(std::begin(tokens), std::end(tokens), identifierStr) == std::end(tokens))
       {
@@ -200,8 +214,13 @@ std::list<Token> lex(std::string code)
       {
         currentType = Token::Other;
       }
-      if (code.find(token, pos) < tokenPos)
+      std::size_t testPos = code.find(token, pos);
+      if (testPos < tokenPos)
       {
+        if (currentType == Token::Keyword && std::string("_"+letters+numbers).find(code[testPos+token.size()]) != code.npos)
+        {
+          continue;
+        }
         tokenPos = code.find(token, pos);
         firstToken = Token{currentType, token};
       }
@@ -213,6 +232,11 @@ std::list<Token> lex(std::string code)
       end = pos;
     }
   }
-  
+
+  if (pos < code.size()-1)
+  {
+    std::cout << "Lex error: Encountered garbage characters at end of file\n";
+    throw LexError();
+  }
   return tokenized;
 }

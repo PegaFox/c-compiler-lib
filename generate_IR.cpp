@@ -3,6 +3,11 @@
 #include <iostream>
 #include <map>
 
+struct IRGenError
+{
+
+};
+
 extern bool optimize;
 
 std::map<std::string, std::unique_ptr<DataType>> vars;
@@ -229,7 +234,8 @@ void generateVariableDeclaration(std::vector<Operation>& absProgram, const Varia
 {
   if (vars.contains(variableDeclaration->identifier))
   {
-    throw std::runtime_error("Variable '" + variableDeclaration->identifier + "' already declared");
+    std::cout << "IR generation error: Variable '" + variableDeclaration->identifier + "' already declared\n";
+    throw IRGenError();
   }
 
   vars[variableDeclaration->identifier].reset(copyDataType(variableDeclaration->dataType.get()));
@@ -400,8 +406,8 @@ std::string generateVariableAccess(std::vector<Operation>& absProgram, const Var
     return variableAccess->identifier;
   } else
   {
-    std::cout << "assembly generation error: variable " << variableAccess->identifier << " is not defined\n";
-    return "";
+    std::cout << "IR generation error: Variable \"" << variableAccess->identifier << "\" is not defined\n";
+    throw IRGenError();
   }
 }
 
@@ -417,7 +423,8 @@ std::string generatePreUnaryOperator(std::vector<Operation>& absProgram, const P
         absProgram.emplace_back(Operation{Operation::GetAddress, {std::to_string((uintptr_t)preUnary) + "_Address", name}});
       } else
       {
-        std::cout << "assembly generation error: getting address of rvalue is illegal\n";
+        std::cout << "IR generation error: Getting address of rvalue is illegal\n";
+        throw IRGenError();
       }
       break;
     case PreUnaryOperator::PreUnaryType::Dereference:
@@ -442,7 +449,8 @@ std::string generatePreUnaryOperator(std::vector<Operation>& absProgram, const P
         absProgram.emplace_back(Operation{Operation::Set, {std::to_string((uintptr_t)preUnary) + "_Incremented", name}});
       } else
       {
-        std::cout << "assembly generation error: incrementing rvalue is illegal\n";
+        std::cout << "IR generation error: Incrementing rvalue is illegal\n";
+        throw IRGenError();
       }
       break;
     } case PreUnaryOperator::PreUnaryType::Decrement:
@@ -452,7 +460,8 @@ std::string generatePreUnaryOperator(std::vector<Operation>& absProgram, const P
         absProgram.emplace_back(Operation{Operation::Set, {std::to_string((uintptr_t)preUnary) + "_Decremented", name}});
       } else
       {
-        std::cout << "assembly generation error: decrementing rvalue is illegal\n";
+        std::cout << "IR generation error: Decrementing rvalue is illegal\n";
+        throw IRGenError();
       }
       break;
   }
@@ -473,7 +482,8 @@ std::string generatePostUnaryOperator(std::vector<Operation>& absProgram, const 
         absProgram.emplace_back(Operation{Operation::SetAddition, {name, name, "1"}});
       } else
       {
-        std::cout << "assembly generation error: incrementing rvalue is illegal\n";
+        std::cout << "IR generation error: Incrementing rvalue is illegal\n";
+        throw IRGenError();
       }
       break;
     } case PostUnaryOperator::PostUnaryType::Decrement:
@@ -483,7 +493,8 @@ std::string generatePostUnaryOperator(std::vector<Operation>& absProgram, const 
         absProgram.emplace_back(Operation{Operation::SetSubtraction, {name, name, "1"}});
       } else
       {
-        std::cout << "assembly generation error: decrementing rvalue is illegal\n";
+        std::cout << "IR generation error: Decrementing rvalue is illegal\n";
+        throw IRGenError();
       }
       break;
   }
@@ -505,7 +516,8 @@ std::string generateBinaryOperator(std::vector<Operation>& absProgram, const Bin
         absProgram.emplace_back(Operation{Operation::Set, {std::to_string((uintptr_t)binary) + "_Assigned", leftOperandName}});
       } else
       {
-        std::cout << "assembly generation error: assigning rvalue is illegal\n";
+        std::cout << "IR generation error: Assigning rvalue is illegal\n";
+        throw IRGenError();
       }
       break;
     case BinaryOperator::BinaryType::Add:
