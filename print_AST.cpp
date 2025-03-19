@@ -368,6 +368,9 @@ void PrintAST::printExpression(const Expression* expression)
     case Expression::ExpressionType::BinaryOperator:
       printBinaryOperator((BinaryOperator*)expression);
       break;
+    case Expression::ExpressionType::TernaryOperator:
+      printTernaryOperator((TernaryOperator*)expression);
+      break;
   }
 }
 
@@ -540,6 +543,23 @@ void PrintAST::printBinaryOperator(const BinaryOperator* binary)
   printExpression(binary->leftOperand.get());
 
   printExpression(binary->rightOperand.get());
+
+  std::cout << depthPadding() << "}\n";
+
+  depth--;
+}
+
+void PrintAST::printTernaryOperator(const TernaryOperator* ternary)
+{
+  depth++;
+
+  std::cout << depthPadding() << "Ternary operator {\n";
+
+  printExpression(ternary->condition.get());
+
+  printExpression(ternary->trueOperand.get());
+
+  printExpression(ternary->falseOperand.get());
 
   std::cout << depthPadding() << "}\n";
 

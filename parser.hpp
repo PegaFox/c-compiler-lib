@@ -143,7 +143,8 @@ struct Expression : public Statement
     SubExpression,
     PreUnaryOperator,
     PostUnaryOperator,
-    BinaryOperator
+    BinaryOperator,
+    TernaryOperator
   } expressionType;
 
   Expression();
@@ -429,6 +430,17 @@ struct BinaryOperator : public Expression
   BinaryOperator();
 };
 
+struct TernaryOperator: public Expression
+{
+  std::unique_ptr<Expression> condition;
+
+  std::unique_ptr<Expression> trueOperand;
+
+  std::unique_ptr<Expression> falseOperand;
+
+  TernaryOperator();
+};
+
 struct ASTiterator
 {
   public:
@@ -516,7 +528,9 @@ PostUnaryOperator* parsePostUnary(std::list<Token>& code, Expression* operand);
 
 TypeCast* parseTypeCast(std::list<Token>& code);
 
-BinaryOperator* parseBinary(std::list<Token>& code, Expression* leftOperand);
+Expression* parseBinary(std::list<Token>& code, Expression* leftOperand);
+
+Expression* parseTernary(std::list<Token>& code, Expression* condition);
 
 Constant* parseConstant(std::list<Token>& code);
 

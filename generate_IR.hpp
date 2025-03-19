@@ -81,4 +81,6 @@ std::string generatePostUnaryOperator(std::vector<Operation>& absProgram, const 
 
 std::string generateBinaryOperator(std::vector<Operation>& absProgram, const BinaryOperator* binary);
 
+std::string generateTernaryOperator(std::vector<Operation>& absProgram, const TernaryOperator* ternary);
+
 #endif // PF_GENERATE_IR_HPP

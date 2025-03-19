@@ -80,6 +80,7 @@ const std::string tokens[] = {
   "=",
 
   // other
+  "?",
   ":",
   ";",
   ",",

@@ -53,6 +53,8 @@ class PrintAST
 
     void printBinaryOperator(const BinaryOperator* binary);
 
+    void printTernaryOperator(const TernaryOperator* ternary);
+
     uint32_t depth = 0;
 
 };

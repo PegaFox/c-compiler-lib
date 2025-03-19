@@ -157,6 +157,9 @@ std::string generateExpression(std::vector<Operation>& absProgram, const Express
     case Expression::ExpressionType::BinaryOperator:
       return generateBinaryOperator(absProgram, (BinaryOperator*)expression);
       break;
+    case Expression::ExpressionType::TernaryOperator:
+      return generateTernaryOperator(absProgram, (TernaryOperator*)expression);
+      break;
   }
   return "";
 }
@@ -580,4 +583,29 @@ std::string generateBinaryOperator(std::vector<Operation>& absProgram, const Bin
   }
 
   return absProgram.back().operands[0];
+}
+
+std::string generateTernaryOperator(std::vector<Operation>& absProgram, const TernaryOperator* ternary)
+{
+  // conditional jump to end of if conditional
+  std::string name = generateExpression(absProgram, ternary->condition.get());
+
+  absProgram.emplace_back(Operation{Operation::JumpIfZero, {std::to_string((std::uintptr_t)ternary) + "_TernaryOperatorFalse", name}});
+
+  // if conditional body
+  std::string trueName = generateExpression(absProgram, ternary->trueOperand.get());
+  absProgram.emplace_back(Operation{Operation::Set, {name, trueName}});
+
+  // unconditional jump to end of else conditional
+  absProgram.emplace_back(Operation{Operation::Jump, {std::to_string((std::uintptr_t)ternary) + "_TernaryOperatorEnd"}});
+
+  absProgram.emplace_back(Operation{Operation::Label, {std::to_string((std::uintptr_t)ternary) + "_TernaryOperatorFalse"}});
+
+  // else body
+  std::string falseName = generateExpression(absProgram, ternary->falseOperand.get());
+  absProgram.emplace_back(Operation{Operation::Set, {name, falseName}});
+
+  absProgram.emplace_back(Operation{Operation::Label, {std::to_string((std::uintptr_t)ternary) + "_TernaryOperatorEnd"}});
+
+  return name;
 }
