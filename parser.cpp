@@ -805,12 +805,12 @@ FunctionDeclaration* parseFunctionDeclaration(std::list<Token>& code)
 
   while (code.front().data != ")")
   {
-    functionDeclaration->parameters.emplace_back(std::unique_ptr<VariableDeclaration>(parseVariableDeclaration(code)));
-
     if (code.front().data == ",")
     {
       code.pop_front();
     }
+
+    functionDeclaration->parameters.emplace_back(std::unique_ptr<VariableDeclaration>(parseVariableDeclaration(code)));
   }
 
   code.pop_front();
@@ -1021,12 +1021,12 @@ FunctionCall* parseFunctionCall(std::list<Token>& code)
   
   while (code.front().data != ")")
   {
-    functionCall->arguments.emplace_back(std::unique_ptr<Expression>(parseExpression(code)));
-
     if (code.front().data == ",")
     {
       code.pop_front();
     }
+
+    functionCall->arguments.emplace_back(std::unique_ptr<Expression>(parseExpression(code)));
   }
   
   code.pop_front();

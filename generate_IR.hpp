@@ -1,6 +1,8 @@
 #ifndef PF_GENERATE_IR_HPP
 #define PF_GENERATE_IR_HPP
 
+#include <map>
+
 #include "parser.hpp"
 
 struct Operation
@@ -44,7 +46,7 @@ struct Operation
 
 DataType* copyDataType(const DataType* data);
 
-std::string getIdentifier(const std::string& identifier);
+std::map<std::string, std::unique_ptr<DataType>>::iterator getIdentifier(const std::string& identifier);
 
 std::vector<Operation> generateIR(const Program& AST);
 
@@ -68,7 +70,7 @@ void generateLabel(std::vector<Operation>& absProgram, const Label* label);
 
 void generateGoto(std::vector<Operation>& absProgram, const Goto* gotoStatement);
 
-void generateVariableDeclaration(std::vector<Operation>& absProgram, const VariableDeclaration* variableDeclaration);
+void generateVariableDeclaration(std::vector<Operation>& absProgram, const VariableDeclaration* variableDeclaration, bool allowInitialization = true);
 
 void generateIfConditional(std::vector<Operation>& absProgram, const IfConditional* ifConditional);
 
