@@ -33,6 +33,7 @@ struct Operation
     BitwiseNOT,
     Label,
     Return,
+    AddArg,
     Call,
     Jump,
     JumpIfZero,
@@ -42,6 +43,8 @@ struct Operation
 };
 
 DataType* copyDataType(const DataType* data);
+
+std::string getIdentifier(const std::string& identifier);
 
 std::vector<Operation> generateIR(const Program& AST);
 
@@ -59,6 +62,12 @@ void generateReturn(std::vector<Operation>& absProgram, const Return* returnVal)
 
 void generateBreak(std::vector<Operation>& absProgram, const Break* breakStatement);
 
+void generateContinue(std::vector<Operation>& absProgram, const Continue* continueStatement);
+
+void generateLabel(std::vector<Operation>& absProgram, const Label* label);
+
+void generateGoto(std::vector<Operation>& absProgram, const Goto* gotoStatement);
+
 void generateVariableDeclaration(std::vector<Operation>& absProgram, const VariableDeclaration* variableDeclaration);
 
 void generateIfConditional(std::vector<Operation>& absProgram, const IfConditional* ifConditional);
@@ -71,9 +80,13 @@ void generateSwitchConditional(std::vector<Operation>& absProgram, const SwitchC
 
 void generateDoWhileLoop(std::vector<Operation>& absProgram, const DoWhileLoop* doWhileLoop);
 
+void generateWhileLoop(std::vector<Operation>& absProgram, const WhileLoop* whileLoop);
+
 void generateForLoop(std::vector<Operation>& absProgram, const ForLoop* forLoop);
 
 std::string generateVariableAccess(std::vector<Operation>& absProgram, const VariableAccess* variableAccess);
+
+std::string generateFunctionCall(std::vector<Operation>& absProgram, const FunctionCall* functionCall);
 
 std::string generatePreUnaryOperator(std::vector<Operation>& absProgram, const PreUnaryOperator* preUnary);
 

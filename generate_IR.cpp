@@ -10,7 +10,11 @@ struct IRGenError
 
 extern bool optimize;
 
+std::map<std::string, const FunctionDeclaration*> functions;
+
 std::map<std::string, std::unique_ptr<DataType>> vars;
+
+std::vector<const CompoundStatement*> scopes;
 
 DataType* copyDataType(const DataType* data)
 {
@@ -41,18 +45,40 @@ DataType* copyDataType(const DataType* data)
   return result;
 }
 
+std::string getIdentifier(const std::string& identifier)
+{
+  for (std::vector<const CompoundStatement*>::const_reverse_iterator scope = scopes.crbegin(); scope != scopes.crend(); scope++)
+  {
+    if (vars.contains("Scope_" + std::to_string((std::uintptr_t)*scope) + "_" + identifier))
+    {
+      return "Scope_" + std::to_string((std::uintptr_t)*scope) + "_" + identifier;
+    }
+  }
+
+  if (vars.contains(identifier))
+  {
+    return identifier;
+  } 
+
+  std::cout << "IR generation error: \"" << identifier << "\" is not defined\n";
+  throw IRGenError();
+}
+
 std::vector<Operation> generateIR(const Program& AST)
 {
   std::vector<Operation> absProgram;
 
   for (const std::unique_ptr<ASTnode>& node : AST.nodes)
   {
-    if (node->nodeType == ASTnode::NodeType::FunctionDeclaration)
+    if (node->nodeType == ASTnode::NodeType::Statement)
     {
-      generateFunctionDeclaration(absProgram, (FunctionDeclaration*)node.get());
-    } else if (node->nodeType == ASTnode::NodeType::Statement && ((Statement*)node.get())->statementType == Statement::StatementType::VariableDeclaration)
-    {
-      generateVariableDeclaration(absProgram, (VariableDeclaration*)node.get());
+      if (((Statement*)node.get())->statementType == Statement::StatementType::FunctionDeclaration)
+      {
+        generateFunctionDeclaration(absProgram, (FunctionDeclaration*)node.get());
+      } else if (((Statement*)node.get())->statementType == Statement::StatementType::VariableDeclaration)
+      {
+        generateVariableDeclaration(absProgram, (VariableDeclaration*)node.get());
+      }
     }
   }
 
@@ -61,9 +87,54 @@ std::vector<Operation> generateIR(const Program& AST)
 
 void generateFunctionDeclaration(std::vector<Operation>& absProgram, const FunctionDeclaration* functionDeclaration)
 {
-  absProgram.emplace_back(Operation{Operation::Label, {functionDeclaration->identifier + "_Function"}});
-  generateStatement(absProgram, functionDeclaration->body.get());
-  absProgram.emplace_back(Operation{Operation::Return});
+  if (
+    functions.contains(functionDeclaration->identifier) && 
+    functionDeclaration->parameters.size() != functions[functionDeclaration->identifier]->parameters.size())
+  {
+    std::cout << "IR generation error: Wrong type for function \"" << functionDeclaration->identifier << "\"\n";
+    throw IRGenError();
+  }
+
+  /*if (vars.contains(functionDeclaration->identifier))
+  {
+    std::cout << "IR generation error: Identifier \"" << functionDeclaration->identifier << "\" is already defined\n";
+    throw IRGenError();
+  }*/
+  vars[functionDeclaration->identifier];
+
+  if (functionDeclaration->body)
+  {
+    if (functions.contains(functionDeclaration->identifier) && functions[functionDeclaration->identifier]->body)
+    {
+      std::cout << "IR generation error: Function \"" << functionDeclaration->identifier << "\" already exists\n";
+      throw IRGenError();
+    } else
+    {
+      functions[functionDeclaration->identifier] = functionDeclaration;
+    }
+  }
+
+  if (!functions.contains(functionDeclaration->identifier))
+  {
+    functions[functionDeclaration->identifier] = functionDeclaration;
+  } 
+
+  if (functionDeclaration->body)
+  {
+    CompoundStatement mainScope;
+    scopes.emplace_back(&mainScope);
+
+    for (const std::unique_ptr<VariableDeclaration>& parameter: functionDeclaration->parameters)
+    {
+      generateVariableDeclaration(absProgram, parameter.get());
+    }
+
+    absProgram.emplace_back(Operation{Operation::Label, {functionDeclaration->identifier + "_Function"}});
+    generateStatement(absProgram, functionDeclaration->body.get());
+    absProgram.emplace_back(Operation{Operation::Return});
+
+    scopes.pop_back();
+  }
 }
 
 void generateStatement(std::vector<Operation>& absProgram, const Statement* statement)
@@ -102,8 +173,20 @@ void generateStatement(std::vector<Operation>& absProgram, const Statement* stat
     case Statement::StatementType::Break:
       generateBreak(absProgram, (Break*)statement);
       break;
+    case Statement::StatementType::Continue:
+      generateContinue(absProgram, (Continue*)statement);
+      break;
+    case Statement::StatementType::Label:
+      generateLabel(absProgram, (Label*)statement);
+      break;
+    case Statement::StatementType::Goto:
+      generateGoto(absProgram, (Goto*)statement);
+      break;
     case Statement::StatementType::VariableDeclaration:
       generateVariableDeclaration(absProgram, (VariableDeclaration*)statement);
+      break;
+    case Statement::StatementType::FunctionDeclaration:
+      generateFunctionDeclaration(absProgram, (FunctionDeclaration*)statement);
       break;
     case Statement::StatementType::IfConditional:
       generateIfConditional(absProgram, (IfConditional*)statement);
@@ -120,6 +203,9 @@ void generateStatement(std::vector<Operation>& absProgram, const Statement* stat
     case Statement::StatementType::DoWhileLoop:
       generateDoWhileLoop(absProgram, (DoWhileLoop*)statement);
       break;
+    case Statement::StatementType::WhileLoop:
+      generateWhileLoop(absProgram, (WhileLoop*)statement);
+      break;
     case Statement::StatementType::ForLoop:
       generateForLoop(absProgram, (ForLoop*)statement);
       break;
@@ -128,10 +214,13 @@ void generateStatement(std::vector<Operation>& absProgram, const Statement* stat
 
 void generateCompoundStatement(std::vector<Operation>& absProgram, const CompoundStatement* compoundStatement)
 {
+  // this check allows statements like for loops to impose the scope prematurely without causing problems
+  scopes.emplace_back(compoundStatement);
   for (const std::unique_ptr<Statement>& statement : compoundStatement->body)
   {
     generateStatement(absProgram, statement.get());
   }
+  scopes.pop_back();
 }
 
 // returns the variable name containing the result of the expression
@@ -144,6 +233,9 @@ std::string generateExpression(std::vector<Operation>& absProgram, const Express
       break;
     case Expression::ExpressionType::VariableAccess:
       return generateVariableAccess(absProgram, (VariableAccess*)expression);
+      break;
+    case Expression::ExpressionType::FunctionCall:
+      return generateFunctionCall(absProgram, (FunctionCall*)expression);
       break;
     case Expression::ExpressionType::SubExpression:
       return generateExpression(absProgram, ((SubExpression*)expression)->expression.get());
@@ -217,41 +309,132 @@ void generateReturn(std::vector<Operation>& absProgram, const Return* returnVal)
 
 void generateBreak(std::vector<Operation>& absProgram, const Break* breakStatement)
 {
-  std::string jumpLabel;
+  bool found = false;
+  uint32_t depth = 0;
 
   for (std::vector<Operation>::const_reverse_iterator op = absProgram.rbegin(); op != absProgram.rend(); op++)
   {
     if (
-      op->code == Operation::Label && (
-      op->operands[0].find("_SwitchConditionalBegin") != std::string::npos ||
-      op->operands[0].find("_DoWhileLoopBegin") != std::string::npos ||
-      op->operands[0].find("_ForLoopBegin") != std::string::npos))
+      op->code == Operation::Label)
     {
-      absProgram.emplace_back(Operation{Operation::Jump, {op->operands[0]}});
-      break;
+      if (
+        op->operands[0].find("_SwitchConditionalBegin") != std::string::npos ||
+        op->operands[0].find("_DoWhileLoopBegin") != std::string::npos ||
+        op->operands[0].find("_WhileLoopBegin") != std::string::npos ||
+        op->operands[0].find("_ForLoopBegin") != std::string::npos)
+      {
+        if (depth == 0)
+        {
+          absProgram.emplace_back(Operation{Operation::Jump, {op->operands[0].substr(0, op->operands[0].size()-5) + "End"}});
+          found = true;
+          break;
+        } else
+        {
+          depth--;
+        }
+      } else if (
+        op->operands[0].find("_SwitchConditionalEnd") != std::string::npos ||
+        op->operands[0].find("_DoWhileLoopEnd") != std::string::npos ||
+        op->operands[0].find("_WhileLoopEnd") != std::string::npos ||
+        op->operands[0].find("_ForLoopEnd") != std::string::npos)
+      {
+        depth++;
+      }
     }
   }
+
+  if (!found)
+  {
+    std::cout << "IR generation error: Unexpected break statement\n";
+    throw IRGenError();
+  }
+}
+
+void generateContinue(std::vector<Operation>& absProgram, const Continue* continueStatement)
+{
+  bool found = false;
+  uint32_t depth = 0;
+
+  for (std::vector<Operation>::const_reverse_iterator op = absProgram.rbegin(); op != absProgram.rend(); op++)
+  {
+    if (
+      op->code == Operation::Label)
+    {
+      if (
+        op->operands[0].find("_DoWhileLoopBegin") != std::string::npos ||
+        op->operands[0].find("_WhileLoopBegin") != std::string::npos ||
+        op->operands[0].find("_ForLoopBegin") != std::string::npos)
+      {
+        if (depth == 0)
+        {
+          absProgram.emplace_back(Operation{Operation::Jump, {op->operands[0]}});
+          found = true;
+          break;
+        } else
+        {
+          depth--;
+        }
+      } else if (
+        op->operands[0].find("_DoWhileLoopEnd") != std::string::npos ||
+        op->operands[0].find("_WhileLoopEnd") != std::string::npos ||
+        op->operands[0].find("_ForLoopEnd") != std::string::npos)
+      {
+        depth++;
+      }
+    }
+  }
+
+  if (!found)
+  {
+    std::cout << "IR generation error: Unexpected continue statement\n";
+    throw IRGenError();
+  }
+}
+
+void generateLabel(std::vector<Operation>& absProgram, const Label* label)
+{
+  absProgram.emplace_back(Operation{Operation::Label, {label->name}});
+}
+
+void generateGoto(std::vector<Operation>& absProgram, const Goto* gotoStatement)
+{
+  absProgram.emplace_back(Operation{Operation::Jump, {gotoStatement->label}});
 }
 
 void generateVariableDeclaration(std::vector<Operation>& absProgram, const VariableDeclaration* variableDeclaration)
 {
-  if (vars.contains(variableDeclaration->identifier))
+  std::string name = variableDeclaration->identifier;
+  if (!scopes.empty())
   {
-    std::cout << "IR generation error: Variable '" + variableDeclaration->identifier + "' already declared\n";
+    name = "Scope_" + std::to_string((std::uintptr_t)scopes.back()) + "_" + name;
+  }
+
+  if (vars.contains(name))
+  {
+    std::cout << "IR generation error: Variable \"" << variableDeclaration->identifier << "\" already declared\n";
     throw IRGenError();
   }
 
-  vars[variableDeclaration->identifier].reset(copyDataType(variableDeclaration->dataType.get()));
+  if (functions.contains(name))
+  {
+    std::cout << "IR generation error: Identifier \"" << name << "\" is already defined\n";
+    throw IRGenError();
+  }
+
+  vars[name].reset(copyDataType(variableDeclaration->dataType.get()));
   
   if (variableDeclaration->value)
   {
-    std::string name = generateExpression(absProgram, variableDeclaration->value.get());
-    absProgram.emplace_back(Operation{Operation::Set, {variableDeclaration->identifier, name}});
+    std::string outputName = generateExpression(absProgram, variableDeclaration->value.get());
+    absProgram.emplace_back(Operation{Operation::Set, {name, outputName}});
   }
 }
 
 void generateIfConditional(std::vector<Operation>& absProgram, const IfConditional* ifConditional)
 {
+  CompoundStatement mainScope;
+  scopes.emplace_back(&mainScope);
+  
   // conditional jump to end of if conditional
   std::string name = generateExpression(absProgram, ifConditional->condition.get());
 
@@ -275,6 +458,8 @@ void generateIfConditional(std::vector<Operation>& absProgram, const IfCondition
 
     absProgram.emplace_back(Operation{Operation::Label, {std::to_string((std::uintptr_t)ifConditional) + "_ElseConditionalEnd"}});
   }
+
+  scopes.pop_back();
 }
 
 void generateSwitchCase(std::vector<Operation>& absProgram, const SwitchCase* switchCase)
@@ -300,6 +485,9 @@ void generateSwitchConditional(std::vector<Operation>& absProgram, const SwitchC
   }
   jump default
   */
+ 
+  CompoundStatement mainScope;
+  scopes.emplace_back(&mainScope);
 
   // this label is never actually jumped to, it just tells the break statement what it's inside of
   absProgram.emplace_back(Operation{Operation::Label, {std::to_string((std::uintptr_t)switchConditional) + "_SwitchConditionalBegin"}});
@@ -354,6 +542,8 @@ void generateSwitchConditional(std::vector<Operation>& absProgram, const SwitchC
   generateStatement(absProgram, switchConditional->body.get());
 
   absProgram.emplace_back(Operation{Operation::Label, {std::to_string((std::uintptr_t)switchConditional) + "_SwitchConditionalEnd"}});
+
+  scopes.pop_back();
 }
 
 void generateDoWhileLoop(std::vector<Operation>& absProgram, const DoWhileLoop* doWhileLoop)
@@ -369,11 +559,34 @@ void generateDoWhileLoop(std::vector<Operation>& absProgram, const DoWhileLoop* 
   absProgram.emplace_back(Operation{Operation::Label, {std::to_string((std::uintptr_t)doWhileLoop) + "_DoWhileLoopEnd"}});
 }
 
+void generateWhileLoop(std::vector<Operation>& absProgram, const WhileLoop* whileLoop)
+{
+  CompoundStatement mainScope;
+  scopes.emplace_back(&mainScope);
+
+  absProgram.emplace_back(Operation{Operation::Jump, {std::to_string((std::uintptr_t)whileLoop) + "_WhileLoopCondition"}});
+
+  absProgram.emplace_back(Operation{Operation::Label, {std::to_string((std::uintptr_t)whileLoop) + "_WhileLoopBegin"}});
+
+  generateStatement(absProgram, whileLoop->body.get());
+
+  absProgram.emplace_back(Operation{Operation::Label, {std::to_string((std::uintptr_t)whileLoop) + "_WhileLoopCondition"}});
+
+  std::string name = generateExpression(absProgram, whileLoop->condition.get());
+
+  absProgram.emplace_back(Operation{Operation::JumpIfNotZero, {std::to_string((std::uintptr_t)whileLoop) + "_WhileLoopBegin", name}});
+
+  absProgram.emplace_back(Operation{Operation::Label, {std::to_string((std::uintptr_t)whileLoop) + "_WhileLoopEnd"}});
+}
+
 void generateForLoop(std::vector<Operation>& absProgram, const ForLoop* forLoop)
 {
+  CompoundStatement mainScope;
+  scopes.emplace_back(&mainScope);
+
   if (forLoop->initialization)
   {
-    generateVariableDeclaration(absProgram, forLoop->initialization.get());
+    generateStatement(absProgram, forLoop->initialization.get());
   }
 
   absProgram.emplace_back(Operation{Operation::Jump, {std::to_string((std::uintptr_t)forLoop) + "_ForLoopCondition"}});
@@ -400,16 +613,35 @@ void generateForLoop(std::vector<Operation>& absProgram, const ForLoop* forLoop)
   }
 
   absProgram.emplace_back(Operation{Operation::Label, {std::to_string((std::uintptr_t)forLoop) + "_ForLoopEnd"}});
+
+  scopes.pop_back();
 }
 
 std::string generateVariableAccess(std::vector<Operation>& absProgram, const VariableAccess* variableAccess)
 {
-  if (vars.contains(variableAccess->identifier))
+  return getIdentifier(variableAccess->identifier);
+}
+
+std::string generateFunctionCall(std::vector<Operation>& absProgram, const FunctionCall* functionCall)
+{
+  if (functions.contains(getIdentifier(functionCall->identifier)))
   {
-    return variableAccess->identifier;
+    if (functionCall->arguments.size() != functions[functionCall->identifier]->parameters.size())
+    {
+      std::cout << "IR generation error: Wrong argument count for function \"" << functionCall->identifier << "\". Expected " << functions[functionCall->identifier]->parameters.size() << ", received " << functionCall->arguments.size() << "\n";
+      throw IRGenError();
+    }
+
+    for (const std::unique_ptr<Expression>& argument: functionCall->arguments)
+    {
+      std::string name = generateExpression(absProgram, argument.get());
+      absProgram.emplace_back(Operation{Operation::AddArg, {name}});
+    }
+    absProgram.emplace_back(Operation{Operation::Call, {std::to_string((uintptr_t)functionCall) + "_ReturnValue", functionCall->identifier}});
+    return functionCall->identifier;
   } else
   {
-    std::cout << "IR generation error: Variable \"" << variableAccess->identifier << "\" is not defined\n";
+    std::cout << "IR generation error: Function \"" << functionCall->identifier << "\" is not defined\n";
     throw IRGenError();
   }
 }

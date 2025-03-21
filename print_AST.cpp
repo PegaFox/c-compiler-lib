@@ -8,12 +8,15 @@ PrintAST::PrintAST(const Program& AST)
 
   for (const std::unique_ptr<ASTnode>& node : AST.nodes)
   {
-    if (node->nodeType == ASTnode::NodeType::FunctionDeclaration)
+    if (node->nodeType == ASTnode::NodeType::Statement)
+    {
+    if (((Statement*)node.get())->statementType == Statement::StatementType::FunctionDeclaration)
     {
       printFunctionDeclaration((FunctionDeclaration*)node.get());
-    } else if (node->nodeType == ASTnode::NodeType::Statement && ((Statement*)node.get())->statementType == Statement::StatementType::VariableDeclaration)
+    } else if (((Statement*)node.get())->statementType == Statement::StatementType::VariableDeclaration)
     {
       printVariableDeclaration((VariableDeclaration*)node.get());
+    }
     }
   }
 
@@ -34,17 +37,28 @@ void PrintAST::printFunctionDeclaration(const FunctionDeclaration* functionDecla
   std::cout << depthPadding() << "Return type: \"" << printDataType(functionDeclaration->returnType.get()) << "\"\n";
   std::cout << depthPadding() << "Identifier: \"" << functionDeclaration->identifier << "\"\n";
 
-  std::cout << depthPadding() << "Body {\n";
+  std::cout << depthPadding() << "Parameters {\n";
 
-  printStatement(functionDeclaration->body.get());
+  for (const std::unique_ptr<VariableDeclaration>& parameter: functionDeclaration->parameters)
+  {
+    printVariableDeclaration(parameter.get());
+  }
 
   std::cout << depthPadding() << "}\n";
+
+  if (functionDeclaration->body)
+  {
+    std::cout << depthPadding() << "Body {\n";
+
+    printStatement(functionDeclaration->body.get());
+
+    std::cout << depthPadding() << "}\n";
+  }
 
   depth--;
   std::cout << depthPadding() << "}\n";
 
   depth--;
-
 }
 
 void PrintAST::printStatement(const Statement* statement)
@@ -63,6 +77,15 @@ void PrintAST::printStatement(const Statement* statement)
     case Statement::StatementType::Break:
       printBreak((Break*)statement);
       break;
+    case Statement::StatementType::Continue:
+      printContinue((Continue*)statement);
+      break;
+    case Statement::StatementType::Label:
+      printLabel((Label*)statement);
+      break;
+    case Statement::StatementType::Goto:
+      printGoto((Goto*)statement);
+      break;
     case Statement::StatementType::VariableDeclaration:
       printVariableDeclaration((VariableDeclaration*)statement);
       break;
@@ -77,6 +100,9 @@ void PrintAST::printStatement(const Statement* statement)
       break;
     case Statement::StatementType::IfConditional:
       printIfConditional((IfConditional*)statement);
+      break;
+    case Statement::StatementType::WhileLoop:
+      printWhileLoop((WhileLoop*)statement);
       break;
     case Statement::StatementType::DoWhileLoop:
       printDoWhileLoop((DoWhileLoop*)statement);
@@ -144,6 +170,29 @@ void PrintAST::printIfConditional(const IfConditional* ifConditional)
     printStatement(ifConditional->elseStatement.get());
     std::cout << depthPadding() << "}\n";
   }
+
+  depth--;
+  std::cout << depthPadding() << "}\n";
+
+  depth--;
+}
+
+void PrintAST::printWhileLoop(const WhileLoop* whileLoop)
+{
+  depth++;
+
+  std::cout << depthPadding() << "While loop {\n";
+  depth++;
+
+  std::cout << depthPadding() << "Condition {\n";
+  printExpression(whileLoop->condition.get());
+  std::cout << depthPadding() << "}\n";
+
+  std::cout << depthPadding() << "Body {\n";
+
+  printStatement(whileLoop->body.get());
+  
+  std::cout << depthPadding() << "}\n";
 
   depth--;
   std::cout << depthPadding() << "}\n";
@@ -229,7 +278,17 @@ void PrintAST::printForLoop(const ForLoop* forLoop)
   depth++;
 
   std::cout << depthPadding() << "Initialization {\n";
-  printVariableDeclaration(forLoop->initialization.get());
+  if (forLoop->initialization)
+  {
+    printStatement(forLoop->initialization.get());
+  } else
+  {
+    depth++;
+
+    std::cout << depthPadding() << "Null Expression\n";
+
+    depth--;
+  }
   std::cout << depthPadding() << "}\n";
 
   std::cout << depthPadding() << "Condition {\n";
@@ -339,6 +398,33 @@ void PrintAST::printBreak(const Break* breakStatement)
   depth--;
 }
 
+void PrintAST::printContinue(const Continue* continueStatement)
+{
+  depth++;
+
+  std::cout << depthPadding() << "Continue\n";
+
+  depth--;
+}
+
+void PrintAST::printLabel(const Label* label)
+{
+  depth++;
+
+  std::cout << depthPadding() << "Label: \"" << label->name << "\"\n";
+
+  depth--;
+}
+
+void PrintAST::printGoto(const Goto* gotoStatement)
+{
+  depth++;
+
+  std::cout << depthPadding() << "Goto: \"" << gotoStatement->label << "\"\n";
+
+  depth--;
+}
+
 void PrintAST::printExpression(const Expression* expression)
 {
   switch (expression->expressionType)
@@ -355,6 +441,9 @@ void PrintAST::printExpression(const Expression* expression)
       break;
     case Expression::ExpressionType::VariableAccess:
       printVariableAccess((VariableAccess*)expression);
+      break;
+    case Expression::ExpressionType::FunctionCall:
+      printFunctionCall((FunctionCall*)expression);
       break;
     case Expression::ExpressionType::SubExpression:
       printSubExpression((SubExpression*)expression);
@@ -397,6 +486,29 @@ void PrintAST::printVariableAccess(const VariableAccess* variableAccess)
   std::cout << depthPadding() << "Identifier: \"" << variableAccess->identifier << "\"\n";
   depth--;
   std::cout << depthPadding() << "}\n";
+  depth--;
+}
+
+void PrintAST::printFunctionCall(const FunctionCall* functionCall)
+{
+  depth++;
+
+  std::cout << depthPadding() << "Function call {\n";
+  depth++;
+  std::cout << depthPadding() << "Identifier: \"" << functionCall->identifier << "\"\n";
+
+  std::cout << depthPadding() << "Parameters {\n";
+
+  for (const std::unique_ptr<Expression>& argument: functionCall->arguments)
+  {
+    printExpression(argument.get());
+  }
+
+  std::cout << depthPadding() << "}\n";
+
+  depth--;
+  std::cout << depthPadding() << "}\n";
+
   depth--;
 }
 
@@ -555,11 +667,21 @@ void PrintAST::printTernaryOperator(const TernaryOperator* ternary)
 
   std::cout << depthPadding() << "Ternary operator {\n";
 
+  depth++;
+
+  std::cout << depthPadding() << "Condition {\n";
   printExpression(ternary->condition.get());
+  std::cout << depthPadding() << "}\n";
 
+  std::cout << depthPadding() << "True Operand {\n";
   printExpression(ternary->trueOperand.get());
+  std::cout << depthPadding() << "}\n";
 
+  std::cout << depthPadding() << "False Operand {\n";
   printExpression(ternary->falseOperand.get());
+  std::cout << depthPadding() << "}\n";
+
+  depth--;
 
   std::cout << depthPadding() << "}\n";
 

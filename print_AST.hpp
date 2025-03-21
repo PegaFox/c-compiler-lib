@@ -21,7 +21,11 @@ class PrintAST
 
     void printVariableDeclaration(const VariableDeclaration* var);
 
+    void printFunctionCall(const FunctionCall* functionCall);
+
     void printIfConditional(const IfConditional* ifConditional);
+
+    void printWhileLoop(const WhileLoop* whileLoop);
 
     void printSwitchCase(const SwitchCase* switchCase);
 
@@ -38,6 +42,12 @@ class PrintAST
     void printReturn(const Return* returnVal);
 
     void printBreak(const Break* breakStatement);
+  
+    void printContinue(const Continue* continueStatement);
+
+    void printLabel(const Label* label);
+
+    void printGoto(const Goto* gotoStatement);
 
     void printExpression(const Expression* expression);
 

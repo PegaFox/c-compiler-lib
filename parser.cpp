@@ -46,7 +46,7 @@ Expression::Expression()
 
 FunctionDeclaration::FunctionDeclaration()
 {
-  nodeType = NodeType::FunctionDeclaration;
+  statementType = StatementType::FunctionDeclaration;
 }
 
 Label::Label()
@@ -247,10 +247,42 @@ ASTiterator& ASTiterator::operator++()
                 goto topOfConditionals;
               }
               break;
-            } case Expression::ExpressionType::FunctionCall:
+            } case Expression::ExpressionType::FunctionCall: {
+              FunctionCall* functionCall = (FunctionCall*)statement;
 
+              if (firstTime(functionCall))
+              {
+                if (functionCall->arguments.empty())
+                {
+                 ptr = path.back().first;
+                 goto topOfConditionals;
+               } else
+               {
+                  path.push_back({functionCall, &(functionCall->arguments[0])});
+                  ptr = functionCall->arguments[0].get();
+                  break;
+                }
+              }
+
+              for (std::vector<std::unique_ptr<Expression>>::iterator node = functionCall->arguments.begin(); node != functionCall->arguments.end(); node++)
+              {
+                if (&(*node) == path.back().second)
+                {
+                  if (node+1 == functionCall->arguments.end())
+                  {
+                    path.pop_back();
+                    ptr = path.back().first;
+                    goto topOfConditionals;
+                  } else
+                  {
+                    path.back().second = &(*(node+1));
+                    ptr = (node+1)->get();
+                  }
+                  break;
+                }
+              }
               break;
-            case Expression::ExpressionType::VariableAccess:
+            } case Expression::ExpressionType::VariableAccess:
               ptr = path.back().first;
               goto topOfConditionals;
               break;
@@ -380,7 +412,65 @@ ASTiterator& ASTiterator::operator++()
             goto topOfConditionals;
           }
           break;
-        } case Statement::StatementType::IfConditional: {
+        } case Statement::StatementType::FunctionDeclaration: {
+          FunctionDeclaration* functionDeclaration = (FunctionDeclaration*)ptr;
+          if (firstTime(functionDeclaration))
+          {
+            path.push_back({functionDeclaration, &functionDeclaration->returnType});
+            ptr = functionDeclaration->returnType.get();
+          } else if (path.back().second == &functionDeclaration->returnType)
+          {
+            if (functionDeclaration->parameters.empty())
+            {
+              if (functionDeclaration->body)
+              {
+                path.back().second = &functionDeclaration->body;
+                ptr = functionDeclaration->body.get();
+              } else
+              {
+                path.pop_back();
+                ptr = path.back().first;
+                goto topOfConditionals;
+              }
+            } else
+            {
+              path.back().second = &functionDeclaration->parameters[0];
+              ptr = functionDeclaration->parameters[0].get();
+            }
+          } else if (path.back().second == &functionDeclaration->body)
+          {
+            path.pop_back();
+            ptr = path.back().first;
+            goto topOfConditionals;
+          } else
+          {
+            for (std::vector<std::unique_ptr<VariableDeclaration>>::iterator node = functionDeclaration->parameters.begin(); node != functionDeclaration->parameters.end(); node++)
+            {
+              if (path.back().second == &(*node))
+              {
+                if (node+1 == functionDeclaration->parameters.end())
+                {
+                  if (functionDeclaration->body)
+                  {
+                    path.back().second = &functionDeclaration->body;
+                    ptr = functionDeclaration->body.get();
+                  } else
+                  {
+                    path.pop_back();
+                    ptr = path.back().first;
+                    goto topOfConditionals;
+                  }
+                } else
+                {
+                  path.back().second = &(*(node+1));
+                  ptr = (node+1)->get();
+                }
+                break;
+              }
+            }
+          }
+      break;
+    } case Statement::StatementType::IfConditional: {
           IfConditional* ifConditional = (IfConditional*)statement;
           if (firstTime(ifConditional))
           {
@@ -494,23 +584,6 @@ ASTiterator& ASTiterator::operator++()
             goto topOfConditionals;
           }
           break;
-      }
-      break;
-    } case ASTnode::NodeType::FunctionDeclaration: {
-      FunctionDeclaration* functionDeclaration = (FunctionDeclaration*)ptr;
-      if (firstTime(functionDeclaration))
-      {
-        path.push_back({functionDeclaration, &functionDeclaration->returnType});
-        ptr = functionDeclaration->returnType.get();
-      } else if (path.back().second == &functionDeclaration->returnType)
-      {
-        path.back().second = &functionDeclaration->body;
-        ptr = functionDeclaration->body.get();
-      } else if (path.back().second == &functionDeclaration->body)
-      {
-        path.pop_back();
-        ptr = path.back().first;
-        goto topOfConditionals;
       }
       break;
     } case ASTnode::NodeType::Program: {
@@ -688,6 +761,8 @@ Program parse(std::list<Token> code)
           if (i->data == "=")
           {
             program.nodes.emplace_back(parseVariableDeclaration(code));
+            parseExpect(code.front().data, ";");
+            code.pop_front();
             i = code.end();
           }
           break;
@@ -695,6 +770,8 @@ Program parse(std::list<Token> code)
           if (i->data == ";")
           {
             program.nodes.emplace_back(parseVariableDeclaration(code));
+            parseExpect(code.front().data, ";");
+            code.pop_front();
             i = code.end();
           }
           break;
@@ -721,19 +798,30 @@ FunctionDeclaration* parseFunctionDeclaration(std::list<Token>& code)
   parseExpect(code.front().data, "(");
   code.pop_front();
 
-  if (code.front().data != ")")
+  if (code.front().data == "void")
   {
-    parseExpect(code.front().data, "void");
     code.pop_front();
   }
 
-  parseExpect(code.front().data, ")");
+  while (code.front().data != ")")
+  {
+    functionDeclaration->parameters.emplace_back(std::unique_ptr<VariableDeclaration>(parseVariableDeclaration(code)));
+
+    if (code.front().data == ",")
+    {
+      code.pop_front();
+    }
+  }
+
   code.pop_front();
 
   parseExpect(code.front().data, {"{", ";"});
   if (code.front().data == "{")
   {
     functionDeclaration->body = std::unique_ptr<CompoundStatement>(parseCompoundStatement(code));
+  } else
+  {
+    code.pop_front();
   }
 
   return functionDeclaration;
@@ -779,7 +867,6 @@ Statement* parseStatement(std::list<Token>& code, bool canParseVariableDeclarati
     {
       statement = parseForLoop(code);
     } else if (
-      canParseVariableDeclarations && (
       code.front().data == "signed" ||
       code.front().data == "unsigned" ||
       code.front().data == "static" ||
@@ -789,9 +876,20 @@ Statement* parseStatement(std::list<Token>& code, bool canParseVariableDeclarati
       code.front().data == "int" ||
       code.front().data == "long" ||
       code.front().data == "float" ||
-      code.front().data == "double"))
+      code.front().data == "double")
     {
-      statement = parseVariableDeclaration(code);
+      if ((++(++code.begin()))->data != "(")
+      {
+        if (canParseVariableDeclarations)
+        {
+          statement = parseVariableDeclaration(code);
+          parseExpect(code.front().data, ";");
+          code.pop_front();
+        }
+      } else
+      {
+        statement = parseFunctionDeclaration(code);
+      }
     }
   } else if (code.front().type == Token::Identifier && (++code.begin())->data == ":")
   {
@@ -920,14 +1018,17 @@ FunctionCall* parseFunctionCall(std::list<Token>& code)
 
   parseExpect(code.front().data, "(");
   code.pop_front();
-
+  
   while (code.front().data != ")")
   {
-    code.pop_front();
-  }
-  code.pop_front();
+    functionCall->arguments.emplace_back(std::unique_ptr<Expression>(parseExpression(code)));
 
-  parseExpect(code.front().data, ";");
+    if (code.front().data == ",")
+    {
+      code.pop_front();
+    }
+  }
+  
   code.pop_front();
 
   return functionCall;
@@ -1063,8 +1164,18 @@ ForLoop* parseForLoop(std::list<Token>& code)
   parseExpect(code.front().data, "(");
   code.pop_front();
 
-  // parseVariableDeclaration() removes semicolon
-  forLoop->initialization = std::unique_ptr<VariableDeclaration>(parseVariableDeclaration(code));
+  if (code.front().data != ";")
+  {
+    if (code.front().type == Token::Keyword)
+    {
+      forLoop->initialization = std::unique_ptr<VariableDeclaration>(parseVariableDeclaration(code));
+    } else
+    {
+      forLoop->initialization = std::unique_ptr<Expression>(parseExpression(code));
+    }
+  }
+  code.pop_front();
+  
 
   forLoop->condition = std::unique_ptr<Expression>(parseExpression(code));
 
@@ -1100,7 +1211,7 @@ Expression* parseExpression(std::list<Token>& code, bool allowNullExpression)
     expression = parseConstant(code);
   } else if (code.front().type == Token::Identifier)
   {
-    if ((code.begin()++)->data == "(")
+    if ((++code.begin())->data == "(")
     {
       expression = parseFunctionCall(code);
     } else
@@ -1816,8 +1927,8 @@ VariableDeclaration* parseVariableDeclaration(std::list<Token>& code)
     variableDeclaration->value = std::unique_ptr<Expression>(parseExpression(code, false));
   }
 
-  parseExpect(code.front().data, ";");
-  code.pop_front();
+  //parseExpect(code.front().data, {";", ",", ")"});
+  //code.pop_front();
 
   return variableDeclaration;
 }

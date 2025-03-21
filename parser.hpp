@@ -28,7 +28,6 @@ struct ASTnode
   {
     Undefined, // if a node has this type, something went wrong
     Statement,
-    FunctionDeclaration,
     Program,
     DataType
   } nodeType;
@@ -114,6 +113,7 @@ struct Statement : public ASTnode
     SwitchCase,
     SwitchDefault,
     VariableDeclaration,
+    FunctionDeclaration,
     IfConditional,
     SwitchConditional,
     DoWhileLoop,
@@ -150,11 +150,15 @@ struct Expression : public Statement
   Expression();
 };
 
-struct FunctionDeclaration : public ASTnode
+struct VariableDeclaration;
+
+struct FunctionDeclaration : public Statement
 {
   std::unique_ptr<DataType> returnType;
 
   std::string identifier;
+
+  std::vector<std::unique_ptr<VariableDeclaration>> parameters;
 
   std::unique_ptr<CompoundStatement> body;
 
@@ -256,7 +260,7 @@ struct WhileLoop: public Statement
 
 struct ForLoop: public Statement
 {
-  std::unique_ptr<VariableDeclaration> initialization;
+  std::unique_ptr<Statement> initialization;
 
   std::unique_ptr<Expression> condition;
 
