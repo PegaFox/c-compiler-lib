@@ -1,8 +1,13 @@
 #include "parser.hpp"
 
 #include <iostream>
+#include <map>
+#include <set>
 
 extern bool optimize;
+
+std::map<std::string, ENUM_TYPE> enums;
+std::set<std::string> enumTypes;
 
 Program::Program()
 {
@@ -934,6 +939,50 @@ CompoundStatement* parseCompoundStatement(std::list<Token>& code)
   code.pop_front();
 
   return compoundStatement;
+}
+
+void parseEnum(std::list<Token>& code)
+{
+  parseExpect(code.front().data, "enum");
+  code.pop_front();
+
+  parseExpect(code.front(), Token::Identifier);
+  enumTypes.emplace(code.front());
+  code.pop_front();
+
+  parseExpect(code.front().data, "{");
+  code.pop_front();
+
+  ENUM_TYPE value = 0;
+  while (code.front().data != "}")
+  {
+    parseExpect(code.front(), Token::Identifier);
+    if (enums.contains(code.front().data))
+    {
+      std::cout << "Parse error: Enum value \"" << code.front().data << "\" already declared\n";
+      throw ParseError();
+    }
+
+    std::string name = code.front().data;
+    code.pop_front();
+
+    if (code.front().data == "=")
+    {
+      code.pop_front();
+
+      value = std::stoi(code.front().data);
+      code.pop_front();
+    }
+    
+    enums[name] = value;
+
+    value++;
+
+    if (code.front().data == ",")
+    {
+      code.pop_front();
+    }
+  }
 }
 
 Label* parseLabel(std::list<Token>& code)

@@ -8,6 +8,7 @@
 
 #include "lexer.hpp"
 
+typedef uint32_t ENUM_TYPE;
 typedef int8_t PFCC_SIGNED_CHAR;
 typedef uint8_t PFCC_UNSIGNED_CHAR;
 typedef int16_t PFCC_SIGNED_SHORT;
@@ -497,6 +498,8 @@ FunctionDeclaration* parseFunctionDeclaration(std::list<Token>& code);
 Statement* parseStatement(std::list<Token>& code, bool canParseVariableDeclarations = false);
 
 CompoundStatement* parseCompoundStatement(std::list<Token>& code);
+
+void parseEnum(std::list<Token>& code);
 
 Label* parseLabel(std::list<Token>& code);
 

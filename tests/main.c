@@ -1,11 +1,12 @@
-int foo()
-{
-  return 0;
-}
+
 
 int main()
 {
-  int foo = 0;
+  enum foo {
+    One = 2,
+    Two = 1,
+    Three
+  }; 
 
-  return foo();
+  return 0;
 }
