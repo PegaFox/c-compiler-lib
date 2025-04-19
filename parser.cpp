@@ -947,7 +947,7 @@ void parseEnum(std::list<Token>& code)
   code.pop_front();
 
   parseExpect(code.front(), Token::Identifier);
-  enumTypes.emplace(code.front());
+  enumTypes.emplace(code.front().data);
   code.pop_front();
 
   parseExpect(code.front().data, "{");
