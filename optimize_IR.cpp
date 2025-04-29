@@ -44,6 +44,19 @@ bool resolveConstantOperations(std::vector<Operation> &absCode)
         break;
       case Operation::Dereference:
       case Operation::SetAddition:
+        if (i->operands[1].find_first_not_of("0123456789") == std::string::npos && i->operands[2].find_first_not_of("0123456789") == std::string::npos)
+        {
+          vars[i->operands[0]] = std::to_string(std::stoi(i->operands[1]) + std::stoi(i->operands[2]));
+        } else if (vars.contains(i->operands[1]))
+        {
+          i->operands[1] = vars[i->operands[1]];
+          changed = true;
+        } else if (vars.contains(i->operands[2]))
+        {
+          i->operands[2] = vars[i->operands[2]];
+          changed = true;
+        }
+        break;
       case Operation::SetSubtraction:
       case Operation::SetMultiplication:
       case Operation::SetDivision:
@@ -52,6 +65,19 @@ bool resolveConstantOperations(std::vector<Operation> &absCode)
       case Operation::SetBitwiseOR:
       case Operation::SetBitwiseXOR:
       case Operation::SetLeftShift:
+        if (i->operands[1].find_first_not_of("0123456789") == std::string::npos && i->operands[2].find_first_not_of("0123456789") == std::string::npos)
+        {
+          vars[i->operands[0]] = std::to_string(std::stoi(i->operands[1]) << std::stoi(i->operands[2]));
+        } else if (vars.contains(i->operands[1]))
+        {
+          i->operands[1] = vars[i->operands[1]];
+          changed = true;
+        } else if (vars.contains(i->operands[2]))
+        {
+          i->operands[2] = vars[i->operands[2]];
+          changed = true;
+        }
+        break;
       case Operation::SetRightShift:
       case Operation::SetLogicalAND:
       case Operation::SetLogicalOR:
@@ -158,14 +184,14 @@ bool trimInaccessibleCode(std::vector<Operation> &absCode)
     }
   }
 
-  while (!identifiers.empty() && identifiers.begin()->second != 2)
+  while (!identifiers.empty() && (identifiers.begin()->second != 2 || identifiers.begin()->first == "main_Function"))
   {
     identifiers.erase(identifiers.begin());
   }
 
   for (std::map<std::string, uint8_t>::iterator l = identifiers.begin(); l != identifiers.end(); l++)
   {
-    if (l->second != 2)
+    if (l->second != 2 || l->first == "main_Function")
     {
       identifiers.erase(l--);
     }
