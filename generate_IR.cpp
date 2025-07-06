@@ -12,7 +12,7 @@ extern bool optimize;
 
 std::map<std::string, const FunctionDeclaration*> functions;
 
-std::map<std::string, std::unique_ptr<DataType>> vars;
+std::map<std::string, const VariableDeclaration*> vars;
 
 std::vector<const CompoundStatement*> scopes;
 
@@ -45,9 +45,9 @@ DataType* copyDataType(const DataType* data)
   return result;
 }
 
-std::map<std::string, std::unique_ptr<DataType>>::iterator getIdentifier(const std::string& identifier)
+std::map<std::string, const VariableDeclaration*>::iterator getIdentifier(const std::string& identifier)
 {
-  std::map<std::string, std::unique_ptr<DataType>>::iterator parentVar = vars.end();
+  std::map<std::string, const VariableDeclaration*>::iterator parentVar = vars.end();
   for (std::vector<const CompoundStatement*>::const_reverse_iterator scope = scopes.crbegin(); scope != scopes.crend(); scope++)
   {
     if (vars.contains("Scope_" + std::to_string((std::uintptr_t)*scope) + "_" + identifier))
@@ -111,6 +111,12 @@ void generateFunctionDeclaration(std::vector<Operation>& absProgram, const Funct
   } else
   {
     vars[name];
+  }
+
+  if (functionDeclaration->returnType->linkage == DataType::Linkage::Internal && !scopes.empty())
+  {
+    std::cout << "IR generation error: Local function declarations cannot be static\n";
+    throw IRGenError();
   }
 
   if (functionDeclaration->body)
@@ -437,19 +443,20 @@ void generateVariableDeclaration(std::vector<Operation>& absProgram, const Varia
     name = "Scope_" + std::to_string((std::uintptr_t)scopes.back()) + "_" + name;
   }
 
-  if (vars.contains(name))
-  {
-    std::cout << "IR generation error: Variable \"" << variableDeclaration->identifier << "\" already declared\n";
-    throw IRGenError();
-  }
-
   if (functions.contains(name))
   {
     std::cout << "IR generation error: Identifier \"" << variableDeclaration->identifier << "\" is already defined\n";
     throw IRGenError();
   }
+  
+  if (variableDeclaration->value && vars.contains(name) && vars[name]->value)
+  {
+    std::cout << "IR generation error: Variable \"" << variableDeclaration->identifier << "\" is already defined\n";
+    throw IRGenError();
+  }
 
-  vars[name].reset(copyDataType(variableDeclaration->dataType.get()));
+  //vars[name].reset(copyDataType(variableDeclaration->dataType.get()));
+  vars[name] = variableDeclaration;
   
   if (variableDeclaration->value)
   {
@@ -649,7 +656,7 @@ void generateForLoop(std::vector<Operation>& absProgram, const ForLoop* forLoop)
 
 std::string generateVariableAccess(std::vector<Operation>& absProgram, const VariableAccess* variableAccess)
 {
-  std::map<std::string, std::unique_ptr<DataType>>::iterator name = getIdentifier(variableAccess->identifier);
+  std::map<std::string, const VariableDeclaration*>::iterator name = getIdentifier(variableAccess->identifier);
   if (name->second)
   {
     return name->first;

@@ -46,7 +46,7 @@ struct Operation
 
 DataType* copyDataType(const DataType* data);
 
-std::map<std::string, std::unique_ptr<DataType>>::iterator getIdentifier(const std::string& identifier);
+std::map<std::string, const VariableDeclaration*>::iterator getIdentifier(const std::string& identifier);
 
 std::vector<Operation> generateIR(const Program& AST);
 

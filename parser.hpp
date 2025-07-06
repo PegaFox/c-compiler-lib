@@ -52,6 +52,13 @@ struct DataType : public ASTnode
     Struct
   } generalType;
 
+  enum class Linkage
+  {
+    None,
+    Internal,
+    External
+  } linkage;
+
   bool isConst = false;
   bool isVolatile = false;
 
@@ -540,7 +547,7 @@ Constant* parseConstant(std::list<Token>& code);
 
 VariableAccess* parseVariableAccess(std::list<Token>& code);
 
-DataType* parseDataType(std::list<Token>& code);
+DataType* parseDataType(std::list<Token>& code, DataType::Linkage defaultLinkage = DataType::Linkage::External);
 
 PrimitiveType* parsePrimitiveType(std::list<Token>& code);
 

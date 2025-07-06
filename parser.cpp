@@ -870,6 +870,7 @@ Statement* parseStatement(std::list<Token>& code, bool canParseVariableDeclarati
       code.front().data == "signed" ||
       code.front().data == "unsigned" ||
       code.front().data == "static" ||
+      code.front().data == "extern" ||
       code.front().data == "const" ||
       code.front().data == "char" ||
       code.front().data == "short" ||
@@ -878,17 +879,22 @@ Statement* parseStatement(std::list<Token>& code, bool canParseVariableDeclarati
       code.front().data == "float" ||
       code.front().data == "double")
     {
-      if ((++(++code.begin()))->data != "(")
+      for (const Token& token: code)
       {
-        if (canParseVariableDeclarations)
+        if (token.data == "=" || token.data == ";")
         {
-          statement = parseVariableDeclaration(code);
-          parseExpect(code.front().data, ";");
-          code.pop_front();
+          if (canParseVariableDeclarations)
+          {
+            statement = parseVariableDeclaration(code);
+            parseExpect(code.front().data, ";");
+            code.pop_front();
+          }
+          break;
+        } else if (token.data == "(")
+        {
+          statement = parseFunctionDeclaration(code);
+          break;
         }
-      } else
-      {
-        statement = parseFunctionDeclaration(code);
       }
     }
   } else if (code.front().type == Token::Identifier && (++code.begin())->data == ":")
@@ -1735,15 +1741,27 @@ VariableAccess* parseVariableAccess(std::list<Token>& code)
   return variableAccess;
 }
 
-DataType* parseDataType(std::list<Token>& code)
+DataType* parseDataType(std::list<Token>& code, DataType::Linkage defaultLinkage)
 {
   DataType* dataType = nullptr;
 
   PrimitiveType* primitiveType = new PrimitiveType;
 
+  primitiveType->linkage = defaultLinkage;
+
   if (code.front().data == "volatile")
   {
     primitiveType->isVolatile = true;
+    code.pop_front();
+  }
+
+  if (code.front().data == "static")
+  {
+    primitiveType->linkage = DataType::Linkage::Internal;
+    code.pop_front();
+  } else if (code.front().data == "extern")
+  {
+    primitiveType->linkage = DataType::Linkage::External;
     code.pop_front();
   }
 
@@ -1873,6 +1891,17 @@ DataType* parseDataType(std::list<Token>& code)
 
       break;
   }
+  
+  if (code.front().data == "static")
+  {
+    primitiveType->linkage = DataType::Linkage::Internal;
+    code.pop_front();
+  } else if (code.front().data == "extern")
+  {
+    primitiveType->linkage = DataType::Linkage::External;
+    code.pop_front();
+  }
+
   dataType = primitiveType;
 
   while (code.front().data == "*")

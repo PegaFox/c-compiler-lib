@@ -1,11 +1,9 @@
-int foo()
-{
-  return 0;
-}
 
 int main()
 {
-  int foo = 0;
+  int foo = 42;
 
-  return foo();
+  int* bar = &foo;
+
+  return *bar;
 }
