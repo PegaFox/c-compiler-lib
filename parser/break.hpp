@@ -6,6 +6,8 @@
 struct Break: public Statement
 {
   Break();
+
+  static Break* parse(std::list<Token>& code);
 };
 
 #endif // PF_PARSER_BREAK_HPP

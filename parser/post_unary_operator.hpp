@@ -17,6 +17,8 @@ struct PostUnaryOperator: public Expression
   std::unique_ptr<Expression> operand;
 
   PostUnaryOperator();
+
+  static PostUnaryOperator* parse(std::list<Token>& code, Expression* operand);
 };
 
 #endif // PF_PARSER_POST_UNAR_OOPERATOR_HPP

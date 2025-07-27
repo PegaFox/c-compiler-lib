@@ -12,6 +12,8 @@ struct SwitchConditional: public Statement
   std::unique_ptr<Statement> body;
 
   SwitchConditional();
+
+  static SwitchConditional* parse(std::list<Token>& code);
 };
 
 #endif // PF_PARSER_SWITCH_CONDITIONAL_HPP

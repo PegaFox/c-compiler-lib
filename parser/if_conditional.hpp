@@ -15,6 +15,8 @@ struct IfConditional: public Statement
   std::unique_ptr<Statement> elseStatement;
 
   IfConditional();
+
+  static IfConditional* parse(std::list<Token>& code);
 };
 
 #endif // PF_PARSER_IF_CONDITIONAL_HPP

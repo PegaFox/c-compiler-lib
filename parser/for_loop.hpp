@@ -16,6 +16,8 @@ struct ForLoop: public Statement
   std::unique_ptr<Statement> body;
 
   ForLoop();
+
+  static ForLoop* parse(std::list<Token>& code);
 };
 
 #endif // PF_PARSER_FOR_LOOP_HPP

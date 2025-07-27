@@ -14,6 +14,8 @@ struct TernaryOperator: public Expression
   std::unique_ptr<Expression> falseOperand;
 
   TernaryOperator();
+
+  static Expression* parse(std::list<Token>& code, Expression* condition);
 };
 
 #endif // PF_PARSER_TERNARY_OPERATOR_HPP

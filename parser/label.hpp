@@ -10,6 +10,8 @@ struct Label: public Statement
   std::string name;
 
   Label();
+
+  static Label* parse(std::list<Token>& code);
 };
 
 #endif // PF_PARSER_LABEL_HPP

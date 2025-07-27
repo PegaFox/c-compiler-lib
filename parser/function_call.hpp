@@ -13,6 +13,8 @@ struct FunctionCall: public Expression
   std::vector<std::unique_ptr<Expression>> arguments;
 
   FunctionCall();
+
+  static FunctionCall* parse(std::list<Token>& code);
 };
 
 #endif // PF_PARSER_FUNCTION_CALL_HPP

@@ -24,6 +24,8 @@ struct PrimitiveType: public DataType
   } type;
 
   PrimitiveType();
+
+  static PrimitiveType* parse(std::list<Token>& code);
 };
 
 #endif // PF_PARSER_PRIMITIVE_TYPE_HPP

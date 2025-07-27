@@ -9,6 +9,8 @@ struct TypeCast: public PreUnaryOperator
   std::unique_ptr<DataType> dataType;
 
   TypeCast();
+
+  static TypeCast* parse(std::list<Token>& code);
 };
 
 #endif // PF_PARSER_TYPE_CAST_HPP

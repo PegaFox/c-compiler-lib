@@ -12,6 +12,8 @@ struct DoWhileLoop: public Statement
   std::unique_ptr<Statement> body;
 
   DoWhileLoop();
+
+  static DoWhileLoop* parse(std::list<Token>& code);
 };
 
 #endif // PF_PARSER_DO_WHIL_LLOOP_HPP

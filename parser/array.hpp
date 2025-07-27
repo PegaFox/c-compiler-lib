@@ -12,6 +12,8 @@ struct Array: public DataType
   std::unique_ptr<Expression> size;
 
   Array();
+
+  static Array* parse(std::list<Token>& code);
 };
 
 #endif // PF_PARSER_ARRAY_HPP

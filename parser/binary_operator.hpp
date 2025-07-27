@@ -81,6 +81,8 @@ struct BinaryOperator: public Expression
   std::unique_ptr<Expression> rightOperand;
 
   BinaryOperator();
+
+  static Expression* parse(std::list<Token>& code, Expression* leftOperand);
 };
 
 #endif // PF_PARSER_BINARY_OPERATOR_HPP

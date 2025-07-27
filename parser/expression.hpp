@@ -20,6 +20,8 @@ struct Expression: public Statement
   } expressionType;
 
   Expression();
+
+  static Expression* parse(std::list<Token>& code, bool allowNullExpression = true);
 };
 
 #endif // PF_PARSER_EXPRESSION_HPP

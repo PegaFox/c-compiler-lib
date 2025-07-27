@@ -10,6 +10,8 @@ struct VariableAccess: public Expression
   std::string identifier;
 
   VariableAccess();
+
+  static VariableAccess* parse(std::list<Token>& code);
 };
 
 #endif // PF_PARSER_VARIABLE_ACCESS_HPP

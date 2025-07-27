@@ -11,6 +11,8 @@ struct CompoundStatement: public Statement
   std::vector<std::unique_ptr<Statement>> body;
 
   CompoundStatement();
+
+  static CompoundStatement* parse(std::list<Token>& code);
 };
 
 #endif // PF_PARSER_COMPOUND_STATEMENT_HPP

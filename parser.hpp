@@ -498,6 +498,9 @@ int parseExpect(const Token& testSubject, const Token::Type& testCase);
 
 int parseExpect(const Token& testSubject, const std::initializer_list<Token::Type>& testCases);
 
+// not bound to a specific struct
+void parseEnum(std::list<Token>& code);
+
 Program parse(std::list<Token> code);
 
 FunctionDeclaration* parseFunctionDeclaration(std::list<Token>& code);
@@ -506,6 +509,7 @@ Statement* parseStatement(std::list<Token>& code, bool canParseVariableDeclarati
 
 CompoundStatement* parseCompoundStatement(std::list<Token>& code);
 
+// not bound to a specific struct
 void parseEnum(std::list<Token>& code);
 
 Label* parseLabel(std::list<Token>& code);

@@ -10,6 +10,8 @@ struct Return: public Statement
   std::unique_ptr<Expression> data;
 
   Return(); 
+
+  static Return* parse(std::list<Token>& code);
 };
 
 #endif // PF_PARSER_RETURN_HPP

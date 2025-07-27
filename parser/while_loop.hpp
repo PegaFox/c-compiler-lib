@@ -12,6 +12,8 @@ struct WhileLoop: public Statement
   std::unique_ptr<Statement> body;
 
   WhileLoop();
+
+  static WhileLoop* parse(std::list<Token>& code);
 };
 
 #endif // PF_PARSER_WHILE_LOOP_HPP

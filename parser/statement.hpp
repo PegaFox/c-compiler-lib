@@ -1,6 +1,9 @@
 #ifndef PF_PARSER_STATEMENT_HPP
 #define PF_PARSER_STATEMENT_HPP
 
+#include <list>
+
+#include "../lexer.hpp"
 #include "AST_node.hpp"
 
 struct Statement: public ASTnode
@@ -27,6 +30,8 @@ struct Statement: public ASTnode
   } statementType;
 
   Statement();
+
+  static Statement* parse(std::list<Token>& code, bool canParseVariableDeclarations = false);
 };
 
 #endif // PF_PARSER_STATEMENT_HPP

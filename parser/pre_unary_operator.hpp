@@ -23,6 +23,8 @@ struct PreUnaryOperator: public Expression
   std::unique_ptr<Expression> operand;
 
   PreUnaryOperator();
+  
+  static Expression* parse(std::list<Token>& code);
 };
 
 #endif // PF_PARSER_PRE_UNAR_OOPERATOR_HPP

@@ -15,6 +15,8 @@ struct VariableDeclaration: public Statement
   std::unique_ptr<Expression> value;
 
   VariableDeclaration();
+
+  static VariableDeclaration* parse(std::list<Token>& code);
 };
 
 #endif // PF_PARSER_VARIABLE_DECLARATION_HPP
