@@ -755,12 +755,17 @@ Program parse(std::list<Token> code)
       switch (i->type)
       {
         case Token::Identifier:
-          if ((++i)->data == "(")
+          if ((++i--)->data == "(")
           {
             program.nodes.emplace_back(parseFunctionDeclaration(code));
             i = code.end();
+          } else if (i->data == "enum")
+          {
+            parseEnum(code);
+            parseExpect(code.front().data, ";");
+            code.pop_front();
+            i = code.end();
           }
-          i--;
           break;
         case Token::Operator:
           if (i->data == "=")
@@ -989,6 +994,7 @@ void parseEnum(std::list<Token>& code)
       code.pop_front();
     }
   }
+  code.pop_front();
 }
 
 Label* parseLabel(std::list<Token>& code)

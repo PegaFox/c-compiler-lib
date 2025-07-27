@@ -1,0 +1,9 @@
+#ifndef PF_PARSER_PARSE_ERROR_HPP
+#define PF_PARSER_PARSE_ERROR_HPP
+
+struct ParseError
+{
+
+};
+
+#endif // PF_PARSER_PARSE_ERROR_HPP

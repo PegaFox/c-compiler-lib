@@ -23,7 +23,7 @@ int handleArgs(int argc, char* argv[])
     {
       arg++;
       outputFilename = argv[arg];
-    } else if (argStr.substr(0, 2) == "-I")
+    } else if (argStr.substr(0, 2) == "-I" && argStr.size() > 2)
     {
       includeDirs.push_back(argStr.substr(2));
       if (includeDirs.back().back() != '/')

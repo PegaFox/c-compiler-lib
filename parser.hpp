@@ -34,7 +34,7 @@ struct ASTnode
   } nodeType;
 };
 
-struct Program : public ASTnode
+struct Program: public ASTnode
 {
   std::vector<std::unique_ptr<ASTnode>> nodes;
 
@@ -42,7 +42,7 @@ struct Program : public ASTnode
 };
 
 // generic type struct
-struct DataType : public ASTnode
+struct DataType: public ASTnode
 {
   enum class GeneralType
   {
@@ -66,7 +66,7 @@ struct DataType : public ASTnode
   DataType();
 };
 
-struct PrimitiveType : public DataType
+struct PrimitiveType: public DataType
 {
   enum class Type
   {
@@ -91,14 +91,14 @@ struct PrimitiveType : public DataType
 
 struct Expression;
 
-struct Pointer : public DataType
+struct Pointer: public DataType
 {
   std::unique_ptr<DataType> dataType;
 
   Pointer();
 };
 
-struct Array : public DataType
+struct Array: public DataType
 {
   std::unique_ptr<DataType> dataType;
   std::unique_ptr<Expression> size;
@@ -106,7 +106,7 @@ struct Array : public DataType
   Array();
 };
 
-struct Statement : public ASTnode
+struct Statement: public ASTnode
 {
   enum class StatementType
   {
@@ -139,7 +139,7 @@ struct CompoundStatement: public Statement
   CompoundStatement();
 };
 
-struct Expression : public Statement
+struct Expression: public Statement
 {
   enum class ExpressionType
   {
@@ -160,7 +160,7 @@ struct Expression : public Statement
 
 struct VariableDeclaration;
 
-struct FunctionDeclaration : public Statement
+struct FunctionDeclaration: public Statement
 {
   std::unique_ptr<DataType> returnType;
 
@@ -180,7 +180,7 @@ struct Label: public Statement
   Label();
 };
 
-struct Return : public Statement
+struct Return: public Statement
 {
   std::unique_ptr<Expression> data;
 
@@ -216,7 +216,7 @@ struct SwitchDefault: public Statement
   SwitchDefault();
 };
 
-struct VariableDeclaration : public Statement
+struct VariableDeclaration: public Statement
 {
   std::unique_ptr<DataType> dataType;
 
@@ -279,7 +279,7 @@ struct ForLoop: public Statement
   ForLoop();
 };
 
-struct Constant : public Expression
+struct Constant: public Expression
 {
   std::unique_ptr<DataType> dataType;
 
@@ -316,14 +316,14 @@ struct VariableAccess: public Expression
   VariableAccess();
 };
 
-struct SubExpression : public Expression
+struct SubExpression: public Expression
 {
   std::unique_ptr<Expression> expression;
 
   SubExpression();
 };
 
-struct PreUnaryOperator : public Expression
+struct PreUnaryOperator: public Expression
 {
   enum class PreUnaryType
   {
@@ -343,7 +343,7 @@ struct PreUnaryOperator : public Expression
   PreUnaryOperator();
 };
 
-struct PostUnaryOperator : public Expression
+struct PostUnaryOperator: public Expression
 {
   enum class PostUnaryType
   {
@@ -364,7 +364,7 @@ struct TypeCast: public PreUnaryOperator
   TypeCast();
 };
 
-struct BinaryOperator : public Expression
+struct BinaryOperator: public Expression
 {
   enum class BinaryType
   {
