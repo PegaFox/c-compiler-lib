@@ -61,7 +61,7 @@ int main(int argc, char* argv[])
       std::cout << Token::typeStrings[token.type] << ": \"" << token.data << "\"\n";
     }
   
-    Program AST = parse(code);
+    Program AST(code);
 
     /*if (optimize)
     {

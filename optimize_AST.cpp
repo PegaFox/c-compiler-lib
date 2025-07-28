@@ -1,5 +1,11 @@
 #include "optimize_AST.hpp"
 
+#include "parser/AST_iterator.hpp"
+#include "parser/pre_unary_operator.hpp"
+#include "parser/binary_operator.hpp"
+#include "parser/constant.hpp"
+#include "parser/sub_expression.hpp"
+
 void optimizeAST(Program& AST)
 {
   bool changed;

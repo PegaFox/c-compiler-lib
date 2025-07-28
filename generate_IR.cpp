@@ -3,6 +3,13 @@
 #include <iostream>
 #include <set>
 
+#include "parser/AST_iterator.hpp"
+#include "parser/primitive_type.hpp"
+#include "parser/pointer.hpp"
+#include "parser/array.hpp"
+#include "parser/type_cast.hpp"
+#include "parser/sub_expression.hpp"
+
 struct IRGenError
 {
 

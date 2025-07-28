@@ -1,7 +1,7 @@
 #ifndef PF_REMOVE_SUB_EXPRESSIONS_HPP
 #define PF_REMOVE_SUB_EXPRESSIONS_HPP
 
-#include "parser.hpp"
+#include "parser/program.hpp"
 
 void removeSubExpressions(Program& AST);
 

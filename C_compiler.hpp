@@ -9,7 +9,7 @@
 
 #include "lexer.hpp"
 
-#include "parser.hpp"
+#include "parser/program.hpp"
 
 #include "optimize_AST.hpp"
 

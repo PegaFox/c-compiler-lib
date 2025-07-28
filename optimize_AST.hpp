@@ -1,7 +1,7 @@
 #ifndef PF_OPTIMIZE_AST_HPP
 #define PF_OPTIMIZE_AST_HPP
 
-#include "parser.hpp"
+#include "parser/program.hpp"
 
 void optimizeAST(Program& AST);
 

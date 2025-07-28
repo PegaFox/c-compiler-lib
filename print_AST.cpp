@@ -2,6 +2,10 @@
 
 #include <iostream>
 
+#include "parser/primitive_type.hpp"
+#include "parser/pointer.hpp"
+#include "parser/type_cast.hpp"
+
 PrintAST::PrintAST(const Program& AST)
 {
   std::cout << "Program {\n";

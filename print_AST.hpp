@@ -1,7 +1,28 @@
 #ifndef PF_PRINT_AST_HPP
 #define PF_PRINT_AST_HPP
 
-#include "parser.hpp"
+#include "parser/program.hpp"
+#include "parser/function_declaration.hpp"
+#include "parser/function_call.hpp"
+#include "parser/if_conditional.hpp"
+#include "parser/while_loop.hpp"
+#include "parser/switch_case.hpp"
+#include "parser/switch_default.hpp"
+#include "parser/switch_conditional.hpp"
+#include "parser/do_while_loop.hpp"
+#include "parser/for_loop.hpp"
+#include "parser/return.hpp"
+#include "parser/break.hpp"
+#include "parser/continue.hpp"
+#include "parser/label.hpp"
+#include "parser/goto.hpp"
+#include "parser/constant.hpp"
+#include "parser/variable_access.hpp"
+#include "parser/sub_expression.hpp"
+#include "parser/pre_unary_operator.hpp"
+#include "parser/post_unary_operator.hpp"
+#include "parser/binary_operator.hpp"
+#include "parser/ternary_operator.hpp"
 
 class PrintAST
 {

@@ -3,7 +3,29 @@
 
 #include <map>
 
-#include "parser.hpp"
+#include "parser/data_type.hpp"
+#include "parser/variable_declaration.hpp"
+#include "parser/program.hpp"
+#include "parser/function_declaration.hpp"
+#include "parser/constant.hpp"
+#include "parser/return.hpp"
+#include "parser/break.hpp"
+#include "parser/continue.hpp"
+#include "parser/label.hpp"
+#include "parser/goto.hpp"
+#include "parser/if_conditional.hpp"
+#include "parser/switch_case.hpp"
+#include "parser/switch_default.hpp"
+#include "parser/switch_conditional.hpp"
+#include "parser/do_while_loop.hpp"
+#include "parser/while_loop.hpp"
+#include "parser/for_loop.hpp"
+#include "parser/variable_access.hpp"
+#include "parser/function_call.hpp"
+#include "parser/pre_unary_operator.hpp"
+#include "parser/post_unary_operator.hpp"
+#include "parser/binary_operator.hpp"
+#include "parser/ternary_operator.hpp"
 
 struct Operation
 {

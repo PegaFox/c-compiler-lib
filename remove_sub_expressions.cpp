@@ -1,5 +1,8 @@
 #include "remove_sub_expressions.hpp"
 
+#include "parser/AST_iterator.hpp"
+#include "parser/sub_expression.hpp"
+
 void removeSubExpressions(Program& AST)
 {
   bool changed;
