@@ -35,6 +35,8 @@ int main(int argc, char* argv[])
     argv = args;
   }
   #endif // NDEBUG*/
+  
+  includeDirs.emplace_back("./include/");
 
   if (handleArgs(argc, argv))
   {

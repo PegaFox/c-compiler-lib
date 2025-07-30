@@ -73,7 +73,8 @@ Statement* Statement::parse(std::list<Token>& code, bool canParseVariableDeclara
       code.front().data == "int" ||
       code.front().data == "long" ||
       code.front().data == "float" ||
-      code.front().data == "double")
+      code.front().data == "double" ||
+      code.front().data == "struct")
     {
       for (const Token& token: code)
       {

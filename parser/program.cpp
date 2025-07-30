@@ -25,7 +25,7 @@ void Program::parse(std::list<Token> code)
       switch (i->type)
       {
         case Token::Identifier:
-          if ((++i--)->data == "(")
+          if (((++i)--)->data == "(")
           {
             nodes.emplace_back(FunctionDeclaration::parse(code));
             i = code.end();

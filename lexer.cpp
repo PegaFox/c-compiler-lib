@@ -130,7 +130,7 @@ std::list<Token> lex(std::string code)
         tokenized.push_back(Token{Token::Identifier, identifierStr});
         pos = end-1;
       }
-    } else if (test.find_last_not_of(numbers) != test.npos && test.find_first_of(numbers) < test.find_last_not_of(numbers))
+    } else if (test.find_last_not_of("_"+letters+numbers) != test.npos && test.find_first_of(numbers) < test.find_last_not_of("_"+letters+numbers))
     {
       tokenized.push_back(Token{Token::Constant, test.substr(test.find_first_of(numbers), test.find_last_not_of(numbers)-test.find_first_of(numbers))});
       pos = end-1;
