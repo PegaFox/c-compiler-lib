@@ -9,7 +9,7 @@ CompoundStatement::CompoundStatement()
   statementType = StatementType::CompoundStatement;
 }
 
-CompoundStatement* CompoundStatement::parse(std::list<Token>& code)
+CompoundStatement* CompoundStatement::parse(std::list<Token>& code, Program& program)
 {
   CompoundStatement* compoundStatement = new CompoundStatement;
 
@@ -18,7 +18,7 @@ CompoundStatement* CompoundStatement::parse(std::list<Token>& code)
 
   while (code.front().data != "}")
   {
-    compoundStatement->body.emplace_back(Statement::parse(code, true));
+    compoundStatement->body.emplace_back(Statement::parse(code, program, true));
 
     if (code.empty())
     {

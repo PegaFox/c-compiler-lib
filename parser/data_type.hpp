@@ -1,10 +1,7 @@
 #ifndef PF_PARSER_DATA_TYPE_HPP
 #define PF_PARSER_DATA_TYPE_HPP
 
-#include <list>
-
-#include "../lexer.hpp"
-#include "AST_node.hpp"
+#include "program.hpp"
 
 struct DataType: public ASTnode
 {
@@ -30,7 +27,7 @@ struct DataType: public ASTnode
 
   DataType();
 
-  static DataType* parse(std::list<Token>& code, DataType::Linkage defaultLinkage = DataType::Linkage::External);
+  static DataType* parse(std::list<Token>& code, Program& program, DataType::Linkage defaultLinkage = DataType::Linkage::External);
 };
 
 #endif // PF_PARSER_DATA_TYPE_HPP

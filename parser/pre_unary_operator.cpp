@@ -8,13 +8,13 @@ PreUnaryOperator::PreUnaryOperator()
   expressionType = ExpressionType::PreUnaryOperator;
 }
 
-Expression* PreUnaryOperator::parse(std::list<Token>& code)
+Expression* PreUnaryOperator::parse(std::list<Token>& code, Program& program)
 {
   Expression* preUnary = new PreUnaryOperator;
 
   if (code.front().type == Token::Keyword || code.front().data == "(")
   {
-    preUnary = TypeCast::parse(code);
+    preUnary = TypeCast::parse(code, program);
   } else if (code.front().data == "&")
   {
     ((PreUnaryOperator*)preUnary)->preUnaryType = PreUnaryOperator::PreUnaryType::Address;
@@ -40,7 +40,7 @@ Expression* PreUnaryOperator::parse(std::list<Token>& code)
 
   code.pop_front();
 
-  ((PreUnaryOperator*)preUnary)->operand = std::unique_ptr<Expression>(Expression::parse(code, false));
+  ((PreUnaryOperator*)preUnary)->operand = std::unique_ptr<Expression>(Expression::parse(code, program, false));
 
   if (((PreUnaryOperator*)preUnary)->operand->expressionType == Expression::ExpressionType::BinaryOperator)
   {

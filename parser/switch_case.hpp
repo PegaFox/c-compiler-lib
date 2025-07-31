@@ -11,7 +11,7 @@ struct SwitchCase: public Statement
 
   SwitchCase();
 
-  static SwitchCase* parse(std::list<Token>& code);
+  static SwitchCase* parse(std::list<Token>& code, Program& program);
 };
 
 #endif // PF_PARSER_SWITCH_CASE_HPP

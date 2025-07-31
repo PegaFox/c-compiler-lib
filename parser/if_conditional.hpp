@@ -16,7 +16,7 @@ struct IfConditional: public Statement
 
   IfConditional();
 
-  static IfConditional* parse(std::list<Token>& code);
+  static IfConditional* parse(std::list<Token>& code, Program& program);
 };
 
 #endif // PF_PARSER_IF_CONDITIONAL_HPP

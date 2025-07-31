@@ -12,7 +12,7 @@ struct CompoundStatement: public Statement
 
   CompoundStatement();
 
-  static CompoundStatement* parse(std::list<Token>& code);
+  static CompoundStatement* parse(std::list<Token>& code, Program& program);
 };
 
 #endif // PF_PARSER_COMPOUND_STATEMENT_HPP

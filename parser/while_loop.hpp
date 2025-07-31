@@ -13,7 +13,7 @@ struct WhileLoop: public Statement
 
   WhileLoop();
 
-  static WhileLoop* parse(std::list<Token>& code);
+  static WhileLoop* parse(std::list<Token>& code, Program& program);
 };
 
 #endif // PF_PARSER_WHILE_LOOP_HPP

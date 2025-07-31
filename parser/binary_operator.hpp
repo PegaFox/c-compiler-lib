@@ -82,7 +82,7 @@ struct BinaryOperator: public Expression
 
   BinaryOperator();
 
-  static Expression* parse(std::list<Token>& code, Expression* leftOperand);
+  static Expression* parse(std::list<Token>& code, Program& program, Expression* leftOperand);
 };
 
 #endif // PF_PARSER_BINARY_OPERATOR_HPP

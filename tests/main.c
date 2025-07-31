@@ -10,6 +10,8 @@ char;
 
 struct Bar;
 
+typedef unsigned short int foo;
+
 int main()
 {
   return 0;

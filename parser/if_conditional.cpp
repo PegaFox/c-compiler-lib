@@ -7,7 +7,7 @@ IfConditional::IfConditional()
   statementType = StatementType::IfConditional;
 }
 
-IfConditional* IfConditional::parse(std::list<Token>& code)
+IfConditional* IfConditional::parse(std::list<Token>& code, Program& program)
 {
   IfConditional* ifConditional = new IfConditional;
 
@@ -17,17 +17,17 @@ IfConditional* IfConditional::parse(std::list<Token>& code)
   ParseError::expect(code.front().data, "(");
   code.pop_front();
 
-  ifConditional->condition = std::unique_ptr<Expression>(Expression::parse(code, false));
+  ifConditional->condition = std::unique_ptr<Expression>(Expression::parse(code, program, false));
 
   ParseError::expect(code.front().data, ")");
   code.pop_front();
 
-  ifConditional->body = std::unique_ptr<Statement>(Statement::parse(code));
+  ifConditional->body = std::unique_ptr<Statement>(Statement::parse(code, program));
 
   if (code.front().data == "else")
   {
     code.pop_front();
-    ifConditional->elseStatement = std::unique_ptr<Statement>(Statement::parse(code));
+    ifConditional->elseStatement = std::unique_ptr<Statement>(Statement::parse(code, program));
   }
 
   return ifConditional;

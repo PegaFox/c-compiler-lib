@@ -19,7 +19,7 @@ Expression::Expression()
   statementType = StatementType::Expression;
 }
 
-Expression* Expression::parse(std::list<Token>& code, bool allowNullExpression)
+Expression* Expression::parse(std::list<Token>& code, Program& program, bool allowNullExpression)
 {
   Expression* expression = nullptr;
   
@@ -29,7 +29,7 @@ Expression* Expression::parse(std::list<Token>& code, bool allowNullExpression)
 
     expression = new SubExpression;
     
-    ((SubExpression*)expression)->expression = std::unique_ptr<Expression>(Expression::parse(code, false));
+    ((SubExpression*)expression)->expression = std::unique_ptr<Expression>(Expression::parse(code, program, false));
 
     ParseError::expect(code.front().data, ")");
     code.pop_front();
@@ -40,7 +40,7 @@ Expression* Expression::parse(std::list<Token>& code, bool allowNullExpression)
   {
     if ((++code.begin())->data == "(")
     {
-      expression = FunctionCall::parse(code);
+      expression = FunctionCall::parse(code, program);
     } else
     {
       expression = VariableAccess::parse(code);
@@ -56,7 +56,7 @@ Expression* Expression::parse(std::list<Token>& code, bool allowNullExpression)
     code.front().data == "++" ||
     code.front().data == "--")
   {
-    expression = PreUnaryOperator::parse(code);
+    expression = PreUnaryOperator::parse(code, program);
     if (optimize && ((PreUnaryOperator*)expression)->operand.get()->expressionType == Expression::ExpressionType::Constant)
     {
       Constant* constant = (Constant*)(((PreUnaryOperator*)expression)->operand.get());
@@ -130,7 +130,7 @@ Expression* Expression::parse(std::list<Token>& code, bool allowNullExpression)
     code.front().data == "!=" ||
     code.front().data == "^")
   {
-    expression = BinaryOperator::parse(code, expression);
+    expression = BinaryOperator::parse(code, program, expression);
 
   } else if (
     code.front().data == "++" ||
@@ -139,7 +139,7 @@ Expression* Expression::parse(std::list<Token>& code, bool allowNullExpression)
     expression = PostUnaryOperator::parse(code, expression);
   } else if (code.front().data == "?")
   {
-    expression = TernaryOperator::parse(code, expression);
+    expression = TernaryOperator::parse(code, program, expression);
   }
 
   return expression;

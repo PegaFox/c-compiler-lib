@@ -16,7 +16,7 @@ struct VariableDeclaration: public Statement
 
   VariableDeclaration();
 
-  static VariableDeclaration* parse(std::list<Token>& code);
+  static VariableDeclaration* parse(std::list<Token>& code, Program& program);
 };
 
 #endif // PF_PARSER_VARIABLE_DECLARATION_HPP

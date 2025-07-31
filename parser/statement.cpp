@@ -23,7 +23,7 @@ Statement::Statement()
   nodeType = NodeType::Statement;
 }
 
-Statement* Statement::parse(std::list<Token>& code, bool canParseVariableDeclarations)
+Statement* Statement::parse(std::list<Token>& code, Program& program, bool canParseVariableDeclarations)
 {
   Statement* statement = nullptr;
 
@@ -31,7 +31,7 @@ Statement* Statement::parse(std::list<Token>& code, bool canParseVariableDeclara
   {
     if (code.front().data == "return")
     {
-      statement = Return::parse(code);
+      statement = Return::parse(code, program);
     } else if (code.front().data == "break")
     {
       statement = Break::parse(code);
@@ -43,25 +43,25 @@ Statement* Statement::parse(std::list<Token>& code, bool canParseVariableDeclara
       statement = Goto::parse(code);
     } else if (code.front().data == "if")
     {
-      statement = IfConditional::parse(code);
+      statement = IfConditional::parse(code, program);
     } else if (code.front().data == "case")
     {
-      statement = SwitchCase::parse(code);
+      statement = SwitchCase::parse(code, program);
     } else if (code.front().data == "default")
     {
       statement = SwitchDefault::parse(code);
     } else if (code.front().data == "switch")
     {
-      statement = SwitchConditional::parse(code);
+      statement = SwitchConditional::parse(code, program);
     } else if (code.front().data == "do")
     {
-      statement = DoWhileLoop::parse(code);
+      statement = DoWhileLoop::parse(code, program);
     } else if (code.front().data == "while")
     {
-      statement = WhileLoop::parse(code);
+      statement = WhileLoop::parse(code, program);
     } else if (code.front().data == "for")
     {
-      statement = ForLoop::parse(code);
+      statement = ForLoop::parse(code, program);
     } else if (
       code.front().data == "signed" ||
       code.front().data == "unsigned" ||
@@ -74,7 +74,8 @@ Statement* Statement::parse(std::list<Token>& code, bool canParseVariableDeclara
       code.front().data == "long" ||
       code.front().data == "float" ||
       code.front().data == "double" ||
-      code.front().data == "struct")
+      code.front().data == "struct" || 
+      program.typedefs.contains(code.front().data))
     {
       for (const Token& token: code)
       {
@@ -82,14 +83,14 @@ Statement* Statement::parse(std::list<Token>& code, bool canParseVariableDeclara
         {
           if (canParseVariableDeclarations)
           {
-            statement = VariableDeclaration::parse(code);
+            statement = VariableDeclaration::parse(code, program);
             ParseError::expect(code.front().data, ";");
             code.pop_front();
           }
           break;
         } else if (token.data == "(")
         {
-          statement = FunctionDeclaration::parse(code);
+          statement = FunctionDeclaration::parse(code, program);
           break;
         }
       }
@@ -99,10 +100,10 @@ Statement* Statement::parse(std::list<Token>& code, bool canParseVariableDeclara
     statement = Label::parse(code);
   } else if (code.front().data == "{")
   {
-    statement = CompoundStatement::parse(code);
+    statement = CompoundStatement::parse(code, program);
   } else
   {
-    statement = Expression::parse(code);
+    statement = Expression::parse(code, program);
 
     ParseError::expect(code.front().data, ";");
     code.pop_front();

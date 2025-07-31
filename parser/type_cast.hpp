@@ -10,7 +10,7 @@ struct TypeCast: public PreUnaryOperator
 
   TypeCast();
 
-  static TypeCast* parse(std::list<Token>& code);
+  static TypeCast* parse(std::list<Token>& code, Program& program);
 };
 
 #endif // PF_PARSER_TYPE_CAST_HPP

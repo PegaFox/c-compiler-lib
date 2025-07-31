@@ -21,7 +21,7 @@ struct Expression: public Statement
 
   Expression();
 
-  static Expression* parse(std::list<Token>& code, bool allowNullExpression = true);
+  static Expression* parse(std::list<Token>& code, Program& program, bool allowNullExpression = true);
 };
 
 #endif // PF_PARSER_EXPRESSION_HPP

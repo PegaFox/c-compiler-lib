@@ -6,14 +6,22 @@
 #include "array.hpp"
 #include "struct.hpp"
 
+
 DataType::DataType()
 {
   nodeType = NodeType::DataType;
 }
 
-DataType* DataType::parse(std::list<Token>& code, DataType::Linkage defaultLinkage)
+DataType* DataType::parse(std::list<Token>& code, Program& program, DataType::Linkage defaultLinkage)
 {
   DataType* dataType = nullptr;
+
+  if (program.typedefs.contains(code.front().data))
+  {
+    dataType = program.typedefs[code.front().data].get();
+    code.pop_front();
+    return dataType;
+  }
 
   // scan ahead to check if the datatype is primitive or a struct
   for (std::list<Token>::iterator i = code.begin(); i != code.end(); i++)
@@ -89,7 +97,10 @@ DataType* DataType::parse(std::list<Token>& code, DataType::Linkage defaultLinka
       code.pop_front();
       while (code.front().data != "}")
       {
-        structure->members.emplace_back(VariableDeclaration::parse(code));
+        structure->members.emplace_back(VariableDeclaration::parse(code, program));
+
+        ParseError::expect(code.front().data, ";");
+        code.pop_front();
       }
       code.pop_front();
     }
@@ -258,7 +269,7 @@ DataType* DataType::parse(std::list<Token>& code, DataType::Linkage defaultLinka
     dataType = array;
 
     code.pop_front();
-    array->size = std::unique_ptr<Expression>(Expression::parse(code));
+    array->size = std::unique_ptr<Expression>(Expression::parse(code, program));
 
     ParseError::expect(code.front().data, "]");
     code.pop_front();

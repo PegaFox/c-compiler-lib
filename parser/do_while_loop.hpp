@@ -13,7 +13,7 @@ struct DoWhileLoop: public Statement
 
   DoWhileLoop();
 
-  static DoWhileLoop* parse(std::list<Token>& code);
+  static DoWhileLoop* parse(std::list<Token>& code, Program& program);
 };
 
 #endif // PF_PARSER_DO_WHIL_LLOOP_HPP

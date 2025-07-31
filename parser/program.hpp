@@ -10,6 +10,10 @@
 #include "../lexer.hpp"
 #include "AST_node.hpp"
 
+struct Statement;
+struct DataType;
+struct VariableDeclaration;
+
 typedef uint32_t ENUM_TYPE;
 //typedef uint8_t PFCC_SIZE_T;
 //typedef uint8_t PFCC_PTR;
@@ -18,6 +22,10 @@ typedef uint32_t ENUM_TYPE;
 class Program: public ASTnode
 {
   public:
+    friend Statement;
+    friend DataType;
+    friend VariableDeclaration;
+
     std::vector<std::unique_ptr<ASTnode>> nodes;
 
     Program();
@@ -29,6 +37,8 @@ class Program: public ASTnode
   private:
     std::map<std::string, ENUM_TYPE> enums;
     std::set<std::string> enumTypes;
+
+    std::map<std::string, std::unique_ptr<DataType>> typedefs;
 
     void parseEnum(std::list<Token>& code);
 };

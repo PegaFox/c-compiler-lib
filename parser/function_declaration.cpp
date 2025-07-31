@@ -7,11 +7,11 @@ FunctionDeclaration::FunctionDeclaration()
   statementType = StatementType::FunctionDeclaration;
 }
 
-FunctionDeclaration* FunctionDeclaration::parse(std::list<Token>& code)
+FunctionDeclaration* FunctionDeclaration::parse(std::list<Token>& code, Program& program)
 {
   FunctionDeclaration* functionDeclaration = new FunctionDeclaration;
 
-  functionDeclaration->returnType = std::unique_ptr<DataType>(DataType::parse(code));
+  functionDeclaration->returnType = std::unique_ptr<DataType>(DataType::parse(code, program));
 
   ParseError::expect(code.front(), Token::Identifier);
   functionDeclaration->identifier = code.front().data;
@@ -32,7 +32,7 @@ FunctionDeclaration* FunctionDeclaration::parse(std::list<Token>& code)
       code.pop_front();
     }
 
-    functionDeclaration->parameters.emplace_back(std::unique_ptr<VariableDeclaration>(VariableDeclaration::parse(code)));
+    functionDeclaration->parameters.emplace_back(std::unique_ptr<VariableDeclaration>(VariableDeclaration::parse(code, program)));
   }
 
   code.pop_front();
@@ -40,7 +40,7 @@ FunctionDeclaration* FunctionDeclaration::parse(std::list<Token>& code)
   ParseError::expect(code.front().data, {"{", ";"});
   if (code.front().data == "{")
   {
-    functionDeclaration->body = std::unique_ptr<CompoundStatement>(CompoundStatement::parse(code));
+    functionDeclaration->body = std::unique_ptr<CompoundStatement>(CompoundStatement::parse(code, program));
   } else
   {
     code.pop_front();

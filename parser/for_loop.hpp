@@ -17,7 +17,7 @@ struct ForLoop: public Statement
 
   ForLoop();
 
-  static ForLoop* parse(std::list<Token>& code);
+  static ForLoop* parse(std::list<Token>& code, Program& program);
 };
 
 #endif // PF_PARSER_FOR_LOOP_HPP

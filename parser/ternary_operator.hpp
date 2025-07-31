@@ -15,7 +15,7 @@ struct TernaryOperator: public Expression
 
   TernaryOperator();
 
-  static Expression* parse(std::list<Token>& code, Expression* condition);
+  static Expression* parse(std::list<Token>& code, Program& program, Expression* condition);
 };
 
 #endif // PF_PARSER_TERNARY_OPERATOR_HPP

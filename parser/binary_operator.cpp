@@ -8,7 +8,7 @@ BinaryOperator::BinaryOperator()
   expressionType = ExpressionType::BinaryOperator;
 }
 
-Expression* BinaryOperator::parse(std::list<Token>& code, Expression* leftOperand)
+Expression* BinaryOperator::parse(std::list<Token>& code, Program& program, Expression* leftOperand)
 {
   Expression* binary = new BinaryOperator;
 
@@ -108,7 +108,7 @@ Expression* BinaryOperator::parse(std::list<Token>& code, Expression* leftOperan
 
   code.pop_front();
 
-  ((BinaryOperator*)binary)->rightOperand = std::unique_ptr<Expression>(Expression::parse(code, false));
+  ((BinaryOperator*)binary)->rightOperand = std::unique_ptr<Expression>(Expression::parse(code, program, false));
 
   if (((BinaryOperator*)binary)->binaryType == BinaryOperator::BinaryType::Subscript)
   {

@@ -16,7 +16,7 @@ struct FunctionDeclaration: public Statement
 
   FunctionDeclaration();
 
-  static FunctionDeclaration* parse(std::list<Token>& code);
+  static FunctionDeclaration* parse(std::list<Token>& code, Program& program);
 };
 
 #endif // PF_PARSER_FUNCTION_DECLARATION_HPP

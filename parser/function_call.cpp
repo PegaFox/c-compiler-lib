@@ -7,7 +7,7 @@ FunctionCall::FunctionCall()
   expressionType = ExpressionType::FunctionCall;
 }
 
-FunctionCall* FunctionCall::parse(std::list<Token>& code)
+FunctionCall* FunctionCall::parse(std::list<Token>& code, Program& program)
 {
   FunctionCall* functionCall = new FunctionCall;
 
@@ -25,7 +25,7 @@ FunctionCall* FunctionCall::parse(std::list<Token>& code)
       code.pop_front();
     }
 
-    functionCall->arguments.emplace_back(std::unique_ptr<Expression>(Expression::parse(code)));
+    functionCall->arguments.emplace_back(std::unique_ptr<Expression>(Expression::parse(code, program)));
   }
   
   code.pop_front();

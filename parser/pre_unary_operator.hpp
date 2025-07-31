@@ -24,7 +24,7 @@ struct PreUnaryOperator: public Expression
 
   PreUnaryOperator();
   
-  static Expression* parse(std::list<Token>& code);
+  static Expression* parse(std::list<Token>& code, Program& program);
 };
 
 #endif // PF_PARSER_PRE_UNAR_OOPERATOR_HPP

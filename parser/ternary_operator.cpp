@@ -10,7 +10,7 @@ TernaryOperator::TernaryOperator()
   expressionType = ExpressionType::TernaryOperator;
 }
 
-Expression* TernaryOperator::parse(std::list<Token>& code, Expression* condition)
+Expression* TernaryOperator::parse(std::list<Token>& code, Program& program, Expression* condition)
 {
   Expression* ternary = new TernaryOperator;
 
@@ -18,13 +18,13 @@ Expression* TernaryOperator::parse(std::list<Token>& code, Expression* condition
 
   code.pop_front();
 
-  ((TernaryOperator*)ternary)->trueOperand = std::unique_ptr<Expression>(Expression::parse(code));
+  ((TernaryOperator*)ternary)->trueOperand = std::unique_ptr<Expression>(Expression::parse(code, program));
 
   ParseError::expect(code.front().data, ":");
 
   code.pop_front();
 
-  ((TernaryOperator*)ternary)->falseOperand = std::unique_ptr<Expression>(Expression::parse(code, false));
+  ((TernaryOperator*)ternary)->falseOperand = std::unique_ptr<Expression>(Expression::parse(code, program, false));
 
   if (
     ((TernaryOperator*)ternary)->falseOperand->expressionType == Expression::ExpressionType::BinaryOperator &&
