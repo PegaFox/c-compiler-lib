@@ -15,6 +15,7 @@ add_library(c-compiler-lib STATIC
 
   parser/array.cpp
   parser/data_type.cpp
+  parser/struct.cpp
   parser/if_conditional.cpp
   parser/program.cpp
   parser/ternary_operator.cpp

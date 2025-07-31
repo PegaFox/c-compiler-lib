@@ -15,38 +15,89 @@ DataType* DataType::parse(std::list<Token>& code, DataType::Linkage defaultLinka
 {
   DataType* dataType = nullptr;
 
-  if (code.front().data == "struct")
+  // scan ahead to check if the datatype is primitive or a struct
+  for (std::list<Token>::iterator i = code.begin(); i != code.end(); i++)
   {
-    Struct* structure = new Struct;
+    if (i->type == Token::Keyword)
+    {
+      if (i->data == "struct")
+      {
+        dataType = new Struct;
+      }
+    } else
+    {
+      break;
+    }
+  }
 
-    code.pop_front();
-
-    ParseError::expect(code.front(), Token::Identifier);
-    structure->identifier = code.front().data;
-
-    dataType = structure;
-  } else
+  if (dataType == nullptr)
   {
-    PrimitiveType* primitiveType = new PrimitiveType;
+    dataType = new PrimitiveType;
+  }
 
-    primitiveType->linkage = defaultLinkage;
+  dataType->linkage = defaultLinkage;
+  bool changed = true;
+  while (changed)
+  {
+    changed = false;
+
+    if (code.front().data == "const")
+    {
+      changed = true;
+      dataType->isConst = true;
+      code.pop_front();
+    }
 
     if (code.front().data == "volatile")
     {
-      primitiveType->isVolatile = true;
+      changed = true;
+      dataType->isVolatile = true;
+      code.pop_front();
+    }
+
+    if (code.front().data == "typedef")
+    {
+      changed = true;
+      dataType->isTypedef = true;
       code.pop_front();
     }
 
     if (code.front().data == "static")
     {
-      primitiveType->linkage = DataType::Linkage::Internal;
+      changed = true;
+      dataType->linkage = DataType::Linkage::Internal;
       code.pop_front();
     } else if (code.front().data == "extern")
     {
-      primitiveType->linkage = DataType::Linkage::External;
+      changed = true;
+      dataType->linkage = DataType::Linkage::External;
+      code.pop_front();
+    }
+  }
+
+  if (dataType->generalType == DataType::GeneralType::Struct && code.front().data == "struct")
+  {
+    Struct* structure = (Struct*)dataType;
+    code.pop_front();
+
+    ParseError::expect(code.front(), Token::Identifier);
+    structure->identifier = code.front().data;
+    code.pop_front();
+
+    if (code.front().data == "{")
+    {
+      code.pop_front();
+      while (code.front().data != "}")
+      {
+        structure->members.emplace_back(VariableDeclaration::parse(code));
+      }
       code.pop_front();
     }
 
+  } else if (dataType->generalType == DataType::GeneralType::PrimitiveType)
+  {
+    PrimitiveType* primitiveType = (PrimitiveType*)dataType;
+    
     switch (ParseError::expect(code.front().data, {"void", "signed", "unsigned", "short", "long", "char", "int", "float", "double"})) {
       case 0:
         primitiveType->type = PrimitiveType::Type::Void;
@@ -183,8 +234,6 @@ DataType* DataType::parse(std::list<Token>& code, DataType::Linkage defaultLinka
       primitiveType->linkage = DataType::Linkage::External;
       code.pop_front();
     }*/
-
-    dataType = primitiveType;
   }
 
   while (code.front().data == "*")

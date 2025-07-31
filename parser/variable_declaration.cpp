@@ -13,18 +13,20 @@ VariableDeclaration* VariableDeclaration::parse(std::list<Token>& code)
 
   variableDeclaration->dataType = std::unique_ptr<DataType>(DataType::parse(code));
 
-  ParseError::expect(code.front(), Token::Identifier);
-  variableDeclaration->identifier = code.front().data;
-  code.pop_front();
-
-  if (code.front().data == "=")
+  if (code.front().type == Token::Identifier)
   {
+    variableDeclaration->identifier = code.front().data;
     code.pop_front();
-    variableDeclaration->value = std::unique_ptr<Expression>(Expression::parse(code, false));
-  }
 
-  //ParseError::expect(code.front().data, {";", ",", ")"});
-  //code.pop_front();
+    if (code.front().data == "=")
+    {
+      code.pop_front();
+      variableDeclaration->value = std::unique_ptr<Expression>(Expression::parse(code, false));
+    }
+
+    //ParseError::expect(code.front().data, {";", ",", ")"});
+    //code.pop_front();
+  }
 
   return variableDeclaration;
 }

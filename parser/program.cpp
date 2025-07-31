@@ -29,7 +29,10 @@ void Program::parse(std::list<Token> code)
           {
             nodes.emplace_back(FunctionDeclaration::parse(code));
             i = code.end();
-          } else if (i->data == "enum")
+          }
+          break;
+        case Token::Keyword:
+          if (i->data == "enum")
           {
             parseEnum(code);
             ParseError::expect(code.front().data, ";");
