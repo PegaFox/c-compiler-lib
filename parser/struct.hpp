@@ -9,7 +9,7 @@ struct Struct: public DataType
 {
   std::string identifier;
 
-  std::vector<std::unique_ptr<VariableDeclaration>> members;
+  std::vector<std::pair<std::unique_ptr<VariableDeclaration>, uint8_t>> members;
 
   Struct();
 };
