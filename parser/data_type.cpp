@@ -190,80 +190,82 @@ DataType* DataType::parse(std::list<Token>& code, Program& program, DataType::Li
         break;
       case 1:
         code.pop_front();
-        switch (ParseError::expect(code.front().data, {"short", "long", "char", "int"})) {
-          case 0:
-            primitiveType->type = PrimitiveType::Type::SignedShort;
-            code.pop_front();
-            if (code.front().data == "int")
-            {
-              code.pop_front();
-            }
-            break;
-          case 1:
-            code.pop_front();
-            if (code.front().data == "long")
-            {
-              primitiveType->type = PrimitiveType::Type::SignedLongLong;
-              code.pop_front();
-            } else
-            {
-              primitiveType->type = PrimitiveType::Type::SignedLong;
-            }
-            if (code.front().data == "int")
-            {
-              code.pop_front();
-            }
-            break;
-          case 2:
-            primitiveType->type = PrimitiveType::Type::SignedChar;
-            code.pop_front();
-            break;
-          case 3:
-            primitiveType->type = PrimitiveType::Type::SignedInt;
-            code.pop_front();
-            break;
-          default:
 
-            break;
+        if (code.front().data == "short")
+        {
+          primitiveType->type = PrimitiveType::Type::SignedShort;
+          code.pop_front();
+          if (code.front().data == "int")
+          {
+            code.pop_front();
+          }
+        } else if (code.front().data == "long")
+        {
+          code.pop_front();
+          if (code.front().data == "long")
+          {
+            primitiveType->type = PrimitiveType::Type::SignedLongLong;
+            code.pop_front();
+          } else
+          {
+            primitiveType->type = PrimitiveType::Type::SignedLong;
+          }
+          if (code.front().data == "int")
+          {
+            code.pop_front();
+          }
+        } else if (code.front().data == "char")
+        {
+          primitiveType->type = PrimitiveType::Type::SignedChar;
+          code.pop_front();
+        } else
+        {
+          primitiveType->type = PrimitiveType::Type::SignedInt;
+
+          if (code.front().data == "int")
+          {
+            code.pop_front();
+          }
         }
         break;
       case 2:
         code.pop_front();
-        switch (ParseError::expect(code.front().data, {"short", "long", "char", "int"}))
-        {
-          case 0:
-            primitiveType->type = PrimitiveType::Type::UnsignedShort;
-            code.pop_front();
-            if (code.front().data == "int")
-            {
-              code.pop_front();
-            }
-            break;
-          case 1:
-            code.pop_front();
-            if (code.front().data == "long")
-            {
-              primitiveType->type = PrimitiveType::Type::UnsignedLongLong;
-              code.pop_front();
-            } else {
-              primitiveType->type = PrimitiveType::Type::UnsignedLong;
-            }
-            if (code.front().data == "int")
-            {
-              code.pop_front();
-            }
-            break;
-          case 2:
-            primitiveType->type = PrimitiveType::Type::UnsignedChar;
-            code.pop_front();
-            break;
-          case 3:
-            primitiveType->type = PrimitiveType::Type::UnsignedInt;
-            code.pop_front();
-            break;
-          default:
 
-            break;
+        if (code.front().data == "short")
+        {
+          primitiveType->type = PrimitiveType::Type::UnsignedShort;
+          code.pop_front();
+          if (code.front().data == "int")
+          {
+            code.pop_front();
+          }
+        } else if (code.front().data == "long")
+        {
+          code.pop_front();
+          if (code.front().data == "long")
+          {
+            primitiveType->type = PrimitiveType::Type::UnsignedLongLong;
+            code.pop_front();
+          } else
+          {
+            primitiveType->type = PrimitiveType::Type::UnsignedLong;
+          }
+          if (code.front().data == "int")
+          {
+            code.pop_front();
+          }
+        } else if (code.front().data == "char")
+        {
+          primitiveType->type = PrimitiveType::Type::UnsignedChar;
+          code.pop_front();
+        } else
+        {
+          primitiveType->type = PrimitiveType::Type::UnsignedInt;
+
+          if (code.front().data == "int")
+          {
+            code.pop_front();
+          }
         }
         break;
       case 3:
