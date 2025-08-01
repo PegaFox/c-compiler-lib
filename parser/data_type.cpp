@@ -97,7 +97,7 @@ DataType* DataType::parse(std::list<Token>& code, Program& program, DataType::Li
       code.pop_front();
       while (code.front().data != "}")
       {
-        structure->members.emplace_back(VariableDeclaration::parse(code, program), -1);
+        structure->members.emplace_back(Declaration::parse(code, program), -1);
 
         if (code.front().data == ":")
         {

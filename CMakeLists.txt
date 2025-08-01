@@ -33,14 +33,14 @@ add_library(c-compiler-lib STATIC
   parser/for_loop.cpp
   parser/pointer.cpp
   parser/sub_expression.cpp
-  parser/variable_declaration.cpp
+  parser/declaration.cpp
   parser/compound_statement.cpp
   parser/function_call.cpp
   parser/post_unary_operator.cpp
   parser/switch_case.cpp       
   parser/while_loop.cpp
   parser/constant.cpp        
-  parser/function_declaration.cpp 
+  parser/function.cpp 
   parser/pre_unary_operator.cpp 
   parser/switch_conditional.cpp
   parser/continue.cpp      

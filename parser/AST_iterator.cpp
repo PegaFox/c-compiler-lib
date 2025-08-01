@@ -11,8 +11,8 @@
 #include "binary_operator.hpp"
 #include "ternary_operator.hpp"
 #include "return.hpp"
-#include "variable_declaration.hpp"
-#include "function_declaration.hpp"
+#include "declaration.hpp"
+#include "function.hpp"
 #include "if_conditional.hpp"
 #include "switch_case.hpp"
 #include "switch_conditional.hpp"
@@ -260,8 +260,8 @@ ASTiterator& ASTiterator::operator++()
           ptr = path.back().first;
           goto topOfConditionals;
           break;
-        case Statement::StatementType::VariableDeclaration: {
-          VariableDeclaration* variableDeclaration = (VariableDeclaration*)statement;
+        case Statement::StatementType::Declaration: {
+          Declaration* variableDeclaration = (Declaration*)statement;
           if (firstTime(variableDeclaration))
           {
             path.push_back({variableDeclaration, &variableDeclaration->dataType});
@@ -277,65 +277,7 @@ ASTiterator& ASTiterator::operator++()
             goto topOfConditionals;
           }
           break;
-        } case Statement::StatementType::FunctionDeclaration: {
-          FunctionDeclaration* functionDeclaration = (FunctionDeclaration*)ptr;
-          if (firstTime(functionDeclaration))
-          {
-            path.push_back({functionDeclaration, &functionDeclaration->returnType});
-            ptr = functionDeclaration->returnType.get();
-          } else if (path.back().second == &functionDeclaration->returnType)
-          {
-            if (functionDeclaration->parameters.empty())
-            {
-              if (functionDeclaration->body)
-              {
-                path.back().second = &functionDeclaration->body;
-                ptr = functionDeclaration->body.get();
-              } else
-              {
-                path.pop_back();
-                ptr = path.back().first;
-                goto topOfConditionals;
-              }
-            } else
-            {
-              path.back().second = &functionDeclaration->parameters[0];
-              ptr = functionDeclaration->parameters[0].get();
-            }
-          } else if (path.back().second == &functionDeclaration->body)
-          {
-            path.pop_back();
-            ptr = path.back().first;
-            goto topOfConditionals;
-          } else
-          {
-            for (std::vector<std::unique_ptr<VariableDeclaration>>::iterator node = functionDeclaration->parameters.begin(); node != functionDeclaration->parameters.end(); node++)
-            {
-              if (path.back().second == &(*node))
-              {
-                if (node+1 == functionDeclaration->parameters.end())
-                {
-                  if (functionDeclaration->body)
-                  {
-                    path.back().second = &functionDeclaration->body;
-                    ptr = functionDeclaration->body.get();
-                  } else
-                  {
-                    path.pop_back();
-                    ptr = path.back().first;
-                    goto topOfConditionals;
-                  }
-                } else
-                {
-                  path.back().second = &(*(node+1));
-                  ptr = (node+1)->get();
-                }
-                break;
-              }
-            }
-          }
-      break;
-    } case Statement::StatementType::IfConditional: {
+        } case Statement::StatementType::IfConditional: {
           IfConditional* ifConditional = (IfConditional*)statement;
           if (firstTime(ifConditional))
           {
@@ -498,7 +440,66 @@ ASTiterator& ASTiterator::operator++()
             goto topOfConditionals;
           }
           break;
-        } case DataType::GeneralType::Array: {
+        } case DataType::GeneralType::Function: {
+          Function* function = (Function*)ptr;
+          if (firstTime(function))
+          {
+            path.push_back({function, &function->returnType});
+            ptr = function->returnType.get();
+          } else if (path.back().second == &function->returnType)
+          {
+            if (function->parameters.empty())
+            {
+              /*if (functionDeclaration->body)
+              {
+                path.back().second = &functionDeclaration->body;
+                ptr = functionDeclaration->body.get();
+              } else
+              {*/
+                path.pop_back();
+                ptr = path.back().first;
+                goto topOfConditionals;
+              //}
+            } else
+            {
+              path.back().second = &function->parameters[0];
+              ptr = function->parameters[0].get();
+            }
+          //} else if (path.back().second == &functionDeclaration->body)
+          } else if (path.back().second == &function->parameters.back())
+          {
+            path.pop_back();
+            ptr = path.back().first;
+            goto topOfConditionals;
+          } else
+          {
+            for (std::vector<std::unique_ptr<Declaration>>::iterator node = function->parameters.begin(); node != function->parameters.end(); node++)
+            {
+              if (path.back().second == &(*node))
+              {
+                if (node+1 == function->parameters.end())
+                {
+                  /*if (function->body)
+                  {
+                    path.back().second = &function->body;
+                    ptr = function->body.get();
+                  } else
+                  {*/
+                    path.pop_back();
+                    ptr = path.back().first;
+                    goto topOfConditionals;
+                  //}
+                } else
+                {
+                  path.back().second = &(*(node+1));
+                  ptr = (node+1)->get();
+                }
+                break;
+              }
+            }
+          }
+      break;
+    } case DataType::GeneralType::Array: {
           Array* array = (Array*)dataType;
           if (firstTime(array))
           {

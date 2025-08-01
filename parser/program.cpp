@@ -3,7 +3,7 @@
 #include <iostream>
 
 #include "parse_error.hpp"
-#include "function_declaration.hpp"
+#include "function.hpp"
 
 Program::Program()
 {
@@ -27,7 +27,7 @@ void Program::parse(std::list<Token> code)
         case Token::Identifier:
           if (((++i)--)->data == "(")
           {
-            nodes.emplace_back(FunctionDeclaration::parse(code, *this));
+            nodes.emplace_back(Function::parse(code, *this));
             i = code.end();
           }
           break;
@@ -43,7 +43,7 @@ void Program::parse(std::list<Token> code)
         case Token::Operator:
           if (i->data == "=")
           {
-            nodes.emplace_back(VariableDeclaration::parse(code, *this));
+            nodes.emplace_back(Declaration::parse(code, *this));
             ParseError::expect(code.front().data, ";");
             code.pop_front();
             i = code.end();
@@ -52,7 +52,7 @@ void Program::parse(std::list<Token> code)
         case Token::Other:
           if (i->data == ";")
           {
-            nodes.emplace_back(VariableDeclaration::parse(code, *this));
+            nodes.emplace_back(Declaration::parse(code, *this));
             ParseError::expect(code.front().data, ";");
             code.pop_front();
             i = code.end();

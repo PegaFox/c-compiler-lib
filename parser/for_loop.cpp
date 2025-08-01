@@ -1,7 +1,7 @@
 #include "for_loop.hpp"
 
 #include "parse_error.hpp"
-#include "variable_declaration.hpp"
+#include "declaration.hpp"
 
 ForLoop::ForLoop()
 {
@@ -22,7 +22,7 @@ ForLoop* ForLoop::parse(std::list<Token>& code, Program& program)
   {
     if (code.front().type == Token::Keyword)
     {
-      forLoop->initialization = std::unique_ptr<VariableDeclaration>(VariableDeclaration::parse(code, program));
+      forLoop->initialization = std::unique_ptr<Declaration>(Declaration::parse(code, program));
     } else
     {
       forLoop->initialization = std::unique_ptr<Expression>(Expression::parse(code, program));

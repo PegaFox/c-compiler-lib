@@ -4,9 +4,10 @@
 #include <map>
 
 #include "parser/data_type.hpp"
-#include "parser/variable_declaration.hpp"
+#include "parser/declaration.hpp"
 #include "parser/program.hpp"
-#include "parser/function_declaration.hpp"
+#include "parser/compound_statement.hpp"
+#include "parser/function.hpp"
 #include "parser/constant.hpp"
 #include "parser/return.hpp"
 #include "parser/break.hpp"
@@ -68,11 +69,11 @@ struct Operation
 
 DataType* copyDataType(const DataType* data);
 
-std::map<std::string, const VariableDeclaration*>::iterator getIdentifier(const std::string& identifier);
+std::map<std::string, const Declaration*>::iterator getIdentifier(const std::string& identifier);
 
 std::vector<Operation> generateIR(const Program& AST);
 
-void generateFunctionDeclaration(std::vector<Operation>& absProgram, const FunctionDeclaration* functionDeclaration);
+//void generateFunctionDeclaration(std::vector<Operation>& absProgram, const FunctionDeclaration* functionDeclaration);
 
 void generateStatement(std::vector<Operation>& absProgram, const Statement* statement);
 
@@ -92,7 +93,7 @@ void generateLabel(std::vector<Operation>& absProgram, const Label* label);
 
 void generateGoto(std::vector<Operation>& absProgram, const Goto* gotoStatement);
 
-void generateVariableDeclaration(std::vector<Operation>& absProgram, const VariableDeclaration* variableDeclaration, bool allowInitialization = true);
+void generateDeclaration(std::vector<Operation>& absProgram, const Declaration* declaration, bool allowInitialization = true);
 
 void generateIfConditional(std::vector<Operation>& absProgram, const IfConditional* ifConditional);
 

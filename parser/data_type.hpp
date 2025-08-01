@@ -10,6 +10,7 @@ struct DataType: public ASTnode
     Undefined, // if a node has this type, something went wrong
     PrimitiveType,
     Pointer,
+    Function,
     Array,
     Struct
   } generalType;

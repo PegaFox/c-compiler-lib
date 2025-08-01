@@ -1,15 +1,15 @@
-#include "function_declaration.hpp"
+#include "function.hpp"
 
 #include "parse_error.hpp"
 
-FunctionDeclaration::FunctionDeclaration()
+Function::Function()
 {
-  statementType = StatementType::FunctionDeclaration;
+  generalType = GeneralType::Function;
 }
 
-FunctionDeclaration* FunctionDeclaration::parse(std::list<Token>& code, Program& program)
+/*Function* Function::parse(std::list<Token>& code, Program& program)
 {
-  FunctionDeclaration* functionDeclaration = new FunctionDeclaration;
+  Function* functionDeclaration = new Function;
 
   functionDeclaration->returnType = std::unique_ptr<DataType>(DataType::parse(code, program));
 
@@ -47,4 +47,4 @@ FunctionDeclaration* FunctionDeclaration::parse(std::list<Token>& code, Program&
   }
 
   return functionDeclaration;
-}
+}*/

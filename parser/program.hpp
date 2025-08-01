@@ -12,7 +12,7 @@
 
 struct Statement;
 struct DataType;
-struct VariableDeclaration;
+struct Declaration;
 
 typedef uint32_t ENUM_TYPE;
 //typedef uint8_t PFCC_SIZE_T;
@@ -24,7 +24,7 @@ class Program: public ASTnode
   public:
     friend Statement;
     friend DataType;
-    friend VariableDeclaration;
+    friend Declaration;
 
     std::vector<std::unique_ptr<ASTnode>> nodes;
 

@@ -2,7 +2,8 @@
 #define PF_PRINT_AST_HPP
 
 #include "parser/program.hpp"
-#include "parser/function_declaration.hpp"
+#include "parser/compound_statement.hpp"
+#include "parser/function.hpp"
 #include "parser/function_call.hpp"
 #include "parser/if_conditional.hpp"
 #include "parser/while_loop.hpp"
@@ -34,13 +35,13 @@ class PrintAST
 
     std::string depthPadding();
 
-    void printFunctionDeclaration(const FunctionDeclaration* functionDeclaration);
+    //void printFunctionDeclaration(const FunctionDeclaration* functionDeclaration);
 
     void printStatement(const Statement* statement);
 
     void printCompoundStatement(const CompoundStatement* compoundStatement);
 
-    void printVariableDeclaration(const VariableDeclaration* var);
+    void printDeclaration(const Declaration* declaration);
 
     void printFunctionCall(const FunctionCall* functionCall);
 

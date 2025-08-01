@@ -3,13 +3,13 @@
 
 #include <vector>
 
-#include "variable_declaration.hpp"
+#include "declaration.hpp"
 
 struct Struct: public DataType
 {
   std::string identifier;
 
-  std::vector<std::pair<std::unique_ptr<VariableDeclaration>, uint8_t>> members;
+  std::vector<std::pair<std::unique_ptr<Declaration>, uint8_t>> members;
 
   Struct();
 };

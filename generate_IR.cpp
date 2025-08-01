@@ -17,9 +17,9 @@ struct IRGenError
 
 extern bool optimize;
 
-std::map<std::string, const FunctionDeclaration*> functions;
+std::map<std::string, const Function*> functions;
 
-std::map<std::string, const VariableDeclaration*> vars;
+std::map<std::string, const Declaration*> vars;
 
 std::vector<const CompoundStatement*> scopes;
 
@@ -52,9 +52,9 @@ DataType* copyDataType(const DataType* data)
   return result;
 }
 
-std::map<std::string, const VariableDeclaration*>::iterator getIdentifier(const std::string& identifier)
+std::map<std::string, const Declaration*>::iterator getIdentifier(const std::string& identifier)
 {
-  std::map<std::string, const VariableDeclaration*>::iterator parentVar = vars.end();
+  std::map<std::string, const Declaration*>::iterator parentVar = vars.end();
   for (std::vector<const CompoundStatement*>::const_reverse_iterator scope = scopes.crbegin(); scope != scopes.crend(); scope++)
   {
     if (vars.contains("Scope_" + std::to_string((std::uintptr_t)*scope) + "_" + identifier))
@@ -87,12 +87,9 @@ std::vector<Operation> generateIR(const Program& AST)
   {
     if (node->nodeType == ASTnode::NodeType::Statement)
     {
-      if (((Statement*)node.get())->statementType == Statement::StatementType::FunctionDeclaration)
+      if (((Statement*)node.get())->statementType == Statement::StatementType::Declaration)
       {
-        generateFunctionDeclaration(absProgram, (FunctionDeclaration*)node.get());
-      } else if (((Statement*)node.get())->statementType == Statement::StatementType::VariableDeclaration)
-      {
-        generateVariableDeclaration(absProgram, (VariableDeclaration*)node.get());
+        generateDeclaration(absProgram, (Declaration*)node.get());
       }
     }
   }
@@ -100,7 +97,7 @@ std::vector<Operation> generateIR(const Program& AST)
   return absProgram;
 }
 
-void generateFunctionDeclaration(std::vector<Operation>& absProgram, const FunctionDeclaration* functionDeclaration)
+/*void generateFunctionDeclaration(std::vector<Operation>& absProgram, const FunctionDeclaration* functionDeclaration)
 {
   if (
     functions.contains(functionDeclaration->identifier) && 
@@ -176,7 +173,7 @@ void generateFunctionDeclaration(std::vector<Operation>& absProgram, const Funct
       params.insert(parameter->identifier);
     }
   }
-}
+}*/
 
 void generateStatement(std::vector<Operation>& absProgram, const Statement* statement)
 {
@@ -223,11 +220,8 @@ void generateStatement(std::vector<Operation>& absProgram, const Statement* stat
     case Statement::StatementType::Goto:
       generateGoto(absProgram, (Goto*)statement);
       break;
-    case Statement::StatementType::VariableDeclaration:
-      generateVariableDeclaration(absProgram, (VariableDeclaration*)statement);
-      break;
-    case Statement::StatementType::FunctionDeclaration:
-      generateFunctionDeclaration(absProgram, (FunctionDeclaration*)statement);
+    case Statement::StatementType::Declaration:
+      generateDeclaration(absProgram, (Declaration*)statement);
       break;
     case Statement::StatementType::IfConditional:
       generateIfConditional(absProgram, (IfConditional*)statement);
@@ -442,9 +436,9 @@ void generateGoto(std::vector<Operation>& absProgram, const Goto* gotoStatement)
   absProgram.emplace_back(Operation{Operation::Jump, {gotoStatement->label}});
 }
 
-void generateVariableDeclaration(std::vector<Operation>& absProgram, const VariableDeclaration* variableDeclaration, bool allowInitialization)
+void generateDeclaration(std::vector<Operation>& absProgram, const Declaration* declaration, bool allowInitialization)
 {
-  std::string name = variableDeclaration->identifier;
+  std::string name = declaration->identifier;
   if (!scopes.empty())
   {
     name = "Scope_" + std::to_string((std::uintptr_t)scopes.back()) + "_" + name;
@@ -452,27 +446,27 @@ void generateVariableDeclaration(std::vector<Operation>& absProgram, const Varia
 
   if (functions.contains(name))
   {
-    std::cout << "IR generation error: Identifier \"" << variableDeclaration->identifier << "\" is already defined\n";
+    std::cout << "IR generation error: Identifier \"" << declaration->identifier << "\" is already defined\n";
     throw IRGenError();
   }
   
-  if (variableDeclaration->value && vars.contains(name) && vars[name]->value)
+  if (declaration->value && vars.contains(name) && vars[name]->value)
   {
-    std::cout << "IR generation error: Variable \"" << variableDeclaration->identifier << "\" is already defined\n";
+    std::cout << "IR generation error: Variable \"" << declaration->identifier << "\" is already defined\n";
     throw IRGenError();
   }
 
   //vars[name].reset(copyDataType(variableDeclaration->dataType.get()));
-  vars[name] = variableDeclaration;
+  vars[name] = declaration;
   
-  if (variableDeclaration->value)
+  if (declaration->value)
   {
     if (!allowInitialization)
     {
-      std::cout << "IR generation error: Variable \"" << variableDeclaration->identifier << "\" cannot be initialized here\n";
+      std::cout << "IR generation error: Variable \"" << declaration->identifier << "\" cannot be initialized here\n";
       throw IRGenError();
     }
-    std::string outputName = generateExpression(absProgram, variableDeclaration->value.get());
+    std::string outputName = generateExpression(absProgram, (Expression*)declaration->value.get());
     absProgram.emplace_back(Operation{Operation::Set, {name, outputName}});
   }
 }
@@ -663,7 +657,7 @@ void generateForLoop(std::vector<Operation>& absProgram, const ForLoop* forLoop)
 
 std::string generateVariableAccess(std::vector<Operation>& absProgram, const VariableAccess* variableAccess)
 {
-  std::map<std::string, const VariableDeclaration*>::iterator name = getIdentifier(variableAccess->identifier);
+  std::map<std::string, const Declaration*>::iterator name = getIdentifier(variableAccess->identifier);
   if (name->second)
   {
     return name->first;

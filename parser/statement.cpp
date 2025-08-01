@@ -14,8 +14,8 @@
 #include "do_while_loop.hpp"
 #include "while_loop.hpp"
 #include "for_loop.hpp"
-#include "variable_declaration.hpp"
-#include "function_declaration.hpp"
+#include "declaration.hpp"
+#include "compound_statement.hpp"
 #include "label.hpp"
 
 Statement::Statement()
@@ -83,14 +83,10 @@ Statement* Statement::parse(std::list<Token>& code, Program& program, bool canPa
         {
           if (canParseVariableDeclarations)
           {
-            statement = VariableDeclaration::parse(code, program);
+            statement = Declaration::parse(code, program);
             ParseError::expect(code.front().data, ";");
             code.pop_front();
           }
-          break;
-        } else if (token.data == "(")
-        {
-          statement = FunctionDeclaration::parse(code, program);
           break;
         }
       }

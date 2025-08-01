@@ -14,13 +14,10 @@ PrintAST::PrintAST(const Program& AST)
   {
     if (node->nodeType == ASTnode::NodeType::Statement)
     {
-    if (((Statement*)node.get())->statementType == Statement::StatementType::FunctionDeclaration)
-    {
-      printFunctionDeclaration((FunctionDeclaration*)node.get());
-    } else if (((Statement*)node.get())->statementType == Statement::StatementType::VariableDeclaration)
-    {
-      printVariableDeclaration((VariableDeclaration*)node.get());
-    }
+      if (((Statement*)node.get())->statementType == Statement::StatementType::Declaration)
+      {
+        printDeclaration((Declaration*)node.get());
+      }
     }
   }
 
@@ -32,7 +29,7 @@ std::string PrintAST::depthPadding()
   return std::string(depth*2, ' ');
 }
 
-void PrintAST::printFunctionDeclaration(const FunctionDeclaration* functionDeclaration)
+/*void PrintAST::printFunctionDeclaration(const FunctionDeclaration* functionDeclaration)
 {
   depth++;
 
@@ -63,7 +60,7 @@ void PrintAST::printFunctionDeclaration(const FunctionDeclaration* functionDecla
   std::cout << depthPadding() << "}\n";
 
   depth--;
-}
+}*/
 
 void PrintAST::printStatement(const Statement* statement)
 {
@@ -90,8 +87,8 @@ void PrintAST::printStatement(const Statement* statement)
     case Statement::StatementType::Goto:
       printGoto((Goto*)statement);
       break;
-    case Statement::StatementType::VariableDeclaration:
-      printVariableDeclaration((VariableDeclaration*)statement);
+    case Statement::StatementType::Declaration:
+      printDeclaration((Declaration*)statement);
       break;
     case Statement::StatementType::SwitchCase:
       printSwitchCase((SwitchCase*)statement);
@@ -131,7 +128,7 @@ void PrintAST::printCompoundStatement(const CompoundStatement* compoundStatement
   depth--;
 }
 
-void PrintAST::printVariableDeclaration(const VariableDeclaration* var)
+void PrintAST::printDeclaration(const Declaration* var)
 {
   depth++;
 
@@ -143,7 +140,7 @@ void PrintAST::printVariableDeclaration(const VariableDeclaration* var)
   if (var->value)
   {
     std::cout << depthPadding() << "Value {\n";
-    printExpression(var->value.get());
+    printStatement(var->value.get());
     std::cout << depthPadding() << "}\n";
   }
 
