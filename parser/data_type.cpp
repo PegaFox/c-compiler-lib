@@ -3,6 +3,7 @@
 #include "parse_error.hpp"
 #include "primitive_type.hpp"
 #include "pointer.hpp"
+#include "function.hpp"
 #include "array.hpp"
 #include "struct.hpp"
 
@@ -32,6 +33,9 @@ DataType* DataType::parse(std::list<Token>& code, Program& program, DataType::Li
       {
         dataType = new Struct;
       }
+    } else if (i->data == "(")
+    {
+      dataType = new Function;
     } else
     {
       break;
@@ -114,6 +118,67 @@ DataType* DataType::parse(std::list<Token>& code, Program& program, DataType::Li
       code.pop_front();
     }
 
+  } else if (dataType->generalType == DataType::GeneralType::Function)
+  {
+    Function* function = (Function*)dataType;
+
+    std::list<Token> buffer;
+    // we only use the section of the code with the return type so it doesn't recursively create functions
+    while (code.front().data != "(")
+    {
+      buffer.push_back(code.front());
+      code.pop_front();
+    }
+    // need to add a dummy token to the end to avoid segfault when checking first element of list
+    buffer.push_back(Token{Token::Other, ";"});
+
+    function->returnType = std::unique_ptr<DataType>(DataType::parse(buffer, program));
+
+    buffer.pop_back();
+    while (!buffer.empty())
+    {
+      code.push_front(buffer.back());
+      buffer.pop_back();
+    }
+
+    if (code.front().data == "(")
+    {
+      code.pop_front();
+    }
+    
+    while (code.front().data != "(")
+    {
+      // this effectively removes the closing parentheses for function pointers
+      if (code.front().data != ")")
+      {
+        buffer.push_front(code.front());
+      }
+
+      code.pop_front();
+    }
+    code.pop_front();
+
+    if (code.front().data == "void")
+    {
+      code.pop_front();
+    }
+    
+    while (code.front().data != ")")
+    {
+      if (code.front().data == ",")
+      {
+        code.pop_front();
+      }
+
+      function->parameters.emplace_back(std::unique_ptr<Declaration>(Declaration::parse(code, program)));
+    }
+    code.pop_front();
+
+    while (!buffer.empty())
+    {
+      code.push_front(buffer.front());
+      buffer.pop_front();
+    }
   } else if (dataType->generalType == DataType::GeneralType::PrimitiveType)
   {
     PrimitiveType* primitiveType = (PrimitiveType*)dataType;
