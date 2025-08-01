@@ -24,7 +24,6 @@ struct DataType: public ASTnode
 
   bool isConst = false;
   bool isVolatile = false;
-  bool isTypedef = false;
 
   DataType();
 

@@ -8,6 +8,8 @@
 
 struct Declaration: public Statement
 {
+  bool isTypedef = false;
+
   std::unique_ptr<DataType> dataType;
 
   std::string identifier;

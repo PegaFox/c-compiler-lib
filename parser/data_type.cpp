@@ -1,5 +1,7 @@
 #include "data_type.hpp"
 
+#include <iostream>
+
 #include "parse_error.hpp"
 #include "primitive_type.hpp"
 #include "pointer.hpp"
@@ -64,13 +66,6 @@ DataType* DataType::parse(std::list<Token>& code, Program& program, DataType::Li
     {
       changed = true;
       dataType->isVolatile = true;
-      code.pop_front();
-    }
-
-    if (code.front().data == "typedef")
-    {
-      changed = true;
-      dataType->isTypedef = true;
       code.pop_front();
     }
 
@@ -179,6 +174,20 @@ DataType* DataType::parse(std::list<Token>& code, Program& program, DataType::Li
       code.push_front(buffer.front());
       buffer.pop_front();
     }
+  } else if (code.front().data == "enum")
+  {
+    code.pop_front();
+
+    ParseError::expect(code.front(), Token::Identifier);
+    if (!program.enumTypes.contains(code.front().data))
+    {
+      std::cout << "Parse error: \"" << code.front().data << "\" is not a valid enum type\n";
+      throw ParseError();
+    }
+    code.pop_front();
+
+    ((PrimitiveType*)dataType)->type = PrimitiveType::Type::SignedInt;
+
   } else if (dataType->generalType == DataType::GeneralType::PrimitiveType)
   {
     PrimitiveType* primitiveType = (PrimitiveType*)dataType;

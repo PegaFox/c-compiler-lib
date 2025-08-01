@@ -14,7 +14,7 @@ struct Statement;
 struct DataType;
 struct Declaration;
 
-typedef uint32_t ENUM_TYPE;
+typedef int32_t ENUM_TYPE;
 //typedef uint8_t PFCC_SIZE_T;
 //typedef uint8_t PFCC_PTR;
 //typedef int16_t PFCC_PTRDIFF_T;
