@@ -10,11 +10,34 @@
 
 extern std::vector<std::string> includeDirs;
 
-std::list<std::array<std::string, 2>> definitions;
+Preprocessor::Preprocessor()
+{
 
-std::vector<std::size_t> conditionalDirectives;
+}
 
-void removeSingleLineComments(std::string& code)
+Preprocessor::Preprocessor(std::string& code)
+{
+
+}
+
+std::string Preprocessor::preprocess(std::string code)
+{
+  removeSingleLineComments(code);
+
+  removeMultiLineComments(code);
+
+  removeUnwantedNewlines(code);
+
+  convertConstantTypes(code);
+
+  handlePreprocessingDirectives(code);
+
+  resolveDefinitions(code);
+
+  return code;
+}
+
+void Preprocessor::removeSingleLineComments(std::string& code)
 {
   std::size_t pos = 0;
 
@@ -26,7 +49,7 @@ void removeSingleLineComments(std::string& code)
   }
 }
 
-void removeMultiLineComments(std::string& code)
+void Preprocessor::removeMultiLineComments(std::string& code)
 {
   std::size_t pos = 0;
 
@@ -38,7 +61,7 @@ void removeMultiLineComments(std::string& code)
   }
 }
 
-void removeUnwantedNewlines(std::string& code)
+void Preprocessor::removeUnwantedNewlines(std::string& code)
 {
   std::size_t pos = 0;
 
@@ -48,7 +71,7 @@ void removeUnwantedNewlines(std::string& code)
   }
 }
 
-void convertConstantTypes(std::string& code)
+void Preprocessor::convertConstantTypes(std::string& code)
 {
   std::size_t pos = 0;
 
@@ -80,7 +103,7 @@ void convertConstantTypes(std::string& code)
   }
 }
 
-std::string handleIncludeDirective(std::string& directiveStr)
+std::string Preprocessor::handleIncludeDirective(std::string& directiveStr)
 {
   std::size_t pos;
 
@@ -112,7 +135,7 @@ std::string handleIncludeDirective(std::string& directiveStr)
   return preprocess(fileStr);
 }
 
-bool handleConditionalDirective(std::string& directiveStr)
+bool Preprocessor::handleConditionalDirective(std::string& directiveStr)
 {
   std::size_t pos = -1UL;
 
@@ -181,7 +204,7 @@ bool handleConditionalDirective(std::string& directiveStr)
 
 }
 
-void handlePreprocessingDirectives(std::string& code)
+void Preprocessor::handlePreprocessingDirectives(std::string& code)
 {
   std::size_t pos = 0;
 
@@ -262,7 +285,7 @@ void handlePreprocessingDirectives(std::string& code)
   }
 }
 
-void resolveDefinitions(std::string& code)
+void Preprocessor::resolveDefinitions(std::string& code)
 {
   // make sure definitions are ordered by longest to shortest
   definitions.sort([](const std::array<std::string, 2>& a, const std::array<std::string, 2>& b)
@@ -286,22 +309,5 @@ void resolveDefinitions(std::string& code)
       }
     }
   }
-}
-
-std::string preprocess(std::string code)
-{
-  removeSingleLineComments(code);
-
-  removeMultiLineComments(code);
-
-  removeUnwantedNewlines(code);
-
-  convertConstantTypes(code);
-
-  handlePreprocessingDirectives(code);
-
-  resolveDefinitions(code);
-
-  return code;
 }
 

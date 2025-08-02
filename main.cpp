@@ -18,7 +18,7 @@
 
 */
 
-#include "C_compiler.hpp"
+#include "compiler.hpp"
 
 int main(int argc, char* argv[])
 {
@@ -35,25 +35,27 @@ int main(int argc, char* argv[])
     argv = args;
   }
   #endif // NDEBUG*/
-  
-  includeDirs.emplace_back("./include/");
 
-  if (handleArgs(argc, argv))
+  Compiler compiler;
+  
+  compiler.includeDirs.emplace_back("./include/");
+
+  if (compiler.handleArgs(argv, argv+argc))
   {
     return -1;
   }
 
-  outputFilename = doAssemble ? "out.mcfunction" : "out.mc1";
+  compiler.outputFilename = compiler.doAssemble ? "out.a" : "out.s";
 
-  std::string fileText = loadFile(inputFilename);
+  std::string fileText = loadFile(compiler.inputFilename);
 
-  if (doPreprocess)
+  if (metadata.doPreprocess)
   {
     fileText = preprocess(fileText);
     std::cout << "Preprocessed:\n" << fileText << '\n';
   }
 
-  if (doCompile)
+  if (metadata.doCompile)
   {
     std::list<Token> code = lex(fileText);
     std::cout << "Tokens:\n";
@@ -77,7 +79,7 @@ int main(int argc, char* argv[])
 
     std::vector<Operation> asmCode = generateIR(AST);
 
-    if (optimize)
+    if (metadata.optimize)
     {
       optimizeIR(asmCode);
     }

@@ -1,6 +1,8 @@
 #ifndef PF_C_COMPILER_HPP
 #define PF_C_COMPILER_HPP
 
+#include "compiler_data.hpp"
+
 #include "handle_args.hpp"
 
 #include "load_file.hpp"
@@ -24,13 +26,5 @@
 #include "print_IR.hpp"
 
 #include "save_file.hpp"
-
-extern std::string inputFilename;
-extern std::string outputFilename;
-extern std::vector<std::string> includeDirs;
-extern bool doPreprocess;
-extern bool doCompile;
-extern bool doAssemble;
-extern bool optimize;
 
 #endif // PF_C_COMPILER_HPP

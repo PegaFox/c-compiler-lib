@@ -5,8 +5,6 @@ set(CMAKE_CXX_STANDARD 20)
 project(c-compiler-lib)
 
 add_library(c-compiler-lib STATIC
-  C_compiler.cpp
-
   handle_args.cpp
   load_file.cpp
 
@@ -48,13 +46,14 @@ add_library(c-compiler-lib STATIC
   parser/primitive_type.cpp    
   parser/switch_default.cpp
 
-  remove_sub_expressions.cpp
   optimize_AST.cpp
   print_AST.cpp
 
   generate_IR.cpp
   optimize_IR.cpp
   print_IR.cpp
+
+  compiler.cpp
 
   save_file.cpp
 )

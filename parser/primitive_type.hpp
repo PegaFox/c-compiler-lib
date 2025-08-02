@@ -5,7 +5,7 @@
 
 struct PrimitiveType: public DataType
 {
-  enum class Type
+  /*enum class Type
   {
     Void,
     SignedChar,
@@ -21,7 +21,11 @@ struct PrimitiveType: public DataType
     Float,
     Double,
     LongDouble
-  } type;
+  } type;*/
+
+  bool isFloating;
+  bool isSigned;
+  uint8_t size;
 
   PrimitiveType();
 

@@ -3,8 +3,6 @@
 
 #include "parser/program.hpp"
 
-void optimizeAST(Program& AST);
+void optimize_AST(Program& AST);
 
-bool optimizeConstants(Program& AST);
-
-#endif // OPTIMIZE_AST_HPP
+#endif // PF_OPTIMIZE_AST_HPP
