@@ -15,12 +15,12 @@ Preprocessor::Preprocessor()
 
 }
 
-Preprocessor::Preprocessor(std::string& code)
+Preprocessor::Preprocessor(std::string& code, const std::vector<std::string>& includeDirs)
 {
-
+  code = preprocess(code, includeDirs);
 }
 
-std::string Preprocessor::preprocess(std::string code)
+std::string Preprocessor::preprocess(std::string code, const std::vector<std::string>& includeDirs)
 {
   removeSingleLineComments(code);
 
@@ -30,7 +30,7 @@ std::string Preprocessor::preprocess(std::string code)
 
   convertConstantTypes(code);
 
-  handlePreprocessingDirectives(code);
+  handlePreprocessingDirectives(code, includeDirs);
 
   resolveDefinitions(code);
 
@@ -103,7 +103,7 @@ void Preprocessor::convertConstantTypes(std::string& code)
   }
 }
 
-std::string Preprocessor::handleIncludeDirective(std::string& directiveStr)
+std::string Preprocessor::handleIncludeDirective(std::string& directiveStr, const std::vector<std::string>& includeDirs)
 {
   std::size_t pos;
 
@@ -132,7 +132,7 @@ std::string Preprocessor::handleIncludeDirective(std::string& directiveStr)
     std::cout << "Error: could not find file " << filename << '\n';
   }
 
-  return preprocess(fileStr);
+  return preprocess(fileStr, includeDirs);
 }
 
 bool Preprocessor::handleConditionalDirective(std::string& directiveStr)
@@ -204,7 +204,7 @@ bool Preprocessor::handleConditionalDirective(std::string& directiveStr)
 
 }
 
-void Preprocessor::handlePreprocessingDirectives(std::string& code)
+void Preprocessor::handlePreprocessingDirectives(std::string& code, const std::vector<std::string>& includeDirs)
 {
   std::size_t pos = 0;
 
@@ -219,7 +219,7 @@ void Preprocessor::handlePreprocessingDirectives(std::string& code)
 
     if (directiveStr.find("include") != directiveStr.npos)
     {
-      code.insert(pos, handleIncludeDirective(directiveStr));
+      code.insert(pos, handleIncludeDirective(directiveStr, includeDirs));
     } else if (directiveStr.find("define") != directiveStr.npos)
     {
       definitions.push_front(std::array<std::string, 2>());

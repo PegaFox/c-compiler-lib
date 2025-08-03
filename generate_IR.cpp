@@ -296,39 +296,7 @@ std::string generateConstant(std::vector<Operation>& absProgram, const Constant*
   // number comes first to ensure that the variable name is unique (identifiers can't start with numbers in C)
   if (constant->dataType->generalType == DataType::GeneralType::PrimitiveType)
   {
-    switch (((PrimitiveType*)constant->dataType.get())->type)
-    {
-      case PrimitiveType::Type::SignedChar:
-        absProgram.emplace_back(Operation{Operation::Set, {std::to_string((uintptr_t)constant) + "_Constant", std::to_string(constant->value.signedChar)}});
-        break;
-      case PrimitiveType::Type::UnsignedChar:
-        absProgram.emplace_back(Operation{Operation::Set, {std::to_string((uintptr_t)constant) + "_Constant", std::to_string(constant->value.unsignedChar)}});
-        break;
-      case PrimitiveType::Type::SignedShort:
-        absProgram.emplace_back(Operation{Operation::Set, {std::to_string((uintptr_t)constant) + "_Constant", std::to_string(constant->value.signedShort)}});
-        break;
-      case PrimitiveType::Type::UnsignedShort:
-        absProgram.emplace_back(Operation{Operation::Set, {std::to_string((uintptr_t)constant) + "_Constant", std::to_string(constant->value.unsignedShort)}});
-        break;
-      case PrimitiveType::Type::SignedInt:
-        absProgram.emplace_back(Operation{Operation::Set, {std::to_string((uintptr_t)constant) + "_Constant", std::to_string(constant->value.signedInt)}});
-        break;
-      case PrimitiveType::Type::UnsignedInt:
-        absProgram.emplace_back(Operation{Operation::Set, {std::to_string((uintptr_t)constant) + "_Constant", std::to_string(constant->value.unsignedInt)}});
-        break;
-      case PrimitiveType::Type::SignedLong:
-        absProgram.emplace_back(Operation{Operation::Set, {std::to_string((uintptr_t)constant) + "_Constant", std::to_string(constant->value.signedLong)}});
-        break;
-      case PrimitiveType::Type::UnsignedLong:
-        absProgram.emplace_back(Operation{Operation::Set, {std::to_string((uintptr_t)constant) + "_Constant", std::to_string(constant->value.unsignedLong)}});
-        break;
-      case PrimitiveType::Type::SignedLongLong:
-        absProgram.emplace_back(Operation{Operation::Set, {std::to_string((uintptr_t)constant) + "_Constant", std::to_string(constant->value.signedLongLong)}});
-        break;
-      case PrimitiveType::Type::UnsignedLongLong:
-        absProgram.emplace_back(Operation{Operation::Set, {std::to_string((uintptr_t)constant) + "_Constant", std::to_string(constant->value.unsignedLongLong)}});
-        break;
-    }
+    absProgram.emplace_back(Operation{Operation::Set, {std::to_string((uintptr_t)constant) + "_Constant", std::to_string(*((long int*)constant->value))}});
   }
   
   return absProgram.back().operands[0];

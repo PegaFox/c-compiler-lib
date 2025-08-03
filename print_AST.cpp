@@ -448,7 +448,7 @@ void PrintAST::printConstant(const Constant* constant)
   std::cout << depthPadding() << "Type: \"" << printDataType(constant->dataType.get()) << "\"\n";
   std::cout << depthPadding() << "Value: ";
 
-  std::cout << (int)constant->value.unsignedChar << '\n';
+  std::cout << *((long int*)constant->value) << '\n';
 
   depth--;
   std::cout << depthPadding() << "}\n";

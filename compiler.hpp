@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#include "parser/program.hpp"
+class Program;
 
 class Compiler
 {
@@ -38,14 +38,11 @@ class Compiler
 
     Compiler();
 
-    template <typename IIter>
-    Compiler(IIter argsBegin, IIter argsEnd);
+    Compiler(int argc, char* argv[]);
 
-    template <typename IIter>
-    void compileFromArgs(IIter argsBegin, IIter argsEnd);
+    void compileFromArgs(int argc, char* argv[]);
 
-    template <typename IIter>
-    int handleArgs(IIter argsBegin, IIter argsEnd);
+    int handleArgs(int argc, char* argv[]);
 
     std::string loadFile(const std::string& filename);
 

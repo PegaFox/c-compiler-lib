@@ -16,23 +16,21 @@ Compiler::Compiler()
 
 }
 
-template <typename IIter>
-Compiler::Compiler(IIter argsBegin, IIter argsEnd)
+Compiler::Compiler(int argc, char* argv[])
 {
-  compileFromArgs(argsBegin, argsEnd);
+  compileFromArgs(argc, argv);
 }
 
-template <typename IIter>
-void Compiler::compileFromArgs(IIter argsBegin, IIter argsEnd)
+void Compiler::compileFromArgs(int argc, char* argv[])
 {
-  handleArgs(argsBegin, argsEnd);
+  handleArgs(argc, argv);
 
   std::string fileText = loadFile(inputFilename);
 
   if (doPreprocess)
   {
     // updates filetext
-    Preprocessor preprocessor(fileText);
+    Preprocessor preprocessor(fileText, includeDirs);
     //std::cout << "Preprocessed:\n" << fileText << '\n';
   }
 
@@ -46,7 +44,7 @@ void Compiler::compileFromArgs(IIter argsBegin, IIter argsEnd)
       std::cout << Token::typeStrings[token.type] << ": \"" << token.data << "\"\n";
     }*/
   
-    Program AST(code);
+    Program AST(code, typeSizes);
 
     optimizeAST(AST);
   
@@ -65,14 +63,13 @@ void Compiler::compileFromArgs(IIter argsBegin, IIter argsEnd)
   }
 }
 
-template <typename IIter>
-int Compiler::handleArgs(IIter argsBegin, IIter argsEnd)
+int Compiler::handleArgs(int argc, char* argv[])
 {
-  for (IIter arg = argsBegin; arg != argsEnd; arg++)
+  for (int arg = 0; arg < argc; arg++)
   {
-    std::string argStr = *arg;
+    std::string argStr = argv[arg];
 
-    if (argStr == "-o" && arg < argsEnd-1)
+    if (argStr == "-o" && arg < argc-1)
     {
       arg++;
       outputFilename = argStr;

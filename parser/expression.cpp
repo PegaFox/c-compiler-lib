@@ -57,33 +57,6 @@ Expression* Expression::parse(CommonParseData& data, bool allowNullExpression)
     data.code.front().data == "--")
   {
     expression = PreUnaryOperator::parse(data);
-    if (optimize && ((PreUnaryOperator*)expression)->operand.get()->expressionType == Expression::ExpressionType::Constant)
-    {
-      Constant* constant = (Constant*)(((PreUnaryOperator*)expression)->operand.get());
-      switch (((PreUnaryOperator*)expression)->preUnaryType)
-      {
-        case PreUnaryOperator::PreUnaryType::MathematicNegate:
-          ((PreUnaryOperator*)expression)->operand.release();
-          delete expression;
-          constant->value.unsignedChar = -constant->value.unsignedChar;
-          expression = constant;
-          break;
-        case PreUnaryOperator::PreUnaryType::LogicalNegate:
-          ((PreUnaryOperator*)expression)->operand.release();
-          delete expression;
-          constant->value.unsignedChar = !constant->value.unsignedChar;
-          expression = constant;
-          break;
-        case PreUnaryOperator::PreUnaryType::BitwiseNOT:
-          ((PreUnaryOperator*)expression)->operand.release();
-          delete expression;
-          constant->value.unsignedChar = ~constant->value.unsignedChar;
-          expression = constant;
-          break;
-        default:
-          break;
-      }
-    }
   } else if (allowNullExpression && (data.code.front().data == ")" || data.code.front().data == ";"))
   {
     expression = new Expression;
