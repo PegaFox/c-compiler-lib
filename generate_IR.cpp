@@ -31,7 +31,7 @@ DataType* copyDataType(const DataType* data)
   {
     case DataType::GeneralType::PrimitiveType:
       result = new PrimitiveType;
-      ((PrimitiveType*)result)->type = ((PrimitiveType*)data)->type;
+      *((PrimitiveType*)result) = *((PrimitiveType*)data);
       break;
     case DataType::GeneralType::Pointer:
       result = new Pointer;

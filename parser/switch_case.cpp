@@ -7,17 +7,17 @@ SwitchCase::SwitchCase()
   statementType = StatementType::SwitchCase;
 }
 
-SwitchCase* SwitchCase::parse(std::list<Token>& code, Program& program)
+SwitchCase* SwitchCase::parse(CommonParseData& data)
 {
   SwitchCase* switchCase = new SwitchCase;
 
-  ParseError::expect(code.front().data, "case");
-  code.pop_front();
+  ParseError::expect(data.code.front().data, "case");
+  data.code.pop_front();
 
-  switchCase->requirement = std::unique_ptr<Expression>(Expression::parse(code, program, false));
+  switchCase->requirement = std::unique_ptr<Expression>(Expression::parse(data, false));
 
-  ParseError::expect(code.front().data, ":");
-  code.pop_front();
+  ParseError::expect(data.code.front().data, ":");
+  data.code.pop_front();
 
   return switchCase;
 }

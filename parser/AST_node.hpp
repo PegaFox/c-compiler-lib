@@ -1,6 +1,11 @@
 #ifndef PF_PARSER_AST_NODE_HPP
 #define PF_PARSER_AST_NODE_HPP
 
+#include "../compiler.hpp"
+#include "../lexer.hpp"
+
+class Program;
+
 struct ASTnode
 {
   enum class NodeType
@@ -10,6 +15,14 @@ struct ASTnode
     Program,
     DataType
   } nodeType;
+
+  protected:
+    struct CommonParseData
+    {
+      std::list<Token> code;
+      Program* program;
+      Compiler::TypeSizes typeSizes;
+    };
 };
 
 #endif // PF_PARSER_AST_NODE_HPP

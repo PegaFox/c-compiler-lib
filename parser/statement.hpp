@@ -27,7 +27,7 @@ struct Statement: public ASTnode
 
   Statement();
 
-  static Statement* parse(std::list<Token>& code, Program& program, bool canParseVariableDeclarations = false);
+  static Statement* parse(CommonParseData& data, bool canParseVariableDeclarations = false);
 };
 
 #endif // PF_PARSER_STATEMENT_HPP

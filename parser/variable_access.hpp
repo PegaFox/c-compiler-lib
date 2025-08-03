@@ -11,7 +11,7 @@ struct VariableAccess: public Expression
 
   VariableAccess();
 
-  static VariableAccess* parse(std::list<Token>& code);
+  static VariableAccess* parse(CommonParseData& data);
 };
 
 #endif // PF_PARSER_VARIABLE_ACCESS_HPP

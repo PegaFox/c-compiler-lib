@@ -7,22 +7,22 @@ WhileLoop::WhileLoop()
   statementType = StatementType::WhileLoop;
 }
 
-WhileLoop* WhileLoop::parse(std::list<Token>& code, Program& program)
+WhileLoop* WhileLoop::parse(CommonParseData& data)
 {
   WhileLoop* whileLoop = new WhileLoop;
 
-  ParseError::expect(code.front().data, "while");
-  code.pop_front();
+  ParseError::expect(data.code.front().data, "while");
+  data.code.pop_front();
 
-  ParseError::expect(code.front().data, "(");
-  code.pop_front();
+  ParseError::expect(data.code.front().data, "(");
+  data.code.pop_front();
 
-  whileLoop->condition = std::unique_ptr<Expression>(Expression::parse(code, program, false));
+  whileLoop->condition = std::unique_ptr<Expression>(Expression::parse(data, false));
 
-  ParseError::expect(code.front().data, ")");
-  code.pop_front();
+  ParseError::expect(data.code.front().data, ")");
+  data.code.pop_front();
 
-  whileLoop->body = std::unique_ptr<Statement>(Statement::parse(code, program));
+  whileLoop->body = std::unique_ptr<Statement>(Statement::parse(data));
 
   return whileLoop;
 }

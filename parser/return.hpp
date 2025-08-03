@@ -11,7 +11,7 @@ struct Return: public Statement
 
   Return(); 
 
-  static Return* parse(std::list<Token>& code, Program& program);
+  static Return* parse(CommonParseData& data);
 };
 
 #endif // PF_PARSER_RETURN_HPP

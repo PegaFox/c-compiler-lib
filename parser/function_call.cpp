@@ -7,28 +7,28 @@ FunctionCall::FunctionCall()
   expressionType = ExpressionType::FunctionCall;
 }
 
-FunctionCall* FunctionCall::parse(std::list<Token>& code, Program& program)
+FunctionCall* FunctionCall::parse(CommonParseData& data)
 {
   FunctionCall* functionCall = new FunctionCall;
 
-  ParseError::expect(code.front(), Token::Identifier);
-  functionCall->identifier = code.front().data;
-  code.pop_front();
+  ParseError::expect(data.code.front(), Token::Identifier);
+  functionCall->identifier = data.code.front().data;
+  data.code.pop_front();
 
-  ParseError::expect(code.front().data, "(");
-  code.pop_front();
+  ParseError::expect(data.code.front().data, "(");
+  data.code.pop_front();
   
-  while (code.front().data != ")")
+  while (data.code.front().data != ")")
   {
-    if (code.front().data == ",")
+    if (data.code.front().data == ",")
     {
-      code.pop_front();
+      data.code.pop_front();
     }
 
-    functionCall->arguments.emplace_back(std::unique_ptr<Expression>(Expression::parse(code, program)));
+    functionCall->arguments.emplace_back(std::unique_ptr<Expression>(Expression::parse(data)));
   }
   
-  code.pop_front();
+  data.code.pop_front();
 
   return functionCall;
 }

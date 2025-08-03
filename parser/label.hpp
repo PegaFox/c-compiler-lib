@@ -11,7 +11,7 @@ struct Label: public Statement
 
   Label();
 
-  static Label* parse(std::list<Token>& code);
+  static Label* parse(CommonParseData& data);
 };
 
 #endif // PF_PARSER_LABEL_HPP

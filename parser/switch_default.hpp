@@ -7,7 +7,7 @@ struct SwitchDefault: public Statement
 {
   SwitchDefault();
 
-  static SwitchDefault* parse(std::list<Token>& code);
+  static SwitchDefault* parse(CommonParseData& data);
 };
 
 #endif // PF_PARSER_SWITCH_DEFAULT_HPP

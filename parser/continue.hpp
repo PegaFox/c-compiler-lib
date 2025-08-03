@@ -7,7 +7,7 @@ struct Continue: public Statement
 {
   Continue();
 
-  static Continue* parse(std::list<Token>& code);
+  static Continue* parse(CommonParseData& data);
 };
 
 #endif // PF_PARSER_CONTINUE_HPP

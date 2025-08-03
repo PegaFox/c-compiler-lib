@@ -7,93 +7,93 @@ Constant::Constant()
   expressionType = ExpressionType::Constant;
 }
 
-Constant* Constant::parse(std::list<Token>& code)
+Constant* Constant::parse(CommonParseData& data)
 {
   Constant* constant = new Constant;
   PrimitiveType* constantType = new PrimitiveType;
 
-  if (code.front().data.front() == '\'' && code.front().data.back() == '\'')
+  if (data.code.front().data.front() == '\'' && data.code.front().data.back() == '\'')
   { // char constant
-    constantType->type = PrimitiveType::Type::SignedChar;
-    constant->value.signedChar = code.front().data[1];
-    code.pop_front();
-  } else if (code.front().data.front() == '\"' && code.front().data.back() == '\"')
+    *constantType = PrimitiveType{false, true, data.typeSizes.charSize};
+    constant->value.signedChar = data.code.front().data[1];
+    data.code.pop_front();
+  } else if (data.code.front().data.front() == '\"' && data.code.front().data.back() == '\"')
   { // str constant
 
-  } else if (code.front().data.front() >= '0' && code.front().data.front() <= '9')
+  } else if (data.code.front().data.front() >= '0' && data.code.front().data.front() <= '9')
   { // int constant
-    if (code.front().data.back() == 'L')
+    if (data.code.front().data.back() == 'L')
     { // long int
-      if (code.front().data[code.front().data.size()-2] == 'U')
+      if (data.code.front().data[data.code.front().data.size()-2] == 'U')
       { // unsigned long int
 
       } else
       { // long int
 
       }
-    } else if (code.front().data.back() == 'U')
+    } else if (data.code.front().data.back() == 'U')
     { // unsigned int
-      int constVal = std::stoi(code.front().data);
-      code.pop_front();
+      int constVal = std::stoi(data.code.front().data);
+      data.code.pop_front();
 
       if (constVal == (constVal & 0xFF))
       {
-        constantType->type = PrimitiveType::Type::UnsignedChar;
+        *constantType = PrimitiveType{false, false, data.typeSizes.charSize};
         constant->value.unsignedChar = constVal;
       } else if (constVal == (constVal & 0xFFFF))
       {
-        constantType->type = PrimitiveType::Type::UnsignedShort;
+        *constantType = PrimitiveType{false, false, data.typeSizes.shortSize};
         constant->value.unsignedShort = constVal;
       } else if (constVal == (constVal & 0xFFFFFFFF))
       {
-        constantType->type = PrimitiveType::Type::UnsignedLong;
+        *constantType = PrimitiveType{false, false, data.typeSizes.longSize};
         constant->value.unsignedLong = constVal;
       } else if (constVal == (constVal & 0xFFFFFFFFFFFFFFFF))
       {
-        constantType->type = PrimitiveType::Type::UnsignedLongLong;
+        *constantType = PrimitiveType{false, false, data.typeSizes.longLongSize};
         constant->value.unsignedLongLong = constVal;
       }
     } else
     { // signed int
-      int constVal = std::stoi(code.front().data);
-      code.pop_front();
+      int constVal = std::stoi(data.code.front().data);
+      data.code.pop_front();
 
       if (constVal < 0)
       {
         if (-constVal == -(constVal & 0xFF))
         {
-          constantType->type = PrimitiveType::Type::SignedChar;
+          *constantType = PrimitiveType{false, true, data.typeSizes.charSize};
           constant->value.signedChar = constVal;
         } else if (-constVal == -(constVal & 0xFFFF))
         {
-          constantType->type = PrimitiveType::Type::SignedShort;
+          *constantType = PrimitiveType{false, true, data.typeSizes.shortSize};
           constant->value.signedShort = constVal;
         } else if (-constVal == -(constVal & 0xFFFFFFFF))
         {
-          constantType->type = PrimitiveType::Type::SignedLong;
+          *constantType = PrimitiveType{false, true, data.typeSizes.longSize};
           constant->value.signedLong = constVal;
         } else if (-constVal == -(constVal & 0xFFFFFFFFFFFFFFFF))
         {
-          constantType->type = PrimitiveType::Type::SignedLongLong;
+          *constantType = PrimitiveType{false, true, data.typeSizes.longLongSize};
           constant->value.signedLongLong = constVal;
         }
       } else
       {
         if (constVal == (constVal & 0xFF))
         {
-          constantType->type = PrimitiveType::Type::UnsignedChar;
+          *constantType = PrimitiveType{false, false, data.typeSizes.charSize};
           constant->value.unsignedChar = constVal;
         } else if (constVal == (constVal & 0xFFFF))
         {
-          constantType->type = PrimitiveType::Type::UnsignedShort;
+          *constantType = PrimitiveType{false, false, data.typeSizes.shortSize};
           constant->value.unsignedShort = constVal;
         } else if (constVal == (constVal & 0xFFFFFFFF))
         {
-          constantType->type = PrimitiveType::Type::UnsignedLong;
+          *constantType = PrimitiveType{false, false, data.typeSizes.longSize};
           constant->value.unsignedLong = constVal;
         } else if (constVal == (constVal & 0xFFFFFFFFFFFFFFFF))
         {
-          constantType->type = PrimitiveType::Type::UnsignedLongLong;
+          *constantType = PrimitiveType{false, false, data.typeSizes.longLongSize};
           constant->value.unsignedLongLong = constVal;
         }
       }

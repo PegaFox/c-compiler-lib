@@ -7,27 +7,27 @@ IfConditional::IfConditional()
   statementType = StatementType::IfConditional;
 }
 
-IfConditional* IfConditional::parse(std::list<Token>& code, Program& program)
+IfConditional* IfConditional::parse(CommonParseData& data)
 {
   IfConditional* ifConditional = new IfConditional;
 
-  ParseError::expect(code.front().data, "if");
-  code.pop_front();
+  ParseError::expect(data.code.front().data, "if");
+  data.code.pop_front();
 
-  ParseError::expect(code.front().data, "(");
-  code.pop_front();
+  ParseError::expect(data.code.front().data, "(");
+  data.code.pop_front();
 
-  ifConditional->condition = std::unique_ptr<Expression>(Expression::parse(code, program, false));
+  ifConditional->condition = std::unique_ptr<Expression>(Expression::parse(data, false));
 
-  ParseError::expect(code.front().data, ")");
-  code.pop_front();
+  ParseError::expect(data.code.front().data, ")");
+  data.code.pop_front();
 
-  ifConditional->body = std::unique_ptr<Statement>(Statement::parse(code, program));
+  ifConditional->body = std::unique_ptr<Statement>(Statement::parse(data));
 
-  if (code.front().data == "else")
+  if (data.code.front().data == "else")
   {
-    code.pop_front();
-    ifConditional->elseStatement = std::unique_ptr<Statement>(Statement::parse(code, program));
+    data.code.pop_front();
+    ifConditional->elseStatement = std::unique_ptr<Statement>(Statement::parse(data));
   }
 
   return ifConditional;

@@ -19,44 +19,44 @@ Expression::Expression()
   statementType = StatementType::Expression;
 }
 
-Expression* Expression::parse(std::list<Token>& code, Program& program, bool allowNullExpression)
+Expression* Expression::parse(CommonParseData& data, bool allowNullExpression)
 {
   Expression* expression = nullptr;
   
-  if (code.front().data == "(" && (code.begin()++)->type != Token::Keyword)
+  if (data.code.front().data == "(" && (data.code.begin()++)->type != Token::Keyword)
   {
-    code.pop_front();
+    data.code.pop_front();
 
     expression = new SubExpression;
     
-    ((SubExpression*)expression)->expression = std::unique_ptr<Expression>(Expression::parse(code, program, false));
+    ((SubExpression*)expression)->expression = std::unique_ptr<Expression>(Expression::parse(data, false));
 
-    ParseError::expect(code.front().data, ")");
-    code.pop_front();
-  } else if (code.front().type == Token::Constant)
+    ParseError::expect(data.code.front().data, ")");
+    data.code.pop_front();
+  } else if (data.code.front().type == Token::Constant)
   {
-    expression = Constant::parse(code);
-  } else if (code.front().type == Token::Identifier)
+    expression = Constant::parse(data);
+  } else if (data.code.front().type == Token::Identifier)
   {
-    if ((++code.begin())->data == "(")
+    if ((++data.code.begin())->data == "(")
     {
-      expression = FunctionCall::parse(code, program);
+      expression = FunctionCall::parse(data);
     } else
     {
-      expression = VariableAccess::parse(code);
+      expression = VariableAccess::parse(data);
     }
   } else if (
-    code.front().type == Token::Keyword ||
-    code.front().data == "(" && (code.begin()++)->type != Token::Keyword ||
-    code.front().data == "&" ||
-    code.front().data == "*" ||
-    code.front().data == "-" ||
-    code.front().data == "~" ||
-    code.front().data == "!" ||
-    code.front().data == "++" ||
-    code.front().data == "--")
+    data.code.front().type == Token::Keyword ||
+    data.code.front().data == "(" && (data.code.begin()++)->type != Token::Keyword ||
+    data.code.front().data == "&" ||
+    data.code.front().data == "*" ||
+    data.code.front().data == "-" ||
+    data.code.front().data == "~" ||
+    data.code.front().data == "!" ||
+    data.code.front().data == "++" ||
+    data.code.front().data == "--")
   {
-    expression = PreUnaryOperator::parse(code, program);
+    expression = PreUnaryOperator::parse(data);
     if (optimize && ((PreUnaryOperator*)expression)->operand.get()->expressionType == Expression::ExpressionType::Constant)
     {
       Constant* constant = (Constant*)(((PreUnaryOperator*)expression)->operand.get());
@@ -84,62 +84,62 @@ Expression* Expression::parse(std::list<Token>& code, Program& program, bool all
           break;
       }
     }
-  } else if (allowNullExpression && (code.front().data == ")" || code.front().data == ";"))
+  } else if (allowNullExpression && (data.code.front().data == ")" || data.code.front().data == ";"))
   {
     expression = new Expression;
     expression->expressionType = Expression::ExpressionType::Null;
   } else
   {
-    std::cout << "Parse error: Expected an expression, received \"" << code.front().data << "\"\n";
+    std::cout << "Parse error: Expected an expression, received \"" << data.code.front().data << "\"\n";
     throw ParseError();
   }
 
   // separate prefixes and suffixes into seperate if statements
-  if (code.front().data == ")")
+  if (data.code.front().data == ")")
   {
     return expression;
   } else if (
-    code.front().data == "+" ||
-    code.front().data == "-" ||
-    code.front().data == "*" ||
-    code.front().data == "/" ||
-    code.front().data == "%" ||
-    code.front().data == "<<" ||
-    code.front().data == ">>" ||
-    code.front().data == "|" ||
-    code.front().data == "&" ||
-    code.front().data == "||" ||
-    code.front().data == "&&" ||
-    code.front().data == "[" ||
-    code.front().data == "+=" ||
-    code.front().data == "-=" ||
-    code.front().data == "*=" ||
-    code.front().data == "/=" ||
-    code.front().data == "%=" ||
-    code.front().data == "<<=" ||
-    code.front().data == ">>=" ||
-    code.front().data == "|=" ||
-    code.front().data == "&=" ||
-    code.front().data == "^=" ||
-    code.front().data == "=" ||
-    code.front().data == ">" ||
-    code.front().data == "<" ||
-    code.front().data == ">=" ||
-    code.front().data == "<=" ||
-    code.front().data == "==" ||
-    code.front().data == "!=" ||
-    code.front().data == "^")
+    data.code.front().data == "+" ||
+    data.code.front().data == "-" ||
+    data.code.front().data == "*" ||
+    data.code.front().data == "/" ||
+    data.code.front().data == "%" ||
+    data.code.front().data == "<<" ||
+    data.code.front().data == ">>" ||
+    data.code.front().data == "|" ||
+    data.code.front().data == "&" ||
+    data.code.front().data == "||" ||
+    data.code.front().data == "&&" ||
+    data.code.front().data == "[" ||
+    data.code.front().data == "+=" ||
+    data.code.front().data == "-=" ||
+    data.code.front().data == "*=" ||
+    data.code.front().data == "/=" ||
+    data.code.front().data == "%=" ||
+    data.code.front().data == "<<=" ||
+    data.code.front().data == ">>=" ||
+    data.code.front().data == "|=" ||
+    data.code.front().data == "&=" ||
+    data.code.front().data == "^=" ||
+    data.code.front().data == "=" ||
+    data.code.front().data == ">" ||
+    data.code.front().data == "<" ||
+    data.code.front().data == ">=" ||
+    data.code.front().data == "<=" ||
+    data.code.front().data == "==" ||
+    data.code.front().data == "!=" ||
+    data.code.front().data == "^")
   {
-    expression = BinaryOperator::parse(code, program, expression);
+    expression = BinaryOperator::parse(data, expression);
 
   } else if (
-    code.front().data == "++" ||
-    code.front().data == "--")
+    data.code.front().data == "++" ||
+    data.code.front().data == "--")
   {
-    expression = PostUnaryOperator::parse(code, expression);
-  } else if (code.front().data == "?")
+    expression = PostUnaryOperator::parse(data, expression);
+  } else if (data.code.front().data == "?")
   {
-    expression = TernaryOperator::parse(code, program, expression);
+    expression = TernaryOperator::parse(data, expression);
   }
 
   return expression;

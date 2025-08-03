@@ -7,7 +7,7 @@ struct Break: public Statement
 {
   Break();
 
-  static Break* parse(std::list<Token>& code);
+  static Break* parse(CommonParseData& data);
 };
 
 #endif // PF_PARSER_BREAK_HPP

@@ -13,7 +13,7 @@ struct SwitchConditional: public Statement
 
   SwitchConditional();
 
-  static SwitchConditional* parse(std::list<Token>& code, Program& program);
+  static SwitchConditional* parse(CommonParseData& data);
 };
 
 #endif // PF_PARSER_SWITCH_CONDITIONAL_HPP

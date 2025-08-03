@@ -7,15 +7,15 @@ Break::Break()
   statementType = StatementType::Break;
 }
 
-Break* Break::parse(std::list<Token>& code)
+Break* Break::parse(CommonParseData& data)
 {
   Break* breakStatement = new Break;
 
-  ParseError::expect(code.front().data, "break");
-  code.pop_front();
+  ParseError::expect(data.code.front().data, "break");
+  data.code.pop_front();
 
-  ParseError::expect(code.front().data, ";");
-  code.pop_front();
+  ParseError::expect(data.code.front().data, ";");
+  data.code.pop_front();
 
   return breakStatement;
 }

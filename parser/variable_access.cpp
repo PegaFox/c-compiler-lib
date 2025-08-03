@@ -5,12 +5,12 @@ VariableAccess::VariableAccess()
   expressionType = ExpressionType::VariableAccess;
 }
 
-VariableAccess* VariableAccess::parse(std::list<Token>& code)
+VariableAccess* VariableAccess::parse(CommonParseData& data)
 {
   VariableAccess* variableAccess = new VariableAccess;
 
-  variableAccess->identifier = code.front().data;
-  code.pop_front();
+  variableAccess->identifier = data.code.front().data;
+  data.code.pop_front();
 
   return variableAccess;
 }

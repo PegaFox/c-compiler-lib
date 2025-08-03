@@ -1,13 +1,13 @@
+class Program;
+
 #ifndef PF_PARSER_PROGRAM_HPP
 #define PF_PARSER_PROGRAM_HPP
 
 #include <vector>
-#include <list>
 #include <map>
 #include <set>
 #include <memory>
 
-#include "../lexer.hpp"
 #include "AST_node.hpp"
 
 struct Statement;
@@ -30,9 +30,9 @@ class Program: public ASTnode
 
     Program();
 
-    Program(const std::list<Token>& code);
+    Program(const std::list<Token>& code, const Compiler::TypeSizes& typeSizes);
 
-    void parse(std::list<Token> code);
+    void parse(std::list<Token> code, const Compiler::TypeSizes& typeSizes);
 
   private:
     std::map<std::string, ENUM_TYPE> enums;
@@ -40,7 +40,7 @@ class Program: public ASTnode
 
     std::map<std::string, std::unique_ptr<DataType>> typedefs;
 
-    void parseEnum(std::list<Token>& code);
+    void parseEnum(CommonParseData& data);
 };
 
 #endif // PF_PARSER_PROGRAM_HPP

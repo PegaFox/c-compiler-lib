@@ -8,113 +8,113 @@ BinaryOperator::BinaryOperator()
   expressionType = ExpressionType::BinaryOperator;
 }
 
-Expression* BinaryOperator::parse(std::list<Token>& code, Program& program, Expression* leftOperand)
+Expression* BinaryOperator::parse(CommonParseData& data, Expression* leftOperand)
 {
   Expression* binary = new BinaryOperator;
 
   ((BinaryOperator*)binary)->leftOperand = std::unique_ptr<Expression>(leftOperand);
 
-  if (code.front().data == "+")
+  if (data.code.front().data == "+")
   {
     ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::Add;
-  } else if (code.front().data == "-")
+  } else if (data.code.front().data == "-")
   {
     ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::Subtract;
-  } else if (code.front().data == "*")
+  } else if (data.code.front().data == "*")
   {
     ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::Multiply;
-  } else if (code.front().data == "/")
+  } else if (data.code.front().data == "/")
   {
     ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::Divide;
-  } else if (code.front().data == "%")
+  } else if (data.code.front().data == "%")
   {
     ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::Modulo;
-  } else if (code.front().data == "<<")
+  } else if (data.code.front().data == "<<")
   {
     ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::LeftShift;
-  } else if (code.front().data == ">>")
+  } else if (data.code.front().data == ">>")
   {
     ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::RightShift;
-  } else if (code.front().data == "|")
+  } else if (data.code.front().data == "|")
   {
     ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::BitwiseOR;
-  } else if (code.front().data == "&")
+  } else if (data.code.front().data == "&")
   {
     ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::BitwiseAND;
-  } else if (code.front().data == "^")
+  } else if (data.code.front().data == "^")
   {
     ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::BitwiseXOR;
-  } else if (code.front().data == "||")
+  } else if (data.code.front().data == "||")
   {
     ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::LogicalOR;
-  } else if (code.front().data == "&&")
+  } else if (data.code.front().data == "&&")
   {
     ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::LogicalAND;
-  } else if (code.front().data == "[")
+  } else if (data.code.front().data == "[")
   {
     ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::Subscript;
-  } else if (code.front().data == "=")
+  } else if (data.code.front().data == "=")
   {
     ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::VariableAssignment;
-  } else if (code.front().data == "+=")
+  } else if (data.code.front().data == "+=")
   {
     ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::AddEqual;
-  } else if (code.front().data == "-=")
+  } else if (data.code.front().data == "-=")
   {
     ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::SubtractEqual;
-  } else if (code.front().data == "*=")
+  } else if (data.code.front().data == "*=")
   {
     ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::MultiplyEqual;
-  } else if (code.front().data == "/=")
+  } else if (data.code.front().data == "/=")
   {
     ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::DivideEqual;
-  } else if (code.front().data == "%=")
+  } else if (data.code.front().data == "%=")
   {
     ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::ModuloEqual;
-  } else if (code.front().data == "<<=")
+  } else if (data.code.front().data == "<<=")
   {
     ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::LeftShiftEqual;
-  } else if (code.front().data == ">>=")
+  } else if (data.code.front().data == ">>=")
   {
     ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::RightShiftEqual;
-  } else if (code.front().data == "|=")
+  } else if (data.code.front().data == "|=")
   {
     ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::BitwiseOREqual;
-  } else if (code.front().data == "&=")
+  } else if (data.code.front().data == "&=")
   {
     ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::BitwiseANDEqual;
-  } else if (code.front().data == "^=")
+  } else if (data.code.front().data == "^=")
   {
     ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::BitwiseXOREqual;
-  } else if (code.front().data == "==")
+  } else if (data.code.front().data == "==")
   {
     ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::Equal;
-  } else if (code.front().data == "!=")
+  } else if (data.code.front().data == "!=")
   {
     ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::NotEqual;
-  } else if (code.front().data == ">")
+  } else if (data.code.front().data == ">")
   {
     ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::Greater;
-  } else if (code.front().data == "<")
+  } else if (data.code.front().data == "<")
   {
     ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::Lesser;
-  } else if (code.front().data == ">=")
+  } else if (data.code.front().data == ">=")
   {
     ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::GreaterOrEqual;
-  } else if (code.front().data == "<=")
+  } else if (data.code.front().data == "<=")
   {
     ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::LesserOrEqual;
   }
 
-  code.pop_front();
+  data.code.pop_front();
 
-  ((BinaryOperator*)binary)->rightOperand = std::unique_ptr<Expression>(Expression::parse(code, program, false));
+  ((BinaryOperator*)binary)->rightOperand = std::unique_ptr<Expression>(Expression::parse(data, false));
 
   if (((BinaryOperator*)binary)->binaryType == BinaryOperator::BinaryType::Subscript)
   {
-    ParseError::expect(code.front().data, "]");
+    ParseError::expect(data.code.front().data, "]");
 
-    code.pop_front();
+    data.code.pop_front();
 
     return binary;
   }

@@ -320,50 +320,26 @@ std::string PrintAST::printDataType(const DataType* dataType)
   {
     case DataType::GeneralType::PrimitiveType: {
       const PrimitiveType* primitiveType = (PrimitiveType*)dataType;
-      switch (primitiveType->type)
+      if (primitiveType->isFloating)
       {
-        case PrimitiveType::Type::Void:
+        typeString = "f"+std::to_string(primitiveType->size*CHAR_BIT);
+      } else
+      {
+        if (primitiveType->size == 0)
+        {
           typeString = "void";
-          break;
-        case PrimitiveType::Type::UnsignedChar:
-          typeString = "unsigned char";
-          break;
-        case PrimitiveType::Type::SignedChar:
-          typeString = "signed char";
-          break;
-        case PrimitiveType::Type::UnsignedShort:
-          typeString = "unsigned short int";
-          break;
-        case PrimitiveType::Type::SignedShort:
-          typeString = "signed short int";
-          break;
-        case PrimitiveType::Type::UnsignedInt:
-          typeString = "unsigned int";
-          break;
-        case PrimitiveType::Type::SignedInt:
-          typeString = "signed int";
-          break;
-        case PrimitiveType::Type::UnsignedLong:
-          typeString = "unsigned long int";
-          break;
-        case PrimitiveType::Type::SignedLong:
-          typeString = "signed long int";
-          break;
-        case PrimitiveType::Type::UnsignedLongLong:
-          typeString = "unsigned long long int";
-          break;
-        case PrimitiveType::Type::SignedLongLong:
-          typeString = "signed long long int";
-          break;
-        case PrimitiveType::Type::Float:
-          typeString = "float";
-          break;
-        case PrimitiveType::Type::Double:
-          typeString = "double";
-          break;
-        case PrimitiveType::Type::LongDouble:
-          typeString = "long double";
-          break;
+        } else
+        {
+          if (primitiveType->isSigned)
+          {
+            typeString = "i";
+          } else
+          {
+            typeString = "u";
+          }
+
+          typeString += std::to_string(primitiveType->size*CHAR_BIT);
+        }
       }
       break;
     } case DataType::GeneralType::Pointer:

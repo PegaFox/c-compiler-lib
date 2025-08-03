@@ -7,17 +7,17 @@ Return::Return()
   statementType = StatementType::Return;
 }
 
-Return* Return::parse(std::list<Token>& code, Program& program)
+Return* Return::parse(CommonParseData& data)
 {
   Return* returnVal = new Return;
 
-  ParseError::expect(code.front().data, "return");
-  code.pop_front();
+  ParseError::expect(data.code.front().data, "return");
+  data.code.pop_front();
 
-  returnVal->data = std::unique_ptr<Expression>(Expression::parse(code, program));
+  returnVal->data = std::unique_ptr<Expression>(Expression::parse(data));
 
-  ParseError::expect(code.front().data, ";");
-  code.pop_front();
+  ParseError::expect(data.code.front().data, ";");
+  data.code.pop_front();
 
   return returnVal;
 }

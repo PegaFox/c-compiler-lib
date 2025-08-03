@@ -5,19 +5,19 @@ PostUnaryOperator::PostUnaryOperator()
   expressionType = ExpressionType::PostUnaryOperator;
 }
 
-PostUnaryOperator* PostUnaryOperator::parse(std::list<Token>& code, Expression* operand)
+PostUnaryOperator* PostUnaryOperator::parse(CommonParseData& data, Expression* operand)
 {
   PostUnaryOperator* postUnary = new PostUnaryOperator;
 
-  if (code.front().data == "++")
+  if (data.code.front().data == "++")
   {
     postUnary->postUnaryType = PostUnaryOperator::PostUnaryType::Increment;
-  } else if (code.front().data == "--")
+  } else if (data.code.front().data == "--")
   {
     postUnary->postUnaryType = PostUnaryOperator::PostUnaryType::Decrement;
   }
 
-  code.pop_front();
+  data.code.pop_front();
 
   postUnary->operand = std::unique_ptr<Expression>(operand);
 

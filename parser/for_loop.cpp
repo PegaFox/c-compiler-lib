@@ -8,40 +8,40 @@ ForLoop::ForLoop()
   statementType = StatementType::ForLoop;
 }
 
-ForLoop* ForLoop::parse(std::list<Token>& code, Program& program)
+ForLoop* ForLoop::parse(CommonParseData& data)
 {
   ForLoop* forLoop = new ForLoop;
 
-  ParseError::expect(code.front().data, "for");
-  code.pop_front();
+  ParseError::expect(data.code.front().data, "for");
+  data.code.pop_front();
 
-  ParseError::expect(code.front().data, "(");
-  code.pop_front();
+  ParseError::expect(data.code.front().data, "(");
+  data.code.pop_front();
 
-  if (code.front().data != ";")
+  if (data.code.front().data != ";")
   {
-    if (code.front().type == Token::Keyword)
+    if (data.code.front().type == Token::Keyword)
     {
-      forLoop->initialization = std::unique_ptr<Declaration>(Declaration::parse(code, program));
+      forLoop->initialization = std::unique_ptr<Declaration>(Declaration::parse(data));
     } else
     {
-      forLoop->initialization = std::unique_ptr<Expression>(Expression::parse(code, program));
+      forLoop->initialization = std::unique_ptr<Expression>(Expression::parse(data));
     }
   }
-  code.pop_front();
+  data.code.pop_front();
   
 
-  forLoop->condition = std::unique_ptr<Expression>(Expression::parse(code, program));
+  forLoop->condition = std::unique_ptr<Expression>(Expression::parse(data));
 
-  ParseError::expect(code.front().data, ";");
-  code.pop_front();
+  ParseError::expect(data.code.front().data, ";");
+  data.code.pop_front();
 
-  forLoop->update = std::unique_ptr<Expression>(Expression::parse(code, program));
+  forLoop->update = std::unique_ptr<Expression>(Expression::parse(data));
 
-  ParseError::expect(code.front().data, ")");
-  code.pop_front();
+  ParseError::expect(data.code.front().data, ")");
+  data.code.pop_front();
 
-  forLoop->body = std::unique_ptr<Statement>(Statement::parse(code, program));
+  forLoop->body = std::unique_ptr<Statement>(Statement::parse(data));
 
   return forLoop;
 }

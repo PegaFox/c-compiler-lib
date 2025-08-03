@@ -1,7 +1,5 @@
 #include "function.hpp"
 
-#include "parse_error.hpp"
-
 Function::Function()
 {
   generalType = GeneralType::Function;

@@ -9,24 +9,24 @@ CompoundStatement::CompoundStatement()
   statementType = StatementType::CompoundStatement;
 }
 
-CompoundStatement* CompoundStatement::parse(std::list<Token>& code, Program& program)
+CompoundStatement* CompoundStatement::parse(CommonParseData& data)
 {
   CompoundStatement* compoundStatement = new CompoundStatement;
 
-  ParseError::expect(code.front().data, "{");
-  code.pop_front();
+  ParseError::expect(data.code.front().data, "{");
+  data.code.pop_front();
 
-  while (code.front().data != "}")
+  while (data.code.front().data != "}")
   {
-    compoundStatement->body.emplace_back(Statement::parse(code, program, true));
+    compoundStatement->body.emplace_back(Statement::parse(data, true));
 
-    if (code.empty())
+    if (data.code.empty())
     {
       std::cout << "Parse error: Unexpected End of File\n";
       throw ParseError();
     }
   }
-  code.pop_front();
+  data.code.pop_front();
 
   return compoundStatement;
 }

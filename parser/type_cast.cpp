@@ -5,20 +5,20 @@ TypeCast::TypeCast()
   preUnaryType = PreUnaryType::TypeCast;
 }
 
-TypeCast* TypeCast::parse(std::list<Token>& code, Program& program)
+TypeCast* TypeCast::parse(CommonParseData& data)
 {
   TypeCast* typeCast = new TypeCast;
 
-  if (code.front().data == "(")
+  if (data.code.front().data == "(")
   {
-    code.pop_front();
+    data.code.pop_front();
   }
 
-  typeCast->dataType = std::unique_ptr<DataType>(DataType::parse(code, program));
+  typeCast->dataType = std::unique_ptr<DataType>(DataType::parse(data));
 
-  if (code.front().data == ")")
+  if (data.code.front().data == ")")
   {
-    code.pop_front();
+    data.code.pop_front();
   }
 
   return typeCast;

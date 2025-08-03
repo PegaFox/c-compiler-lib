@@ -18,7 +18,7 @@ struct PostUnaryOperator: public Expression
 
   PostUnaryOperator();
 
-  static PostUnaryOperator* parse(std::list<Token>& code, Expression* operand);
+  static PostUnaryOperator* parse(CommonParseData& data, Expression* operand);
 };
 
 #endif // PF_PARSER_POST_UNAR_OOPERATOR_HPP

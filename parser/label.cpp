@@ -7,16 +7,16 @@ Label::Label()
   statementType = StatementType::Label;
 }
 
-Label* Label::parse(std::list<Token>& code)
+Label* Label::parse(CommonParseData& data)
 {
   Label* label = new Label;
 
-  ParseError::expect(code.front(), Token::Identifier);
-  label->name = code.front().data;
-  code.pop_front();
+  ParseError::expect(data.code.front(), Token::Identifier);
+  label->name = data.code.front().data;
+  data.code.pop_front();
 
-  ParseError::expect(code.front().data, ":");
-  code.pop_front();
+  ParseError::expect(data.code.front().data, ":");
+  data.code.pop_front();
 
   return label;
 }

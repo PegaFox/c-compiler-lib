@@ -3,7 +3,7 @@
 
 #include <vector>
 
-#include "AST_node.hpp"
+#include "program.hpp"
 
 struct ASTiterator
 {

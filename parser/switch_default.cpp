@@ -7,15 +7,15 @@ SwitchDefault::SwitchDefault()
   statementType = StatementType::SwitchDefault;
 }
 
-SwitchDefault* SwitchDefault::parse(std::list<Token>& code)
+SwitchDefault* SwitchDefault::parse(CommonParseData& data)
 {
   SwitchDefault* switchDefault = new SwitchDefault;
 
-  ParseError::expect(code.front().data, "default");
-  code.pop_front();
+  ParseError::expect(data.code.front().data, "default");
+  data.code.pop_front();
 
-  ParseError::expect(code.front().data, ":");
-  code.pop_front();
+  ParseError::expect(data.code.front().data, ":");
+  data.code.pop_front();
 
   return switchDefault;
 }

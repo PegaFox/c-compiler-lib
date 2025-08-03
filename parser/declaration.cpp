@@ -1,39 +1,39 @@
 #include "declaration.hpp"
 
-#include "parse_error.hpp"
+#include "expression.hpp"
 
 Declaration::Declaration()
 {
   statementType = StatementType::Declaration;
 }
 
-Declaration* Declaration::parse(std::list<Token>& code, Program& program)
+Declaration* Declaration::parse(CommonParseData& data)
 {
   Declaration* declaration = new Declaration;
 
-  if (code.front().data == "typedef")
+  if (data.code.front().data == "typedef")
   {
     declaration->isTypedef = true;
-    code.pop_front();
+    data.code.pop_front();
   } else
   {
     declaration->isTypedef = false;
   }
 
-  declaration->dataType = std::unique_ptr<DataType>(DataType::parse(code, program));
+  declaration->dataType = std::unique_ptr<DataType>(DataType::parse(data));
 
-  if (code.front().type == Token::Identifier)
+  if (data.code.front().type == Token::Identifier)
   {
-    declaration->identifier = code.front().data;
-    code.pop_front();
+    declaration->identifier = data.code.front().data;
+    data.code.pop_front();
 
-    if (code.front().data == "=")
+    if (data.code.front().data == "=")
     {
-      code.pop_front();
-      declaration->value = std::unique_ptr<Expression>(Expression::parse(code, program, false));
+      data.code.pop_front();
+      declaration->value = std::unique_ptr<Expression>(Expression::parse(data, false));
     } else if (declaration->isTypedef)
     {
-      program.typedefs[declaration->identifier] = std::unique_ptr<DataType>(declaration->dataType.get());
+      data.program->typedefs[declaration->identifier] = std::unique_ptr<DataType>(declaration->dataType.get());
     }
 
     //ParseError::expect(code.front().data, {";", ",", ")"});

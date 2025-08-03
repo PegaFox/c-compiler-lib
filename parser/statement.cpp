@@ -23,86 +23,86 @@ Statement::Statement()
   nodeType = NodeType::Statement;
 }
 
-Statement* Statement::parse(std::list<Token>& code, Program& program, bool canParseVariableDeclarations)
+Statement* Statement::parse(CommonParseData& data, bool canParseVariableDeclarations)
 {
   Statement* statement = nullptr;
 
-  if (code.front().type == Token::Keyword)
+  if (data.code.front().type == Token::Keyword)
   {
-    if (code.front().data == "return")
+    if (data.code.front().data == "return")
     {
-      statement = Return::parse(code, program);
-    } else if (code.front().data == "break")
+      statement = Return::parse(data);
+    } else if (data.code.front().data == "break")
     {
-      statement = Break::parse(code);
-    } else if (code.front().data == "continue")
+      statement = Break::parse(data);
+    } else if (data.code.front().data == "continue")
     {
-      statement = Continue::parse(code);
-    } else if (code.front().data == "goto")
+      statement = Continue::parse(data);
+    } else if (data.code.front().data == "goto")
     {
-      statement = Goto::parse(code);
-    } else if (code.front().data == "if")
+      statement = Goto::parse(data);
+    } else if (data.code.front().data == "if")
     {
-      statement = IfConditional::parse(code, program);
-    } else if (code.front().data == "case")
+      statement = IfConditional::parse(data);
+    } else if (data.code.front().data == "case")
     {
-      statement = SwitchCase::parse(code, program);
-    } else if (code.front().data == "default")
+      statement = SwitchCase::parse(data);
+    } else if (data.code.front().data == "default")
     {
-      statement = SwitchDefault::parse(code);
-    } else if (code.front().data == "switch")
+      statement = SwitchDefault::parse(data);
+    } else if (data.code.front().data == "switch")
     {
-      statement = SwitchConditional::parse(code, program);
-    } else if (code.front().data == "do")
+      statement = SwitchConditional::parse(data);
+    } else if (data.code.front().data == "do")
     {
-      statement = DoWhileLoop::parse(code, program);
-    } else if (code.front().data == "while")
+      statement = DoWhileLoop::parse(data);
+    } else if (data.code.front().data == "while")
     {
-      statement = WhileLoop::parse(code, program);
-    } else if (code.front().data == "for")
+      statement = WhileLoop::parse(data);
+    } else if (data.code.front().data == "for")
     {
-      statement = ForLoop::parse(code, program);
+      statement = ForLoop::parse(data);
     } else if (
-      code.front().data == "signed" ||
-      code.front().data == "unsigned" ||
-      code.front().data == "static" ||
-      code.front().data == "extern" ||
-      code.front().data == "const" ||
-      code.front().data == "char" ||
-      code.front().data == "short" ||
-      code.front().data == "int" ||
-      code.front().data == "long" ||
-      code.front().data == "float" ||
-      code.front().data == "double" ||
-      code.front().data == "struct" || 
-      program.typedefs.contains(code.front().data))
+      data.code.front().data == "signed" ||
+      data.code.front().data == "unsigned" ||
+      data.code.front().data == "static" ||
+      data.code.front().data == "extern" ||
+      data.code.front().data == "const" ||
+      data.code.front().data == "char" ||
+      data.code.front().data == "short" ||
+      data.code.front().data == "int" ||
+      data.code.front().data == "long" ||
+      data.code.front().data == "float" ||
+      data.code.front().data == "double" ||
+      data.code.front().data == "struct" || 
+      data.program->typedefs.contains(data.code.front().data))
     {
-      for (const Token& token: code)
+      for (const Token& token: data.code)
       {
         if (token.data == "=" || token.data == ";")
         {
           if (canParseVariableDeclarations)
           {
-            statement = Declaration::parse(code, program);
-            ParseError::expect(code.front().data, ";");
-            code.pop_front();
+            statement = Declaration::parse(data);
+            ParseError::expect(data.code.front().data, ";");
+            data.code.pop_front();
           }
           break;
         }
       }
     }
-  } else if (code.front().type == Token::Identifier && (++code.begin())->data == ":")
+  } else if (data.code.front().type == Token::Identifier && (++data.code.begin())->data == ":")
   {
-    statement = Label::parse(code);
-  } else if (code.front().data == "{")
+    statement = Label::parse(data);
+  } else if (data.code.front().data == "{")
   {
-    statement = CompoundStatement::parse(code, program);
+    statement = CompoundStatement::parse(data);
   } else
   {
-    statement = Expression::parse(code, program);
+    statement = Expression::parse(data);
 
-    ParseError::expect(code.front().data, ";");
-    code.pop_front();
+    ParseError::expect(data.code.front().data, ";");
+    data.code.pop_front();
   }
 
   if (statement == nullptr)

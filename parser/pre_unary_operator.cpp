@@ -8,39 +8,39 @@ PreUnaryOperator::PreUnaryOperator()
   expressionType = ExpressionType::PreUnaryOperator;
 }
 
-Expression* PreUnaryOperator::parse(std::list<Token>& code, Program& program)
+Expression* PreUnaryOperator::parse(CommonParseData& data)
 {
   Expression* preUnary = new PreUnaryOperator;
 
-  if (code.front().type == Token::Keyword || code.front().data == "(")
+  if (data.code.front().type == Token::Keyword || data.code.front().data == "(")
   {
-    preUnary = TypeCast::parse(code, program);
-  } else if (code.front().data == "&")
+    preUnary = TypeCast::parse(data);
+  } else if (data.code.front().data == "&")
   {
     ((PreUnaryOperator*)preUnary)->preUnaryType = PreUnaryOperator::PreUnaryType::Address;
-  } else if (code.front().data == "*")
+  } else if (data.code.front().data == "*")
   {
     ((PreUnaryOperator*)preUnary)->preUnaryType = PreUnaryOperator::PreUnaryType::Dereference;
-  } else if (code.front().data == "-")
+  } else if (data.code.front().data == "-")
   {
     ((PreUnaryOperator*)preUnary)->preUnaryType = PreUnaryOperator::PreUnaryType::MathematicNegate;
-  } else if (code.front().data == "~")
+  } else if (data.code.front().data == "~")
   {
     ((PreUnaryOperator*)preUnary)->preUnaryType = PreUnaryOperator::PreUnaryType::BitwiseNOT;
-  } else if (code.front().data == "!")
+  } else if (data.code.front().data == "!")
   {
     ((PreUnaryOperator*)preUnary)->preUnaryType = PreUnaryOperator::PreUnaryType::LogicalNegate;
-  } else if (code.front().data == "++")
+  } else if (data.code.front().data == "++")
   {
     ((PreUnaryOperator*)preUnary)->preUnaryType = PreUnaryOperator::PreUnaryType::Increment;
-  } else if (code.front().data == "--")
+  } else if (data.code.front().data == "--")
   {
     ((PreUnaryOperator*)preUnary)->preUnaryType = PreUnaryOperator::PreUnaryType::Decrement;
   }
 
-  code.pop_front();
+  data.code.pop_front();
 
-  ((PreUnaryOperator*)preUnary)->operand = std::unique_ptr<Expression>(Expression::parse(code, program, false));
+  ((PreUnaryOperator*)preUnary)->operand = std::unique_ptr<Expression>(Expression::parse(data, false));
 
   if (((PreUnaryOperator*)preUnary)->operand->expressionType == Expression::ExpressionType::BinaryOperator)
   {

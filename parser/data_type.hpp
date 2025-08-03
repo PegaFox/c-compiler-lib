@@ -27,7 +27,7 @@ struct DataType: public ASTnode
 
   DataType();
 
-  static DataType* parse(std::list<Token>& code, Program& program, DataType::Linkage defaultLinkage = DataType::Linkage::External);
+  static DataType* parse(CommonParseData& data, DataType::Linkage defaultLinkage = DataType::Linkage::External);
 };
 
 #endif // PF_PARSER_DATA_TYPE_HPP

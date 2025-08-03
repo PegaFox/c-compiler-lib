@@ -37,7 +37,7 @@ struct Constant: public Expression
 
   Constant();
 
-  static Constant* parse(std::list<Token>& code);
+  static Constant* parse(CommonParseData& data);
 };
 
 #endif // PF_PARSER_CONSTANT_HPP

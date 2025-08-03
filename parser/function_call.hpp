@@ -14,7 +14,7 @@ struct FunctionCall: public Expression
 
   FunctionCall();
 
-  static FunctionCall* parse(std::list<Token>& code, Program& program);
+  static FunctionCall* parse(CommonParseData& data);
 };
 
 #endif // PF_PARSER_FUNCTION_CALL_HPP

@@ -4,7 +4,7 @@
 #include <memory>
 
 #include "data_type.hpp"
-#include "expression.hpp"
+#include "statement.hpp"
 
 struct Declaration: public Statement
 {
@@ -18,7 +18,7 @@ struct Declaration: public Statement
 
   Declaration();
 
-  static Declaration* parse(std::list<Token>& code, Program& program);
+  static Declaration* parse(CommonParseData& data);
 };
 
 #endif // PF_PARSER_DECLARATION_HPP

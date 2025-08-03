@@ -11,7 +11,7 @@ struct Goto: public Statement
 
   Goto();
 
-  static Goto* parse(std::list<Token>& code);
+  static Goto* parse(CommonParseData& data);
 };
 
 #endif // PF_PARSER_GOTO_HPP
