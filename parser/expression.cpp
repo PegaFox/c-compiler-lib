@@ -23,7 +23,7 @@ Expression* Expression::parse(CommonParseData& data, bool allowNullExpression)
 {
   Expression* expression = nullptr;
   
-  if (data.code.front().data == "(" && (data.code.begin()++)->type != Token::Keyword)
+  if (data.code.front().data == "(" && (++data.code.begin())->type != Token::Keyword)
   {
     data.code.pop_front();
 

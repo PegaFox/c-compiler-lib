@@ -8,6 +8,13 @@
 
 struct Declaration: public Statement
 {
+  enum class Linkage
+  {
+    None,
+    Internal,
+    External
+  } linkage;
+
   bool isTypedef = false;
 
   std::unique_ptr<DataType> dataType;
@@ -18,7 +25,7 @@ struct Declaration: public Statement
 
   Declaration();
 
-  static Declaration* parse(CommonParseData& data);
+  static Declaration* parse(CommonParseData& data, Linkage defaultLinkage = Linkage::External);
 };
 
 #endif // PF_PARSER_DECLARATION_HPP

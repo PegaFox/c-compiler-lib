@@ -15,19 +15,14 @@ struct DataType: public ASTnode
     Struct
   } generalType;
 
-  enum class Linkage
-  {
-    None,
-    Internal,
-    External
-  } linkage;
-
+  
   bool isConst = false;
   bool isVolatile = false;
 
   DataType();
 
-  static DataType* parse(CommonParseData& data, DataType::Linkage defaultLinkage = DataType::Linkage::External);
+  //static DataType* parse(CommonParseData& data);
+  static DataType* parse(CommonParseData& data, std::list<Token>::iterator origin = std::list<Token>::iterator());
 };
 
 #endif // PF_PARSER_DATA_TYPE_HPP

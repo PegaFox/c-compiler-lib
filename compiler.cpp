@@ -8,6 +8,7 @@
 #include "lexer.hpp"
 #include "parser/AST_iterator.hpp"
 #include "parser/sub_expression.hpp"
+#include "print_AST.hpp"
 #include "generate_IR.hpp"
 #include "optimize_IR.hpp"
 
@@ -31,7 +32,7 @@ void Compiler::compileFromArgs(int argc, char* argv[])
   {
     // updates filetext
     Preprocessor preprocessor(fileText, includeDirs);
-    //std::cout << "Preprocessed:\n" << fileText << '\n';
+    std::cout << "Preprocessed:\n" << fileText << '\n';
   }
 
   if (doCompile)
@@ -48,8 +49,8 @@ void Compiler::compileFromArgs(int argc, char* argv[])
 
     optimizeAST(AST);
   
-    //std::cout << "AST:\n";
-    //PrintAST printer(AST);
+    std::cout << "AST:\n";
+    PrintAST printer(AST);
 
     std::vector<Operation> asmCode = generateIR(AST);
 

@@ -77,18 +77,11 @@ Statement* Statement::parse(CommonParseData& data, bool canParseVariableDeclarat
       data.code.front().data == "struct" || 
       data.program->typedefs.contains(data.code.front().data))
     {
-      for (const Token& token: data.code)
+      if (canParseVariableDeclarations)
       {
-        if (token.data == "=" || token.data == ";")
-        {
-          if (canParseVariableDeclarations)
-          {
-            statement = Declaration::parse(data);
-            ParseError::expect(data.code.front().data, ";");
-            data.code.pop_front();
-          }
-          break;
-        }
+        statement = Declaration::parse(data);
+        ParseError::expect(data.code.front().data, ";");
+        data.code.pop_front();
       }
     }
   } else if (data.code.front().type == Token::Identifier && (++data.code.begin())->data == ":")

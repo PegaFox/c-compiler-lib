@@ -10,12 +10,17 @@ PreUnaryOperator::PreUnaryOperator()
 
 Expression* PreUnaryOperator::parse(CommonParseData& data)
 {
-  Expression* preUnary = new PreUnaryOperator;
+  Expression* preUnary;
 
   if (data.code.front().type == Token::Keyword || data.code.front().data == "(")
   {
     preUnary = TypeCast::parse(data);
-  } else if (data.code.front().data == "&")
+  } else
+  {
+    preUnary = new PreUnaryOperator;
+  }
+
+  if (data.code.front().data == "&")
   {
     ((PreUnaryOperator*)preUnary)->preUnaryType = PreUnaryOperator::PreUnaryType::Address;
   } else if (data.code.front().data == "*")
@@ -38,7 +43,10 @@ Expression* PreUnaryOperator::parse(CommonParseData& data)
     ((PreUnaryOperator*)preUnary)->preUnaryType = PreUnaryOperator::PreUnaryType::Decrement;
   }
 
-  data.code.pop_front();
+  if (((PreUnaryOperator*)preUnary)->preUnaryType != PreUnaryType::TypeCast)
+  {
+    data.code.pop_front();
+  }
 
   ((PreUnaryOperator*)preUnary)->operand = std::unique_ptr<Expression>(Expression::parse(data, false));
 

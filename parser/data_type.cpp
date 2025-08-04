@@ -15,7 +15,7 @@ DataType::DataType()
   nodeType = NodeType::DataType;
 }
 
-DataType* DataType::parse(CommonParseData& data, DataType::Linkage defaultLinkage)
+/*DataType* DataType::parse(CommonParseData& data)
 {
   DataType* dataType = nullptr;
 
@@ -47,39 +47,6 @@ DataType* DataType::parse(CommonParseData& data, DataType::Linkage defaultLinkag
   if (dataType == nullptr)
   {
     dataType = new PrimitiveType;
-  }
-
-  dataType->linkage = defaultLinkage;
-  bool changed = true;
-  while (changed)
-  {
-    changed = false;
-
-    if (data.code.front().data == "const")
-    {
-      changed = true;
-      dataType->isConst = true;
-      data.code.pop_front();
-    }
-
-    if (data.code.front().data == "volatile")
-    {
-      changed = true;
-      dataType->isVolatile = true;
-      data.code.pop_front();
-    }
-
-    if (data.code.front().data == "static")
-    {
-      changed = true;
-      dataType->linkage = DataType::Linkage::Internal;
-      data.code.pop_front();
-    } else if (data.code.front().data == "extern")
-    {
-      changed = true;
-      dataType->linkage = DataType::Linkage::External;
-      data.code.pop_front();
-    }
   }
 
   if (dataType->generalType == DataType::GeneralType::Struct && data.code.front().data == "struct")
@@ -117,23 +84,25 @@ DataType* DataType::parse(CommonParseData& data, DataType::Linkage defaultLinkag
   {
     Function* function = (Function*)dataType;
 
-    std::list<Token> buffer;
+    CommonParseData buffer;
+    buffer.program = data.program;
+    buffer.typeSizes = data.typeSizes;
     // we only use the section of the code with the return type so it doesn't recursively create functions
     while (data.code.front().data != "(")
     {
-      buffer.push_back(data.code.front());
+      buffer.code.push_back(data.code.front());
       data.code.pop_front();
     }
     // need to add a dummy token to the end to avoid segfault when checking first element of list
-    buffer.push_back(Token{Token::Other, ";"});
+    buffer.code.push_back(Token{Token::Other, ";"});
 
-    function->returnType = std::unique_ptr<DataType>(DataType::parse(data));
+    function->returnType = std::unique_ptr<DataType>(DataType::parse(buffer));
 
-    buffer.pop_back();
-    while (!buffer.empty())
+    buffer.code.pop_back();
+    while (!buffer.code.empty())
     {
-      data.code.push_front(buffer.back());
-      buffer.pop_back();
+      data.code.push_front(buffer.code.back());
+      buffer.code.pop_back();
     }
 
     if (data.code.front().data == "(")
@@ -146,7 +115,7 @@ DataType* DataType::parse(CommonParseData& data, DataType::Linkage defaultLinkag
       // this effectively removes the closing parentheses for function pointers
       if (data.code.front().data != ")")
       {
-        buffer.push_front(data.code.front());
+        buffer.code.push_front(data.code.front());
       }
 
       data.code.pop_front();
@@ -169,10 +138,10 @@ DataType* DataType::parse(CommonParseData& data, DataType::Linkage defaultLinkag
     }
     data.code.pop_front();
 
-    while (!buffer.empty())
+    while (!buffer.code.empty())
     {
-      data.code.push_front(buffer.front());
-      buffer.pop_front();
+      data.code.push_front(buffer.code.front());
+      buffer.code.pop_front();
     }
   } else if (data.code.front().data == "enum")
   {
@@ -320,16 +289,6 @@ DataType* DataType::parse(CommonParseData& data, DataType::Linkage defaultLinkag
 
         break;
     }
-    
-    /*if (code.front().data == "static")
-    {
-      primitiveType->linkage = DataType::Linkage::Internal;
-      code.pop_front();
-    } else if (code.front().data == "extern")
-    {
-      primitiveType->linkage = DataType::Linkage::External;
-      code.pop_front();
-    }*/
   }
 
   while (data.code.front().data == "*")
@@ -363,6 +322,323 @@ DataType* DataType::parse(CommonParseData& data, DataType::Linkage defaultLinkag
   if (variableIdentifier.type == Token::Identifier)
   {
     data.code.push_front(variableIdentifier);
+  }
+
+  return dataType;
+}*/
+
+DataType* DataType::parse(CommonParseData& data, std::list<Token>::iterator origin)
+{
+  DataType* dataType = nullptr;
+
+  Token identifier;
+
+  if (origin == std::list<Token>::iterator())
+  {
+    uint8_t depth = 0;
+    bool enteredParentheses = false;
+    for (origin = data.code.begin(); origin != data.code.end(); origin++)
+    {
+      if (origin->data == "{")
+      {
+        depth++;
+      } else if (origin->data == "}")
+      {
+        depth--;
+      } else if (enteredParentheses && ( // detecting if there is a function in the way
+        origin->data == ")" ||
+        origin->data == "enum" ||
+        origin->data == "struct" ||
+        origin->data == "union" ||
+        origin->data == "void" ||
+        origin->data == "signed" ||
+        origin->data == "unsigned" ||
+        origin->data == "short" ||
+        origin->data == "short" ||
+        origin->data == "long" ||
+        origin->data == "char" ||
+        origin->data == "int" ||
+        origin->data == "float" ||
+        origin->data == "double"))
+      {
+        origin--;
+        origin--;
+        break;
+      } else if (
+        depth == 0 &&
+        (origin->data == "[" ||
+        origin->data == ")" ||
+        origin->data == ";" || 
+        origin->data == "," ||
+        origin->data == "="))
+      {
+        origin--;
+        break;
+      }
+
+      enteredParentheses = (origin->data == "(");
+    }
+
+    std::list<Token>::iterator previous = origin;
+    previous--;
+    if (origin->type == Token::Identifier && previous->data != "struct" && previous->data != "union" && previous->data != "enum")
+    {
+      identifier = *origin;
+      data.code.erase(origin--);
+    }
+  }
+
+  std::list<Token>::iterator next = origin;
+  next++;
+
+  if (next->data == "[")
+  {
+    data.code.erase(next++);
+
+    dataType = new Array;
+    Array* array = (Array*)dataType;
+    
+    CommonParseData buffer;
+    buffer.program = data.program;
+    buffer.typeSizes = data.typeSizes;
+    for (uint8_t depth = 1; depth > 0;)
+    {
+      if (next->data == "[")
+      {
+        depth++;
+      } else if (next->data == "]")
+      {
+        depth--;
+      }
+
+      buffer.code.push_back(*next);
+      data.code.erase(next++);
+    }
+
+    array->size = std::unique_ptr<Expression>(Expression::parse(buffer, true));
+
+    array->dataType = std::unique_ptr<DataType>(DataType::parse(data, origin));
+  } else if (next->data == "(")
+  {
+    data.code.erase(next++);
+
+    dataType = new Function;
+    Function* function = (Function*)dataType;
+    
+    CommonParseData buffer;
+    buffer.program = data.program;
+    buffer.typeSizes = data.typeSizes;
+    for (uint8_t depth = 1; depth > 0;)
+    {
+      if (next->data == "(")
+      {
+        depth++;
+      } else if (next->data == ")")
+      {
+        depth--;
+      }
+
+      buffer.code.push_back(*next);
+      data.code.erase(next++);
+    }
+
+    while (buffer.code.size() > 1)
+    {
+      if (buffer.code.front().data == ",")
+      {
+        buffer.code.pop_front();
+      }
+
+      function->parameters.emplace_back(Declaration::parse(buffer));
+    }
+
+    function->returnType = std::unique_ptr<DataType>(DataType::parse(data, origin));
+  } else
+  {
+    if (origin->type == Token::Keyword && (
+      origin->data == "void" ||
+      origin->data == "signed" ||
+      origin->data == "unsigned" ||
+      origin->data == "short" ||
+      origin->data == "long" ||
+      origin->data == "char" ||
+      origin->data == "int" ||
+      origin->data == "float" ||
+      origin->data == "double"))
+    {
+      dataType = new PrimitiveType;
+      PrimitiveType* primitiveType = (PrimitiveType*)dataType;
+
+      if (origin->data == "void")
+      {
+        data.code.erase(origin--);
+        *((PrimitiveType*)dataType) = PrimitiveType{false, false, 0};
+      } else if (origin->data == "float")
+      {
+        data.code.erase(origin--);
+        *((PrimitiveType*)dataType) = PrimitiveType{true, true, data.typeSizes.floatSize};
+      } else if (origin->data == "double")
+      {
+        data.code.erase(origin--);
+        ((PrimitiveType*)dataType)->isFloating = true;
+        ((PrimitiveType*)dataType)->isSigned = true;
+
+        if (origin->data == "long")
+        {
+          data.code.erase(origin--);
+          ((PrimitiveType*)dataType)->size = data.typeSizes.longDoubleSize;
+        } else
+        {
+          ((PrimitiveType*)dataType)->size = data.typeSizes.doubleSize;
+        }
+      } else
+      {
+        if (origin->data == "int")
+        {
+          data.code.erase(origin--);
+        }
+
+        if (origin->data == "char")
+        {
+          data.code.erase(origin--);
+          ((PrimitiveType*)dataType)->size = data.typeSizes.charSize;
+        } else if (origin->data == "short")
+        {
+          data.code.erase(origin--);
+          ((PrimitiveType*)dataType)->size = data.typeSizes.shortSize;
+        } else if (origin->data == "long")
+        {
+          data.code.erase(origin--);
+          if (origin->data == "long")
+          {
+            data.code.erase(origin--);
+            ((PrimitiveType*)dataType)->size = data.typeSizes.longLongSize;
+          } else
+          {
+            ((PrimitiveType*)dataType)->size = data.typeSizes.longSize;
+          }
+        } else
+        {
+          ((PrimitiveType*)dataType)->size = data.typeSizes.intSize;
+        }
+      }
+
+      if (origin->data == "signed")
+      {
+        data.code.erase(origin--);
+        ((PrimitiveType*)dataType)->isSigned = true;
+      } else if (origin->data == "unsigned")
+      {
+        data.code.erase(origin--);
+        ((PrimitiveType*)dataType)->isSigned = false;
+      }
+    } else if (origin->type == Token::Identifier)
+    {
+      if (data.program->typedefs.contains(origin->data))
+      {
+        dataType = data.program->typedefs[origin->data].get();
+        data.code.erase(origin--);
+      } else
+      {
+        std::string typeIdentifier = origin->data;
+        
+        data.code.erase(origin--);
+
+        if (origin->data == "struct")
+        {
+          data.code.erase(origin--);
+
+          dataType = new Struct;
+          Struct* structure = (Struct*)dataType;
+
+          structure->identifier = typeIdentifier;
+
+        } else if (origin->data == "enum")
+        {
+          data.code.erase(origin--);
+
+          dataType = new PrimitiveType;
+          PrimitiveType* primitiveType = (PrimitiveType*)dataType;
+
+          *primitiveType = PrimitiveType{false, true, data.typeSizes.intSize};
+        }
+      }
+    } else if (origin->data == "}")
+    {
+      data.code.erase(origin--);
+
+      std::vector<std::pair<Declaration*, uint8_t>> members;
+
+      CommonParseData buffer;
+      buffer.program = data.program;
+      buffer.typeSizes = data.typeSizes;
+      for (uint8_t depth = 1; depth > 0;)
+      {
+        if (origin->data == "{")
+        {
+          depth--;
+          if (depth == 0)
+          {
+            data.code.erase(origin--);
+            break;
+          }
+        } else if (origin->data == "}")
+        {
+          depth++;
+        }
+
+        buffer.code.push_front(*origin);
+        data.code.erase(origin--);
+      }
+
+      while (buffer.code.size() > 1)
+      {
+        members.emplace_back(Declaration::parse(buffer), -1);
+
+        if (buffer.code.front().data == ":")
+        {
+          buffer.code.pop_front();
+
+          ParseError::expect(buffer.code.front(), Token::Constant);
+          members.back().second = std::stoi(buffer.code.front().data);
+          buffer.code.pop_front();
+        }
+
+        if (buffer.code.front().data == ";")
+        {
+          buffer.code.pop_front();
+        }
+      }
+
+      dataType = parse(data, origin);
+      if (dataType->generalType == GeneralType::Struct)
+      {
+        Struct* structure = (Struct*)dataType;
+
+        for (std::pair<Declaration*, uint8_t> member: members)
+        {
+          structure->members.emplace_back(member.first, member.second);
+        }
+      }
+    } else if (origin->data == "*")
+    {
+      data.code.erase(origin--);
+
+      dataType = new Pointer;
+
+      ((Pointer*)dataType)->dataType = std::unique_ptr<DataType>(parse(data, origin));
+    } else if (origin->data == "(")
+    {
+      data.code.erase(next++);
+      data.code.erase(origin--);
+
+      dataType = parse(data, origin);
+    }
+  }
+
+  if (identifier.type == Token::Identifier)
+  {
+    data.code.push_front(identifier);
   }
 
   return dataType;
