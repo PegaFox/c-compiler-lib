@@ -368,6 +368,7 @@ DataType* DataType::parse(CommonParseData& data, std::list<Token>::iterator orig
         depth == 0 &&
         (origin->data == "[" ||
         origin->data == ")" ||
+        origin->data == ":" || 
         origin->data == ";" || 
         origin->data == "," ||
         origin->data == "="))

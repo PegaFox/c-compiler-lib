@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+struct Operation;
+
 class Program;
 
 class Compiler
@@ -44,9 +46,11 @@ class Compiler
 
     int handleArgs(int argc, char* argv[]);
 
-    std::string loadFile(const std::string& filename);
+    static std::string loadFile(const std::string& filename);
 
-    void optimizeAST(Program& AST);
+    static void optimizeAST(Program& AST);
+  
+    static std::string printIR(const std::vector<Operation>& asmCode);
 };
 
 #endif // PF_COMPILER_HPP

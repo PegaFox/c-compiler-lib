@@ -16,101 +16,107 @@ Expression* BinaryOperator::parse(CommonParseData& data, Expression* leftOperand
 
   if (data.code.front().data == "+")
   {
-    ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::Add;
+    ((BinaryOperator*)binary)->binaryType = BinaryType::Add;
   } else if (data.code.front().data == "-")
   {
-    ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::Subtract;
+    ((BinaryOperator*)binary)->binaryType = BinaryType::Subtract;
   } else if (data.code.front().data == "*")
   {
-    ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::Multiply;
+    ((BinaryOperator*)binary)->binaryType = BinaryType::Multiply;
   } else if (data.code.front().data == "/")
   {
-    ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::Divide;
+    ((BinaryOperator*)binary)->binaryType = BinaryType::Divide;
   } else if (data.code.front().data == "%")
   {
-    ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::Modulo;
+    ((BinaryOperator*)binary)->binaryType = BinaryType::Modulo;
   } else if (data.code.front().data == "<<")
   {
-    ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::LeftShift;
+    ((BinaryOperator*)binary)->binaryType = BinaryType::LeftShift;
   } else if (data.code.front().data == ">>")
   {
-    ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::RightShift;
+    ((BinaryOperator*)binary)->binaryType = BinaryType::RightShift;
   } else if (data.code.front().data == "|")
   {
-    ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::BitwiseOR;
+    ((BinaryOperator*)binary)->binaryType = BinaryType::BitwiseOR;
   } else if (data.code.front().data == "&")
   {
-    ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::BitwiseAND;
+    ((BinaryOperator*)binary)->binaryType = BinaryType::BitwiseAND;
   } else if (data.code.front().data == "^")
   {
-    ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::BitwiseXOR;
+    ((BinaryOperator*)binary)->binaryType = BinaryType::BitwiseXOR;
   } else if (data.code.front().data == "||")
   {
-    ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::LogicalOR;
+    ((BinaryOperator*)binary)->binaryType = BinaryType::LogicalOR;
   } else if (data.code.front().data == "&&")
   {
-    ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::LogicalAND;
+    ((BinaryOperator*)binary)->binaryType = BinaryType::LogicalAND;
   } else if (data.code.front().data == "[")
   {
-    ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::Subscript;
+    ((BinaryOperator*)binary)->binaryType = BinaryType::Subscript;
   } else if (data.code.front().data == "=")
   {
-    ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::VariableAssignment;
+    ((BinaryOperator*)binary)->binaryType = BinaryType::VariableAssignment;
   } else if (data.code.front().data == "+=")
   {
-    ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::AddEqual;
+    ((BinaryOperator*)binary)->binaryType = BinaryType::AddEqual;
   } else if (data.code.front().data == "-=")
   {
-    ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::SubtractEqual;
+    ((BinaryOperator*)binary)->binaryType = BinaryType::SubtractEqual;
   } else if (data.code.front().data == "*=")
   {
-    ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::MultiplyEqual;
+    ((BinaryOperator*)binary)->binaryType = BinaryType::MultiplyEqual;
   } else if (data.code.front().data == "/=")
   {
-    ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::DivideEqual;
+    ((BinaryOperator*)binary)->binaryType = BinaryType::DivideEqual;
   } else if (data.code.front().data == "%=")
   {
-    ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::ModuloEqual;
+    ((BinaryOperator*)binary)->binaryType = BinaryType::ModuloEqual;
   } else if (data.code.front().data == "<<=")
   {
-    ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::LeftShiftEqual;
+    ((BinaryOperator*)binary)->binaryType = BinaryType::LeftShiftEqual;
   } else if (data.code.front().data == ">>=")
   {
-    ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::RightShiftEqual;
+    ((BinaryOperator*)binary)->binaryType = BinaryType::RightShiftEqual;
   } else if (data.code.front().data == "|=")
   {
-    ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::BitwiseOREqual;
+    ((BinaryOperator*)binary)->binaryType = BinaryType::BitwiseOREqual;
   } else if (data.code.front().data == "&=")
   {
-    ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::BitwiseANDEqual;
+    ((BinaryOperator*)binary)->binaryType = BinaryType::BitwiseANDEqual;
   } else if (data.code.front().data == "^=")
   {
-    ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::BitwiseXOREqual;
+    ((BinaryOperator*)binary)->binaryType = BinaryType::BitwiseXOREqual;
   } else if (data.code.front().data == "==")
   {
-    ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::Equal;
+    ((BinaryOperator*)binary)->binaryType = BinaryType::Equal;
   } else if (data.code.front().data == "!=")
   {
-    ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::NotEqual;
+    ((BinaryOperator*)binary)->binaryType = BinaryType::NotEqual;
   } else if (data.code.front().data == ">")
   {
-    ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::Greater;
+    ((BinaryOperator*)binary)->binaryType = BinaryType::Greater;
   } else if (data.code.front().data == "<")
   {
-    ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::Lesser;
+    ((BinaryOperator*)binary)->binaryType = BinaryType::Lesser;
   } else if (data.code.front().data == ">=")
   {
-    ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::GreaterOrEqual;
+    ((BinaryOperator*)binary)->binaryType = BinaryType::GreaterOrEqual;
   } else if (data.code.front().data == "<=")
   {
-    ((BinaryOperator*)binary)->binaryType = BinaryOperator::BinaryType::LesserOrEqual;
+    ((BinaryOperator*)binary)->binaryType = BinaryType::LesserOrEqual;
+  } else if (data.code.front().data == ".")
+  {
+    ((BinaryOperator*)binary)->binaryType = BinaryType::MemberAccess;
+  } else if (data.code.front().data == "->")
+  {
+    ((BinaryOperator*)binary)->binaryType = BinaryType::DereferenceMemberAccess;
   }
 
   data.code.pop_front();
 
   ((BinaryOperator*)binary)->rightOperand = std::unique_ptr<Expression>(Expression::parse(data, false));
 
-  if (((BinaryOperator*)binary)->binaryType == BinaryOperator::BinaryType::Subscript)
+  if (((BinaryOperator*)binary)->binaryType == BinaryType::Subscript)
   {
     ParseError::expect(data.code.front().data, "]");
 
@@ -120,27 +126,33 @@ Expression* BinaryOperator::parse(CommonParseData& data, Expression* leftOperand
   }
 
   // this takes care of left-associativity and operator precedence
-  if (((BinaryOperator*)binary)->rightOperand->expressionType == Expression::ExpressionType::BinaryOperator)
+  if (((BinaryOperator*)binary)->rightOperand->expressionType == ExpressionType::BinaryOperator)
   {
     BinaryOperator* operand = (BinaryOperator*)((BinaryOperator*)binary)->rightOperand.get();
-    if (BinaryOperator::precedence[(uint8_t)operand->binaryType] < BinaryOperator::precedence[(uint8_t)((BinaryOperator*)binary)->binaryType])
+    if (precedence[(uint8_t)operand->binaryType] < precedence[(uint8_t)((BinaryOperator*)binary)->binaryType])
     {
-      ((BinaryOperator*)binary)->rightOperand.release();
-      ((BinaryOperator*)binary)->rightOperand = std::unique_ptr<Expression>(operand->leftOperand.release());
-      operand->leftOperand = std::unique_ptr<Expression>(binary);
-      binary = operand;
-    } else if (BinaryOperator::precedence[(uint8_t)operand->binaryType] == BinaryOperator::precedence[(uint8_t)((BinaryOperator*)binary)->binaryType] && ((BinaryOperator*)binary)->binaryType != BinaryOperator::BinaryType::VariableAssignment)
+      BinaryOperator* bottomOperand = operand;
+      while (bottomOperand->leftOperand->expressionType == ExpressionType::BinaryOperator && precedence[(uint8_t)((BinaryOperator*)bottomOperand->leftOperand.get())->binaryType] < precedence[(uint8_t)((BinaryOperator*)binary)->binaryType])
+      {
+        bottomOperand = (BinaryOperator*)bottomOperand->leftOperand.get();
+      }
+
+      Expression* temp = ((BinaryOperator*)binary)->rightOperand.release();
+      ((BinaryOperator*)binary)->rightOperand = std::unique_ptr<Expression>(bottomOperand->leftOperand.release());
+      bottomOperand->leftOperand = std::unique_ptr<Expression>(binary);
+      binary = temp;
+    } else if (precedence[(uint8_t)operand->binaryType] == precedence[(uint8_t)((BinaryOperator*)binary)->binaryType] && ((BinaryOperator*)binary)->binaryType != BinaryType::VariableAssignment)
     {
       BinaryOperator* bottomOperand = operand;
       while (
-        bottomOperand->rightOperand->expressionType == Expression::ExpressionType::BinaryOperator &&
-        BinaryOperator::precedence[(uint8_t)((BinaryOperator*)bottomOperand->rightOperand.get())->binaryType] ==
-        BinaryOperator::precedence[(uint8_t)((BinaryOperator*)binary)->binaryType] ||
-        bottomOperand->leftOperand->expressionType == Expression::ExpressionType::BinaryOperator &&
-        BinaryOperator::precedence[(uint8_t)((BinaryOperator*)bottomOperand->leftOperand.get())->binaryType] ==
-        BinaryOperator::precedence[(uint8_t)((BinaryOperator*)binary)->binaryType])
+        bottomOperand->rightOperand->expressionType == ExpressionType::BinaryOperator &&
+        precedence[(uint8_t)((BinaryOperator*)bottomOperand->rightOperand.get())->binaryType] ==
+        precedence[(uint8_t)((BinaryOperator*)binary)->binaryType] ||
+        bottomOperand->leftOperand->expressionType == ExpressionType::BinaryOperator &&
+        precedence[(uint8_t)((BinaryOperator*)bottomOperand->leftOperand.get())->binaryType] ==
+        precedence[(uint8_t)((BinaryOperator*)binary)->binaryType])
       {
-        if (bottomOperand->rightOperand->expressionType == Expression::ExpressionType::BinaryOperator)
+        if (bottomOperand->rightOperand->expressionType == ExpressionType::BinaryOperator)
         {
           bottomOperand = (BinaryOperator*)bottomOperand->rightOperand.get();
         } else
@@ -153,7 +165,7 @@ Expression* BinaryOperator::parse(CommonParseData& data, Expression* leftOperand
       bottomOperand->leftOperand = std::unique_ptr<Expression>(binary);
       binary = operand;
     }
-  } else if (((BinaryOperator*)binary)->binaryType != BinaryOperator::BinaryType::VariableAssignment && ((BinaryOperator*)binary)->rightOperand->expressionType == Expression::ExpressionType::TernaryOperator)
+  } else if ((((BinaryOperator*)binary)->binaryType < BinaryType::VariableAssignment || ((BinaryOperator*)binary)->binaryType > BinaryType::BitwiseXOREqual) && ((BinaryOperator*)binary)->rightOperand->expressionType == ExpressionType::TernaryOperator)
   {
     TernaryOperator* operand = (TernaryOperator*)((BinaryOperator*)binary)->rightOperand.get();
     ((BinaryOperator*)binary)->rightOperand.release();

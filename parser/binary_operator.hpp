@@ -23,6 +23,8 @@ struct BinaryOperator: public Expression
     LogicalOR,
     LogicalAND,
     Subscript,
+    MemberAccess,
+    DereferenceMemberAccess,
     VariableAssignment,
     AddEqual,
     SubtractEqual,
@@ -57,6 +59,8 @@ struct BinaryOperator: public Expression
     3, // LogicalOR
     4, // LogicalAND
     13, // Subscript
+    13, // MemberAccess
+    13, // DereferenceMemberAccess
     2, // VariableAssignment
     2, // AddEqual
     2, // SubtractEqual

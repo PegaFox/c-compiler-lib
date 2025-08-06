@@ -6,7 +6,7 @@
 #include <vector>
 #include <list>
 
-#include "load_file.hpp"
+#include "compiler.hpp"
 
 extern std::vector<std::string> includeDirs;
 
@@ -113,13 +113,13 @@ std::string Preprocessor::handleIncludeDirective(std::string& directiveStr, cons
   if ((pos = directiveStr.find('\"')) != directiveStr.npos)
   {
     filename = std::string("./") + directiveStr.substr(pos+1, directiveStr.find('\"', pos+1) - (pos+1));
-    fileStr = loadFile(filename);
+    fileStr = Compiler::loadFile(filename);
   } else if ((pos = directiveStr.find('<')) != directiveStr.npos)
   {
     filename = directiveStr.substr(pos+1, directiveStr.find('>', pos+1) - (pos+1));
     for (const std::string& dir : includeDirs)
     {
-      fileStr = loadFile(dir + filename);
+      fileStr = Compiler::loadFile(dir + filename);
       if (!fileStr.empty())
       {
         break;

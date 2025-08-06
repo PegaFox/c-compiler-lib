@@ -1,26 +1,42 @@
 
-struct Bar
+struct Game
 {
-  char data[128];
-};
-
-int;
-
-char;
-
-struct Bar;
-
-typedef unsigned short int foo;
+  int tiles[4];
+  int width;
+}* game;
 
 int main()
 {
-  int halfArrayLen = 12;
-    
-  // this type of thing is only legal in local scope
-  char testArray[halfArrayLen*2];
+  int x, y;
 
-  (const int(*)[6])testArray;
+  //(game->(width * y)) + x; Current state
+  //game->(width * (y + x)); With no binary reformatting
+  //game->(width * (y + x)); With only associativity changing
+  //game->(width * y) + x; With less-or-equal on precedence checking
+  //game->(width * (y + x)); With greater-or-equal on precedence checking
+  //game->(width * (y + x)); With greater on precedence checking
+  //
+  /*
 
-  (volatile const int*)0;
-  return 0;
+  ->
+ g  *
+   w +
+    y x
+
+  -> 
+ g  +
+   * x
+  w y
+
+    +
+  -> x
+ g  *
+   w y
+
+    +
+   * x
+ -> y
+g  w
+  */
+  &game->tiles[game->width * y + x];
 }

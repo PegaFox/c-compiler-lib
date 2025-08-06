@@ -47,7 +47,7 @@ Expression* Expression::parse(CommonParseData& data, bool allowNullExpression)
     }
   } else if (
     data.code.front().type == Token::Keyword ||
-    data.code.front().data == "(" && (data.code.begin()++)->type != Token::Keyword ||
+    (data.code.front().data == "(" && (++data.code.begin())->type == Token::Keyword) ||
     data.code.front().data == "&" ||
     data.code.front().data == "*" ||
     data.code.front().data == "-" ||
@@ -57,7 +57,7 @@ Expression* Expression::parse(CommonParseData& data, bool allowNullExpression)
     data.code.front().data == "--")
   {
     expression = PreUnaryOperator::parse(data);
-  } else if (allowNullExpression && (data.code.front().data == ")" || data.code.front().data == ";"))
+  } else if (allowNullExpression/* && (data.code.front().data == ")" || data.code.front().data == ";")*/)
   {
     expression = new Expression;
     expression->expressionType = Expression::ExpressionType::Null;
@@ -65,6 +65,11 @@ Expression* Expression::parse(CommonParseData& data, bool allowNullExpression)
   {
     std::cout << "Parse error: Expected an expression, received \"" << data.code.front().data << "\"\n";
     throw ParseError();
+  }
+
+  if (data.code.front().data == "[")
+  {
+    expression = BinaryOperator::parse(data, expression);
   }
 
   // separate prefixes and suffixes into seperate if statements
@@ -83,7 +88,6 @@ Expression* Expression::parse(CommonParseData& data, bool allowNullExpression)
     data.code.front().data == "&" ||
     data.code.front().data == "||" ||
     data.code.front().data == "&&" ||
-    data.code.front().data == "[" ||
     data.code.front().data == "+=" ||
     data.code.front().data == "-=" ||
     data.code.front().data == "*=" ||
@@ -101,7 +105,9 @@ Expression* Expression::parse(CommonParseData& data, bool allowNullExpression)
     data.code.front().data == "<=" ||
     data.code.front().data == "==" ||
     data.code.front().data == "!=" ||
-    data.code.front().data == "^")
+    data.code.front().data == "^" ||
+    data.code.front().data == "." ||
+    data.code.front().data == "->")
   {
     expression = BinaryOperator::parse(data, expression);
 

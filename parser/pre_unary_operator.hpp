@@ -17,7 +17,8 @@ struct PreUnaryOperator: public Expression
     Decrement,
     Dereference,
     TypeCast,
-    Address
+    Address,
+    Sizeof
   } preUnaryType;
 
   std::unique_ptr<Expression> operand;

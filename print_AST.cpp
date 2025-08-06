@@ -4,6 +4,7 @@
 
 #include "parser/primitive_type.hpp"
 #include "parser/pointer.hpp"
+#include "parser/struct.hpp"
 #include "parser/type_cast.hpp"
 
 PrintAST::PrintAST(const Program& AST)
@@ -132,11 +133,28 @@ void PrintAST::printDeclaration(const Declaration* var)
 {
   depth++;
 
-  std::cout << depthPadding() << "Variable declaration {\n";
+  std::cout << depthPadding() << "Declaration {\n";
   depth++;
 
+  std::cout << depthPadding() << "Qualifiers: ";
+
+  if (var->linkage == Declaration::Linkage::External)
+  {
+    std::cout << "extern ";
+  } else if (var->linkage == Declaration::Linkage::Internal)
+  {
+    std::cout << "static ";
+  }
+
+  std::cout << (var->isInline ? "inline " : "") << (var->isTypedef ? "typedef " : "") << '\n';
+
   std::cout << depthPadding() << "Data type: \"" << printDataType(var->dataType.get()) << "\"\n";
-  std::cout << depthPadding() << "Identifier: \"" << var->identifier << "\"\n";
+
+  if (!var->identifier.empty())
+  {
+    std::cout << depthPadding() << "Identifier: \"" << var->identifier << "\"\n";
+  }
+
   if (var->value)
   {
     std::cout << depthPadding() << "Value {\n";
@@ -345,8 +363,14 @@ std::string PrintAST::printDataType(const DataType* dataType)
     } case DataType::GeneralType::Pointer:
       typeString = "pointer to " + printDataType(((Pointer*)dataType)->dataType.get());
       break;
+    case DataType::GeneralType::Function:
+      typeString = "function() -> " + printDataType(((Pointer*)dataType)->dataType.get());
+      break;
     case DataType::GeneralType::Array:
       typeString = "array of X " + printDataType(((Pointer*)dataType)->dataType.get());
+      break;
+    case DataType::GeneralType::Struct:
+      typeString = "struct " + ((Struct*)dataType)->identifier;
       break;
   }
 
@@ -531,6 +555,9 @@ void PrintAST::printPreUnaryOperator(const PreUnaryOperator* preUnary)
     case PreUnaryOperator::PreUnaryType::Address:
       std::cout << depthPadding() << "Get address {\n";
       break;
+    case PreUnaryOperator::PreUnaryType::Sizeof:
+      std::cout << depthPadding() << "Sizeof {\n";
+      break;
   }
 
   printExpression(preUnary->operand.get());
@@ -606,8 +633,44 @@ void PrintAST::printBinaryOperator(const BinaryOperator* binary)
     case BinaryOperator::BinaryType::Subscript:
       std::cout << depthPadding() << "Array subscript {\n";
       break;
+    case BinaryOperator::BinaryType::MemberAccess:
+      std::cout << depthPadding() << "Member access {\n";
+      break;
+    case BinaryOperator::BinaryType::DereferenceMemberAccess:
+      std::cout << depthPadding() << "Dereference member access {\n";
+      break;
     case BinaryOperator::BinaryType::VariableAssignment:
       std::cout << depthPadding() << "Variable assignment {\n";
+      break;
+    case BinaryOperator::BinaryType::AddEqual:
+      std::cout << depthPadding() << "Variable addition assignment {\n";
+      break;
+    case BinaryOperator::BinaryType::SubtractEqual:
+      std::cout << depthPadding() << "Variable subtraction assignment {\n";
+      break;
+    case BinaryOperator::BinaryType::MultiplyEqual:
+      std::cout << depthPadding() << "Variable multiplication assignment {\n";
+      break;
+    case BinaryOperator::BinaryType::DivideEqual:
+      std::cout << depthPadding() << "Variable division assignment {\n";
+      break;
+    case BinaryOperator::BinaryType::ModuloEqual:
+      std::cout << depthPadding() << "Variable modulo assignment {\n";
+      break;
+    case BinaryOperator::BinaryType::LeftShiftEqual:
+      std::cout << depthPadding() << "Variable left shift assignment {\n";
+      break;
+    case BinaryOperator::BinaryType::RightShiftEqual:
+      std::cout << depthPadding() << "Variable right shift assignment {\n";
+      break;
+    case BinaryOperator::BinaryType::BitwiseOREqual:
+      std::cout << depthPadding() << "Variable bitwise OR assignment {\n";
+      break;
+    case BinaryOperator::BinaryType::BitwiseANDEqual:
+      std::cout << depthPadding() << "Variable bitwise AND assignment {\n";
+      break;
+    case BinaryOperator::BinaryType::BitwiseXOREqual:
+      std::cout << depthPadding() << "Variable bitwise XOR assignment {\n";
       break;
     case BinaryOperator::BinaryType::Equal:
       std::cout << depthPadding() << "Is equal {\n";

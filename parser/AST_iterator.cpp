@@ -21,6 +21,7 @@
 #include "for_loop.hpp"
 #include "pointer.hpp"
 #include "array.hpp"
+#include "struct.hpp"
 
 ASTiterator::ASTiterator(pointer ptr) : ptr(ptr)
 {
@@ -260,16 +261,16 @@ ASTiterator& ASTiterator::operator++()
           goto topOfConditionals;
           break;
         case Statement::StatementType::Declaration: {
-          Declaration* variableDeclaration = (Declaration*)statement;
-          if (firstTime(variableDeclaration))
+          Declaration* declaration = (Declaration*)statement;
+          if (firstTime(declaration))
           {
-            path.push_back({variableDeclaration, &variableDeclaration->dataType});
-            ptr = variableDeclaration->dataType.get();
-          } else if (variableDeclaration->value && path.back().second == &variableDeclaration->dataType)
+            path.push_back({declaration, &declaration->dataType});
+            ptr = declaration->dataType.get();
+          } else if (declaration->value && path.back().second == &declaration->dataType)
           {
-            path.back().second = &variableDeclaration->value;
-            ptr = variableDeclaration->value.get();
-          } else if (!variableDeclaration->value || path.back().second == &variableDeclaration->value)
+            path.back().second = &declaration->value;
+            ptr = declaration->value.get();
+          } else if (!declaration->value || path.back().second == &declaration->value)
           {
             path.pop_back();
             ptr = path.back().first;
@@ -497,8 +498,8 @@ ASTiterator& ASTiterator::operator++()
               }
             }
           }
-      break;
-    } case DataType::GeneralType::Array: {
+          break;
+        } case DataType::GeneralType::Array: {
           Array* array = (Array*)dataType;
           if (firstTime(array))
           {
@@ -516,7 +517,35 @@ ASTiterator& ASTiterator::operator++()
           }
           break;
         } case DataType::GeneralType::Struct:
-
+          Struct* structure = (Struct*)ptr;
+          if (firstTime(structure))
+          {
+            if (!structure->members.empty())
+            {
+              path.push_back({structure, &structure->members[0]});
+              ptr = structure->members[0].first.get();
+            } else
+            {
+              ptr = path.back().first;
+              goto topOfConditionals;
+            }
+          } else if (path.back().second != &structure->members.back())
+          {
+            for (std::vector<std::pair<std::unique_ptr<Declaration>, uint8_t>>::iterator node = structure->members.begin(); node != structure->members.end(); node++)
+            {
+              if (path.back().second == &(*node))
+              {
+                path.back().second = &(*(node+1));
+                ptr = (node+1)->first.get();
+                break;
+              }
+            }
+          } else
+          {
+            path.pop_back();
+            ptr = path.back().first;
+            goto topOfConditionals;
+          }
           break;
       }
       break;

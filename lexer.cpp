@@ -65,6 +65,7 @@ const std::string tokens[] = {
   "||",
   "<<",
   ">>",
+  "->",
   ">",
   "<",
   "-",
@@ -78,6 +79,7 @@ const std::string tokens[] = {
   "/",
   "%",
   "=",
+  ".",
 
   // other
   "?",

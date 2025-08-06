@@ -27,7 +27,7 @@ Statement* Statement::parse(CommonParseData& data, bool canParseVariableDeclarat
 {
   Statement* statement = nullptr;
 
-  if (data.code.front().type == Token::Keyword)
+  if (data.code.front().type == Token::Keyword || data.program->typedefs.contains(data.code.front().data))
   {
     if (data.code.front().data == "return")
     {

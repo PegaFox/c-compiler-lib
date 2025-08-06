@@ -16,6 +16,7 @@ struct Declaration: public Statement
   } linkage;
 
   bool isTypedef = false;
+  bool isInline = false;
 
   std::unique_ptr<DataType> dataType;
 

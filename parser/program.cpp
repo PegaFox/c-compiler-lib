@@ -30,6 +30,10 @@ void Program::parse(std::list<Token> code, const Compiler::TypeSizes& typeSizes)
           if (((++i)--)->data == "(")
           {
             nodes.emplace_back(Declaration::parse(data));
+            if (!data.code.empty() && data.code.front().data == ";")
+            {
+              data.code.pop_front();
+            }
             i = data.code.end();
           }
           break;
