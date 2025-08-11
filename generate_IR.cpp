@@ -7,23 +7,11 @@
 #include "parser/primitive_type.hpp"
 #include "parser/pointer.hpp"
 #include "parser/array.hpp"
+#include "parser/struct.hpp"
 #include "parser/type_cast.hpp"
 #include "parser/sub_expression.hpp"
 
-struct IRGenError
-{
-
-};
-
-extern bool optimize;
-
-std::map<std::string, const Function*> functions;
-
-std::map<std::string, const Declaration*> vars;
-
-std::vector<const CompoundStatement*> scopes;
-
-DataType* copyDataType(const DataType* data)
+/*DataType* GenerateIR::copyDataType(const DataType* data)
 {
   DataType* result;
 
@@ -50,26 +38,114 @@ DataType* copyDataType(const DataType* data)
   *result = *data;
 
   return result;
+}*/
+
+std::vector<Operation> GenerateIR::generateIR(const Program& AST)
+{
+  CommonIRData data;
+
+  for (const std::unique_ptr<ASTnode>& node : AST.nodes)
+  {
+    if (node->nodeType == ASTnode::NodeType::Statement)
+    {
+      if (((Statement*)node.get())->statementType == Statement::StatementType::Declaration)
+      {
+        generateDeclaration(data, (Declaration*)node.get());
+      }
+    }
+  }
+
+  return data.irProgram;
 }
 
-std::map<std::string, const Declaration*>::iterator getIdentifier(const std::string& identifier)
+void GenerateIR::optimizeIR(std::vector<Operation> &irProgram)
 {
-  std::map<std::string, const Declaration*>::iterator parentVar = vars.end();
+  bool changed;
+
+  do
+  {
+    changed = false;
+
+    changed |= resolveConstantOperations(irProgram);
+    changed |= trimInaccessibleCode(irProgram);
+  } while (changed);
+}
+
+Operation::DataType GenerateIR::ASTTypeToIRType(CommonIRData& data, DataType* dataType)
+{
+  switch (dataType->generalType)
+  {
+    case DataType::GeneralType::PrimitiveType: {
+      PrimitiveType* primitiveType = (PrimitiveType*)dataType;
+
+      return {primitiveType->size, primitiveType->size, 0, primitiveType->isSigned, primitiveType->isFloating};
+    } case DataType::GeneralType::Pointer: {
+      Pointer* pointer = (Pointer*)dataType;
+      
+      Operation::DataType childType = ASTTypeToIRType(data, pointer->dataType.get());
+      childType.pointerDepth++;
+      return childType;
+    } case DataType::GeneralType::Array: {
+      Array* array = (Array*)dataType;
+
+      // We can't store both the size of the array, and the size of each member, but since arrays are always lvalues (using them as rvalues casts them to pointers) we can fetch the size of each element from the declarations map and store the total structure size here.
+      Operation::DataType childType = ASTTypeToIRType(data, array->dataType.get());
+
+      if (array->size->expressionType == Expression::ExpressionType::Constant)
+      {
+        childType.size *= (uint64_t)((Constant*)array->size.get())->value;
+      } else
+      {
+        childType.size = 0;
+      }
+      
+      childType.pointerDepth++;
+      return childType;
+    } case DataType::GeneralType::Struct: {
+      Struct* structure = (Struct*)dataType;
+
+      Operation::DataType result;
+      for (std::pair<std::unique_ptr<Declaration>, uint8_t>& member: structure->members)
+      {
+        Operation::DataType memberType;
+        if (member.first->dataType->generalType != DataType::GeneralType::Pointer)
+        {
+          memberType = ASTTypeToIRType(data, member.first->dataType.get());
+        } else
+        {
+          memberType = {data.pointerSize, data.pointerSize};
+        }
+
+        result.alignment = std::max(result.alignment, memberType.alignment);
+        result.size += memberType.alignment - result.size%memberType.alignment;
+        result.size += memberType.size;
+      }
+
+      return result;
+    } default:
+      std::cout << "IR generation error: Invalid data type\n";
+      throw IRGenError();
+  }
+}
+
+std::map<std::string, const Declaration*>::iterator GenerateIR::getIdentifier(const std::string& identifier)
+{
+  std::map<std::string, const Declaration*>::iterator parentVar = declarations.end();
   for (std::vector<const CompoundStatement*>::const_reverse_iterator scope = scopes.crbegin(); scope != scopes.crend(); scope++)
   {
-    if (vars.contains("Scope_" + std::to_string((std::uintptr_t)*scope) + "_" + identifier))
+    if (declarations.contains("Scope_" + std::to_string((std::uintptr_t)*scope) + "_" + identifier))
     {
-      parentVar = vars.find("Scope_" + std::to_string((std::uintptr_t)*scope) + "_" + identifier);
+      parentVar = declarations.find("Scope_" + std::to_string((std::uintptr_t)*scope) + "_" + identifier);
       break;
     }
   }
 
-  if (parentVar == vars.end() && vars.contains(identifier))
+  if (parentVar == declarations.end() && declarations.contains(identifier))
   {
-    parentVar = vars.find(identifier);
+    parentVar = declarations.find(identifier);
   } 
 
-  if (parentVar != vars.end())
+  if (parentVar != declarations.end())
   {
     return parentVar; 
   } else
@@ -79,25 +155,7 @@ std::map<std::string, const Declaration*>::iterator getIdentifier(const std::str
   }
 }
 
-std::vector<Operation> generateIR(const Program& AST)
-{
-  std::vector<Operation> absProgram;
-
-  for (const std::unique_ptr<ASTnode>& node : AST.nodes)
-  {
-    if (node->nodeType == ASTnode::NodeType::Statement)
-    {
-      if (((Statement*)node.get())->statementType == Statement::StatementType::Declaration)
-      {
-        generateDeclaration(absProgram, (Declaration*)node.get());
-      }
-    }
-  }
-
-  return absProgram;
-}
-
-/*void generateFunctionDeclaration(std::vector<Operation>& absProgram, const FunctionDeclaration* functionDeclaration)
+/*void generateFunctionDeclaration(CommonIRData& data, const FunctionDeclaration* functionDeclaration)
 {
   if (
     functions.contains(functionDeclaration->identifier) && 
@@ -107,7 +165,7 @@ std::vector<Operation> generateIR(const Program& AST)
     throw IRGenError();
   }
 
-  std::string name = (scopes.empty() ? "" : "Scope_" + std::to_string((std::uintptr_t)scopes.back()) + "_") + functionDeclaration->identifier;
+  std::pair<std::string, PrimitiveType> name = (scopes.empty() ? "" : "Scope_" + std::to_string((std::uintptr_t)scopes.back()) + "_") + functionDeclaration->identifier;
   if (vars.contains(name) && vars[name])
   {
     std::cout << "IR generation error: Identifier \"" << functionDeclaration->identifier << "\" is already defined\n";
@@ -152,12 +210,12 @@ std::vector<Operation> generateIR(const Program& AST)
 
     for (const std::unique_ptr<VariableDeclaration>& parameter: functionDeclaration->parameters)
     {
-      generateVariableDeclaration(absProgram, parameter.get(), false);
+      generateVariableDeclaration(data, parameter.get(), false);
     }
 
-    absProgram.emplace_back(Operation{Operation::Label, {functionDeclaration->identifier + "_Function"}});
-    generateStatement(absProgram, functionDeclaration->body.get());
-    absProgram.emplace_back(Operation{Operation::Return});
+    data.irProgram.emplace_back(Operation{Operation::Label, {functionDeclaration->identifier + "_Function"}});
+    generateStatement(data, functionDeclaration->body.get());
+    data.irProgram.emplace_back(Operation{Operation::Return});
 
     scopes.pop_back();
   } else
@@ -175,7 +233,7 @@ std::vector<Operation> generateIR(const Program& AST)
   }
 }*/
 
-void generateStatement(std::vector<Operation>& absProgram, const Statement* statement)
+void GenerateIR::generateStatement(CommonIRData& data, const Statement* statement)
 {
   /*
   At the beginning of each statement:
@@ -200,122 +258,114 @@ void generateStatement(std::vector<Operation>& absProgram, const Statement* stat
   switch (statement->statementType)
   {
     case Statement::StatementType::CompoundStatement:
-      generateCompoundStatement(absProgram, (CompoundStatement*)statement);
+      generateCompoundStatement(data, (CompoundStatement*)statement);
       break;
     case Statement::StatementType::Expression:
-      generateExpression(absProgram, (Expression*)statement);
+      generateExpression(data, (Expression*)statement);
       break;
     case Statement::StatementType::Return:
-      generateReturn(absProgram, (Return*)statement);
+      generateReturn(data, (Return*)statement);
       break;
     case Statement::StatementType::Break:
-      generateBreak(absProgram, (Break*)statement);
+      generateBreak(data, (Break*)statement);
       break;
     case Statement::StatementType::Continue:
-      generateContinue(absProgram, (Continue*)statement);
+      generateContinue(data, (Continue*)statement);
       break;
     case Statement::StatementType::Label:
-      generateLabel(absProgram, (Label*)statement);
+      generateLabel(data, (Label*)statement);
       break;
     case Statement::StatementType::Goto:
-      generateGoto(absProgram, (Goto*)statement);
+      generateGoto(data, (Goto*)statement);
       break;
     case Statement::StatementType::Declaration:
-      generateDeclaration(absProgram, (Declaration*)statement);
+      generateDeclaration(data, (Declaration*)statement);
       break;
     case Statement::StatementType::IfConditional:
-      generateIfConditional(absProgram, (IfConditional*)statement);
+      generateIfConditional(data, (IfConditional*)statement);
       break;
     case Statement::StatementType::SwitchCase:
-      generateSwitchCase(absProgram, (SwitchCase*)statement);
+      generateSwitchCase(data, (SwitchCase*)statement);
       break;
     case Statement::StatementType::SwitchDefault:
-      generateSwitchDefault(absProgram, (SwitchDefault*)statement);
+      generateSwitchDefault(data, (SwitchDefault*)statement);
       break;
     case Statement::StatementType::SwitchConditional:
-      generateSwitchConditional(absProgram, (SwitchConditional*)statement);
+      generateSwitchConditional(data, (SwitchConditional*)statement);
       break;
     case Statement::StatementType::DoWhileLoop:
-      generateDoWhileLoop(absProgram, (DoWhileLoop*)statement);
+      generateDoWhileLoop(data, (DoWhileLoop*)statement);
       break;
     case Statement::StatementType::WhileLoop:
-      generateWhileLoop(absProgram, (WhileLoop*)statement);
+      generateWhileLoop(data, (WhileLoop*)statement);
       break;
     case Statement::StatementType::ForLoop:
-      generateForLoop(absProgram, (ForLoop*)statement);
+      generateForLoop(data, (ForLoop*)statement);
       break;
   }
 }
 
-void generateCompoundStatement(std::vector<Operation>& absProgram, const CompoundStatement* compoundStatement)
+void GenerateIR::generateCompoundStatement(CommonIRData& data, const CompoundStatement* compoundStatement)
 {
   // this check allows statements like for loops to impose the scope prematurely without causing problems
   scopes.emplace_back(compoundStatement);
   for (const std::unique_ptr<Statement>& statement : compoundStatement->body)
   {
-    generateStatement(absProgram, statement.get());
+    generateStatement(data, statement.get());
   }
   scopes.pop_back();
 }
 
 // returns the variable name containing the result of the expression
-std::string generateExpression(std::vector<Operation>& absProgram, const Expression* expression)
+std::pair<std::string, Operation::DataType> GenerateIR::generateExpression(CommonIRData& data, const Expression* expression)
 {
   switch (expression->expressionType)
   {
+    case Expression::ExpressionType::Null:
+      return {std::to_string((uintptr_t)expression) + "_NullExpression", {}};   
     case Expression::ExpressionType::Constant:
-      return generateConstant(absProgram, (Constant*)expression);
-      break;
+      return generateConstant(data, (Constant*)expression);
     case Expression::ExpressionType::VariableAccess:
-      return generateVariableAccess(absProgram, (VariableAccess*)expression);
-      break;
+      return generateVariableAccess(data, (VariableAccess*)expression);
     case Expression::ExpressionType::FunctionCall:
-      return generateFunctionCall(absProgram, (FunctionCall*)expression);
-      break;
+      return generateFunctionCall(data, (FunctionCall*)expression);
     case Expression::ExpressionType::SubExpression:
-      return generateExpression(absProgram, ((SubExpression*)expression)->expression.get());
-      break;
+      return generateExpression(data, ((SubExpression*)expression)->expression.get());
     case Expression::ExpressionType::PreUnaryOperator:
-      return generatePreUnaryOperator(absProgram, (PreUnaryOperator*)expression);
-      break;
+      return generatePreUnaryOperator(data, (PreUnaryOperator*)expression);
     case Expression::ExpressionType::PostUnaryOperator:
-      return generatePostUnaryOperator(absProgram, (PostUnaryOperator*)expression);
-      break;
+      return generatePostUnaryOperator(data, (PostUnaryOperator*)expression);
     case Expression::ExpressionType::BinaryOperator:
-      return generateBinaryOperator(absProgram, (BinaryOperator*)expression);
-      break;
+      return generateBinaryOperator(data, (BinaryOperator*)expression);
     case Expression::ExpressionType::TernaryOperator:
-      return generateTernaryOperator(absProgram, (TernaryOperator*)expression);
-      break;
+      return generateTernaryOperator(data, (TernaryOperator*)expression);
   }
-  return "";
 }
 
-std::string generateConstant(std::vector<Operation>& absProgram, const Constant* constant)
+std::pair<std::string, Operation::DataType> GenerateIR::generateConstant(CommonIRData& data, const Constant* constant)
 {
   // number comes first to ensure that the variable name is unique (identifiers can't start with numbers in C)
   if (constant->dataType->generalType == DataType::GeneralType::PrimitiveType)
   {
-    absProgram.emplace_back(Operation{Operation::Set, {std::to_string((uintptr_t)constant) + "_Constant", std::to_string(*((long int*)constant->value))}});
+    data.irProgram.emplace_back(Operation{ASTTypeToIRType(data, constant->dataType.get()), Operation::Set, {std::to_string((uintptr_t)constant) + "_Constant", std::to_string(*((long int*)constant->value))}});
   }
   
-  return absProgram.back().operands[0];
+  return {data.irProgram.back().operands[0], data.irProgram.back().type};
 }
 
-// return is currently equivalent to exit(0). this should be fixed when functions are added
-void generateReturn(std::vector<Operation>& absProgram, const Return* returnVal)
+void GenerateIR::generateReturn(CommonIRData& data, const Return* returnVal)
 {
-  std::string name = generateExpression(absProgram, returnVal->data.get());
+  std::pair<std::string, Operation::DataType> name = generateExpression(data, returnVal->data.get());
 
-  absProgram.emplace_back(Operation{Operation::Return, {name}});
+  data.irProgram.emplace_back(Operation{name.second, Operation::Return, {name.first}});
 }
 
-void generateBreak(std::vector<Operation>& absProgram, const Break* breakStatement)
+void GenerateIR::generateBreak(CommonIRData& data, const Break* breakStatement)
 {
   bool found = false;
   uint32_t depth = 0;
 
-  for (std::vector<Operation>::const_reverse_iterator op = absProgram.rbegin(); op != absProgram.rend(); op++)
+  for (std::vector<Operation>::const_reverse_iterator op = data.irProgram.rbegin(); op != data.irProgram.rend(); op++)
   {
     if (
       op->code == Operation::Label)
@@ -328,7 +378,7 @@ void generateBreak(std::vector<Operation>& absProgram, const Break* breakStateme
       {
         if (depth == 0)
         {
-          absProgram.emplace_back(Operation{Operation::Jump, {op->operands[0].substr(0, op->operands[0].size()-5) + "End"}});
+          data.irProgram.emplace_back(Operation{{}, Operation::Jump, {op->operands[0].substr(0, op->operands[0].size()-5) + "End"}});
           found = true;
           break;
         } else
@@ -353,12 +403,12 @@ void generateBreak(std::vector<Operation>& absProgram, const Break* breakStateme
   }
 }
 
-void generateContinue(std::vector<Operation>& absProgram, const Continue* continueStatement)
+void GenerateIR::generateContinue(CommonIRData& data, const Continue* continueStatement)
 {
   bool found = false;
   uint32_t depth = 0;
 
-  for (std::vector<Operation>::const_reverse_iterator op = absProgram.rbegin(); op != absProgram.rend(); op++)
+  for (std::vector<Operation>::const_reverse_iterator op = data.irProgram.rbegin(); op != data.irProgram.rend(); op++)
   {
     if (
       op->code == Operation::Label)
@@ -370,7 +420,7 @@ void generateContinue(std::vector<Operation>& absProgram, const Continue* contin
       {
         if (depth == 0)
         {
-          absProgram.emplace_back(Operation{Operation::Jump, {op->operands[0]}});
+          data.irProgram.emplace_back(Operation{{}, Operation::Jump, {op->operands[0]}});
           found = true;
           break;
         } else
@@ -394,93 +444,134 @@ void generateContinue(std::vector<Operation>& absProgram, const Continue* contin
   }
 }
 
-void generateLabel(std::vector<Operation>& absProgram, const Label* label)
+void GenerateIR::generateLabel(CommonIRData& data, const Label* label)
 {
-  absProgram.emplace_back(Operation{Operation::Label, {label->name}});
+  data.irProgram.emplace_back(Operation{{}, Operation::Label, {label->name}});
 }
 
-void generateGoto(std::vector<Operation>& absProgram, const Goto* gotoStatement)
+void GenerateIR::generateGoto(CommonIRData& data, const Goto* gotoStatement)
 {
-  absProgram.emplace_back(Operation{Operation::Jump, {gotoStatement->label}});
+  data.irProgram.emplace_back(Operation{{}, Operation::Jump, {gotoStatement->label}});
 }
 
-void generateDeclaration(std::vector<Operation>& absProgram, const Declaration* declaration, bool allowInitialization)
+void GenerateIR::generateDeclaration(CommonIRData& data, const Declaration* declaration, bool allowInitialization)
 {
-  std::string name = declaration->identifier;
-  if (!scopes.empty())
+  if (declaration->dataType->generalType == DataType::GeneralType::Struct && !((Struct*)declaration->dataType.get())->members.empty())
   {
-    name = "Scope_" + std::to_string((std::uintptr_t)scopes.back()) + "_" + name;
-  }
-
-  if (functions.contains(name))
-  {
-    std::cout << "IR generation error: Identifier \"" << declaration->identifier << "\" is already defined\n";
-    throw IRGenError();
-  }
-  
-  if (declaration->value && vars.contains(name) && vars[name]->value)
-  {
-    std::cout << "IR generation error: Variable \"" << declaration->identifier << "\" is already defined\n";
-    throw IRGenError();
-  }
-
-  //vars[name].reset(copyDataType(variableDeclaration->dataType.get()));
-  vars[name] = declaration;
-  
-  if (declaration->value)
-  {
-    if (!allowInitialization)
+    uint8_t offset = 0;
+    for (std::pair<std::unique_ptr<Declaration>, uint8_t>& m: ((Struct*)declaration->dataType.get())->members)
     {
-      std::cout << "IR generation error: Variable \"" << declaration->identifier << "\" cannot be initialized here\n";
+      Declaration* member = m.first.get();
+
+      Operation::DataType memberType;
+      if (member->dataType->generalType != DataType::GeneralType::Pointer)
+      {
+        memberType = ASTTypeToIRType(data, member->dataType.get());
+      } else
+      {
+        memberType = {data.pointerSize, data.pointerSize};
+      }
+
+      uint8_t bitfield = m.second;
+
+      offset += memberType.alignment - offset%memberType.alignment;
+
+      memberOffsets[((Struct*)declaration->dataType.get())->identifier][member->identifier] = {memberType, offset};
+
+      offset += memberType.size;
+    }
+  }
+
+  if (!declaration->identifier.empty())
+  {
+    std::string name = declaration->identifier;
+    if (!scopes.empty())
+    {
+      name = "Scope_" + std::to_string((std::uintptr_t)scopes.back()) + "_" + name;
+    }
+    
+    if (declaration->value && declarations.contains(name) && declarations[name]->value)
+    {
+      std::cout << "IR generation error: Identifier \"" << declaration->identifier << "\" is already defined\n";
       throw IRGenError();
     }
-    std::string outputName = generateExpression(absProgram, (Expression*)declaration->value.get());
-    absProgram.emplace_back(Operation{Operation::Set, {name, outputName}});
+
+    //declarations[name].reset(copyDataType(variableDeclaration->dataType.get()));
+    declarations[name] = declaration;
+
+    if (declaration->value)
+    {
+      if (!allowInitialization)
+      {
+        std::cout << "IR generation error: Identifier \"" << declaration->identifier << "\" cannot be initialized here\n";
+        throw IRGenError();
+      }
+
+      if (declaration->value->statementType == Statement::StatementType::Expression)
+      {
+        std::pair<std::string, Operation::DataType> outputName = generateExpression(data, (Expression*)declaration->value.get());
+        data.irProgram.emplace_back(Operation{outputName.second, Operation::Set, {name, outputName.first}});
+      } else 
+      {
+        scopes.emplace_back((CompoundStatement*)declaration->value.get());
+
+        for (const std::unique_ptr<Declaration>& parameter: ((Function*)declaration->dataType.get())->parameters)
+        {
+          generateDeclaration(data, parameter.get(), false);
+        }
+
+        data.irProgram.emplace_back(Operation{{}, Operation::Label, {name}});
+        generateStatement(data, declaration->value.get());
+        data.irProgram.emplace_back(Operation{{}, Operation::Return});
+
+        scopes.pop_back();
+      }
+    }
   }
 }
 
-void generateIfConditional(std::vector<Operation>& absProgram, const IfConditional* ifConditional)
+void GenerateIR::generateIfConditional(CommonIRData& data, const IfConditional* ifConditional)
 {
   scopes.emplace_back((CompoundStatement*)ifConditional);
   
   // conditional jump to end of if conditional
-  std::string name = generateExpression(absProgram, ifConditional->condition.get());
+  std::pair<std::string, Operation::DataType> name = generateExpression(data, ifConditional->condition.get());
 
-  absProgram.emplace_back(Operation{Operation::JumpIfZero, {std::to_string((std::uintptr_t)ifConditional) + "_IfConditionalEnd", name}});
+  data.irProgram.emplace_back(Operation{name.second, Operation::JumpIfZero, {std::to_string((std::uintptr_t)ifConditional) + "_IfConditionalEnd", name.first}});
 
   // if conditional body
-  generateStatement(absProgram, ifConditional->body.get());
+  generateStatement(data, ifConditional->body.get());
 
   if (ifConditional->elseStatement)
   {
     // unconditional jump to end of else conditional
-    absProgram.emplace_back(Operation{Operation::Jump, {std::to_string((std::uintptr_t)ifConditional) + "_ElseConditionalEnd"}});
+    data.irProgram.emplace_back(Operation{{}, Operation::Jump, {std::to_string((std::uintptr_t)ifConditional) + "_ElseConditionalEnd"}});
   }
 
-  absProgram.emplace_back(Operation{Operation::Label, {std::to_string((std::uintptr_t)ifConditional) + "_IfConditionalEnd"}});
+  data.irProgram.emplace_back(Operation{{}, Operation::Label, {std::to_string((std::uintptr_t)ifConditional) + "_IfConditionalEnd"}});
   
   if (ifConditional->elseStatement)
   {
     // else body
-    generateStatement(absProgram, ifConditional->elseStatement.get());
+    generateStatement(data, ifConditional->elseStatement.get());
 
-    absProgram.emplace_back(Operation{Operation::Label, {std::to_string((std::uintptr_t)ifConditional) + "_ElseConditionalEnd"}});
+    data.irProgram.emplace_back(Operation{{}, Operation::Label, {std::to_string((std::uintptr_t)ifConditional) + "_ElseConditionalEnd"}});
   }
 
   scopes.pop_back();
 }
 
-void generateSwitchCase(std::vector<Operation>& absProgram, const SwitchCase* switchCase)
+void GenerateIR::generateSwitchCase(CommonIRData& data, const SwitchCase* switchCase)
 {
-  absProgram.emplace_back(Operation{Operation::Label, {std::to_string((std::uintptr_t)switchCase) + "_SwitchCase"}});
+  data.irProgram.emplace_back(Operation{{}, Operation::Label, {std::to_string((std::uintptr_t)switchCase) + "_SwitchCase"}});
 }
 
-void generateSwitchDefault(std::vector<Operation>& absProgram, const SwitchDefault* switchDefault)
+void GenerateIR::generateSwitchDefault(CommonIRData& data, const SwitchDefault* switchDefault)
 {
-  absProgram.emplace_back(Operation{Operation::Label, {std::to_string((std::uintptr_t)switchDefault) + "_SwitchDefault"}});
+  data.irProgram.emplace_back(Operation{{}, Operation::Label, {std::to_string((std::uintptr_t)switchDefault) + "_SwitchDefault"}});
 }
 
-void generateSwitchConditional(std::vector<Operation>& absProgram, const SwitchConditional* switchConditional)
+void GenerateIR::generateSwitchConditional(CommonIRData& data, const SwitchConditional* switchConditional)
 {
   /*
   if (condition == case1)
@@ -497,9 +588,9 @@ void generateSwitchConditional(std::vector<Operation>& absProgram, const SwitchC
   scopes.emplace_back((CompoundStatement*)switchConditional);
 
   // this label is never actually jumped to, it just tells the break statement what it's inside of
-  absProgram.emplace_back(Operation{Operation::Label, {std::to_string((std::uintptr_t)switchConditional) + "_SwitchConditionalBegin"}});
+  data.irProgram.emplace_back(Operation{{}, Operation::Label, {std::to_string((std::uintptr_t)switchConditional) + "_SwitchConditionalBegin"}});
 
-  std::string name = generateExpression(absProgram, switchConditional->value.get());
+  std::pair<std::string, Operation::DataType> name = generateExpression(data, switchConditional->value.get());
 
   const SwitchDefault* defaultCase = nullptr;
 
@@ -523,10 +614,10 @@ void generateSwitchConditional(std::vector<Operation>& absProgram, const SwitchC
           }
           break;
         } case Statement::StatementType::SwitchCase: {
-          std::string caseName = generateExpression(absProgram, ((SwitchCase*)statement)->requirement.get());
+          std::pair<std::string, Operation::DataType> caseName = generateExpression(data, ((SwitchCase*)statement)->requirement.get());
 
-          absProgram.emplace_back(Operation{Operation::SetSubtraction, {std::to_string((std::uintptr_t)statement) + "_Subtracted", name, caseName}});
-          absProgram.emplace_back(Operation{Operation::JumpIfZero, {std::to_string((std::uintptr_t)statement) + "_SwitchCase", std::to_string((std::uintptr_t)statement) + "_Subtracted"}});
+          data.irProgram.emplace_back(Operation{name.second, Operation::SetSubtraction, {std::to_string((std::uintptr_t)statement) + "_Subtracted", name.first, caseName.first}});
+          data.irProgram.emplace_back(Operation{name.second, Operation::JumpIfZero, {std::to_string((std::uintptr_t)statement) + "_SwitchCase", std::to_string((std::uintptr_t)statement) + "_Subtracted"}});
           break;
         } case Statement::StatementType::SwitchDefault:
           defaultCase = (SwitchDefault*)statement;
@@ -540,95 +631,95 @@ void generateSwitchConditional(std::vector<Operation>& absProgram, const SwitchC
   // handle default case here
   if (defaultCase)
   {
-    absProgram.emplace_back(Operation{Operation::Jump, {std::to_string((std::uintptr_t)defaultCase) + "_SwitchDefault"}});
+    data.irProgram.emplace_back(Operation{{}, Operation::Jump, {std::to_string((std::uintptr_t)defaultCase) + "_SwitchDefault"}});
   } else
   {
-    absProgram.emplace_back(Operation{Operation::Jump, {std::to_string((std::uintptr_t)switchConditional) + "_SwitchConditionalEnd"}});
+    data.irProgram.emplace_back(Operation{{}, Operation::Jump, {std::to_string((std::uintptr_t)switchConditional) + "_SwitchConditionalEnd"}});
   }
 
-  generateStatement(absProgram, switchConditional->body.get());
+  generateStatement(data, switchConditional->body.get());
 
-  absProgram.emplace_back(Operation{Operation::Label, {std::to_string((std::uintptr_t)switchConditional) + "_SwitchConditionalEnd"}});
+  data.irProgram.emplace_back(Operation{{}, Operation::Label, {std::to_string((std::uintptr_t)switchConditional) + "_SwitchConditionalEnd"}});
 
   scopes.pop_back();
 }
 
-void generateDoWhileLoop(std::vector<Operation>& absProgram, const DoWhileLoop* doWhileLoop)
+void GenerateIR::generateDoWhileLoop(CommonIRData& data, const DoWhileLoop* doWhileLoop)
 {
-  absProgram.emplace_back(Operation{Operation::Label, {std::to_string((std::uintptr_t)doWhileLoop) + "_DoWhileLoopBegin"}});
+  data.irProgram.emplace_back(Operation{{}, Operation::Label, {std::to_string((std::uintptr_t)doWhileLoop) + "_DoWhileLoopBegin"}});
 
-  generateStatement(absProgram, doWhileLoop->body.get());
+  generateStatement(data, doWhileLoop->body.get());
 
-  std::string name = generateExpression(absProgram, doWhileLoop->condition.get());
+  std::pair<std::string, Operation::DataType> name = generateExpression(data, doWhileLoop->condition.get());
 
-  absProgram.emplace_back(Operation{Operation::JumpIfNotZero, {std::to_string((std::uintptr_t)doWhileLoop) + "_DoWhileLoopBegin", name}});
+  data.irProgram.emplace_back(Operation{name.second, Operation::JumpIfNotZero, {std::to_string((std::uintptr_t)doWhileLoop) + "_DoWhileLoopBegin", name.first}});
 
-  absProgram.emplace_back(Operation{Operation::Label, {std::to_string((std::uintptr_t)doWhileLoop) + "_DoWhileLoopEnd"}});
+  data.irProgram.emplace_back(Operation{{}, Operation::Label, {std::to_string((std::uintptr_t)doWhileLoop) + "_DoWhileLoopEnd"}});
 }
 
-void generateWhileLoop(std::vector<Operation>& absProgram, const WhileLoop* whileLoop)
+void GenerateIR::generateWhileLoop(CommonIRData& data, const WhileLoop* whileLoop)
 {
   scopes.emplace_back((CompoundStatement*)whileLoop);
 
-  absProgram.emplace_back(Operation{Operation::Jump, {std::to_string((std::uintptr_t)whileLoop) + "_WhileLoopCondition"}});
+  data.irProgram.emplace_back(Operation{{}, Operation::Jump, {std::to_string((std::uintptr_t)whileLoop) + "_WhileLoopCondition"}});
 
-  absProgram.emplace_back(Operation{Operation::Label, {std::to_string((std::uintptr_t)whileLoop) + "_WhileLoopBegin"}});
+  data.irProgram.emplace_back(Operation{{}, Operation::Label, {std::to_string((std::uintptr_t)whileLoop) + "_WhileLoopBegin"}});
 
-  generateStatement(absProgram, whileLoop->body.get());
+  generateStatement(data, whileLoop->body.get());
 
-  absProgram.emplace_back(Operation{Operation::Label, {std::to_string((std::uintptr_t)whileLoop) + "_WhileLoopCondition"}});
+  data.irProgram.emplace_back(Operation{{}, Operation::Label, {std::to_string((std::uintptr_t)whileLoop) + "_WhileLoopCondition"}});
 
-  std::string name = generateExpression(absProgram, whileLoop->condition.get());
+  std::pair<std::string, Operation::DataType> name = generateExpression(data, whileLoop->condition.get());
 
-  absProgram.emplace_back(Operation{Operation::JumpIfNotZero, {std::to_string((std::uintptr_t)whileLoop) + "_WhileLoopBegin", name}});
+  data.irProgram.emplace_back(Operation{name.second, Operation::JumpIfNotZero, {std::to_string((std::uintptr_t)whileLoop) + "_WhileLoopBegin", name.first}});
 
-  absProgram.emplace_back(Operation{Operation::Label, {std::to_string((std::uintptr_t)whileLoop) + "_WhileLoopEnd"}});
+  data.irProgram.emplace_back(Operation{{}, Operation::Label, {std::to_string((std::uintptr_t)whileLoop) + "_WhileLoopEnd"}});
 
   scopes.pop_back();
 }
 
-void generateForLoop(std::vector<Operation>& absProgram, const ForLoop* forLoop)
+void GenerateIR::generateForLoop(CommonIRData& data, const ForLoop* forLoop)
 {
   scopes.emplace_back((CompoundStatement*)forLoop);
   if (forLoop->initialization)
   {
-    generateStatement(absProgram, forLoop->initialization.get());
+    generateStatement(data, forLoop->initialization.get());
   }
 
-  absProgram.emplace_back(Operation{Operation::Jump, {std::to_string((std::uintptr_t)forLoop) + "_ForLoopCondition"}});
+  data.irProgram.emplace_back(Operation{{}, Operation::Jump, {std::to_string((std::uintptr_t)forLoop) + "_ForLoopCondition"}});
 
-  absProgram.emplace_back(Operation{Operation::Label, {std::to_string((std::uintptr_t)forLoop) + "_ForLoopBegin"}});
+  data.irProgram.emplace_back(Operation{{}, Operation::Label, {std::to_string((std::uintptr_t)forLoop) + "_ForLoopBegin"}});
 
-  generateStatement(absProgram, forLoop->body.get());
+  generateStatement(data, forLoop->body.get());
 
   if (forLoop->update)
   {
-    generateStatement(absProgram, forLoop->update.get());
+    generateStatement(data, forLoop->update.get());
   }
 
-  absProgram.emplace_back(Operation{Operation::Label, {std::to_string((std::uintptr_t)forLoop) + "_ForLoopCondition"}});
+  data.irProgram.emplace_back(Operation{{}, Operation::Label, {std::to_string((std::uintptr_t)forLoop) + "_ForLoopCondition"}});
 
   if (forLoop->condition) // condition defaults to constant 1 if not specified
   {
-    std::string name = generateExpression(absProgram, forLoop->condition.get());
+    std::pair<std::string, Operation::DataType> name = generateExpression(data, forLoop->condition.get());
 
-    absProgram.emplace_back(Operation{Operation::JumpIfNotZero, {std::to_string((std::uintptr_t)forLoop) + "_ForLoopBegin", name}});
+    data.irProgram.emplace_back(Operation{name.second, Operation::JumpIfNotZero, {std::to_string((std::uintptr_t)forLoop) + "_ForLoopBegin", name.first}});
   } else
   {
-    absProgram.emplace_back(Operation{Operation::Jump, {std::to_string((std::uintptr_t)forLoop) + "_ForLoopBegin"}});
+    data.irProgram.emplace_back(Operation{{}, Operation::Jump, {std::to_string((std::uintptr_t)forLoop) + "_ForLoopBegin"}});
   }
 
-  absProgram.emplace_back(Operation{Operation::Label, {std::to_string((std::uintptr_t)forLoop) + "_ForLoopEnd"}});
+  data.irProgram.emplace_back(Operation{{}, Operation::Label, {std::to_string((std::uintptr_t)forLoop) + "_ForLoopEnd"}});
 
   scopes.pop_back();
 }
 
-std::string generateVariableAccess(std::vector<Operation>& absProgram, const VariableAccess* variableAccess)
+std::pair<std::string, Operation::DataType> GenerateIR::generateVariableAccess(CommonIRData& data, const VariableAccess* variableAccess)
 {
   std::map<std::string, const Declaration*>::iterator name = getIdentifier(variableAccess->identifier);
   if (name->second)
   {
-    return name->first;
+    return {name->first, ASTTypeToIRType(data, name->second->dataType.get())};
   } else
   {
     std::cout << "IR generation error: \"" << variableAccess->identifier << "\" is not a variable\n";
@@ -636,23 +727,26 @@ std::string generateVariableAccess(std::vector<Operation>& absProgram, const Var
   }
 }
 
-std::string generateFunctionCall(std::vector<Operation>& absProgram, const FunctionCall* functionCall)
+std::pair<std::string, Operation::DataType> GenerateIR::generateFunctionCall(CommonIRData& data, const FunctionCall* functionCall)
 {
-  if (functions.contains(functionCall->identifier) && !getIdentifier(functionCall->identifier)->second)
+  if (declarations.contains(functionCall->identifier) && getIdentifier(functionCall->identifier)->second)
   {
-    if (functionCall->arguments.size() != functions[functionCall->identifier]->parameters.size())
+    if (functionCall->arguments.size() != ((Function*)declarations[functionCall->identifier]->dataType.get())->parameters.size())
     {
-      std::cout << "IR generation error: Wrong argument count for function \"" << functionCall->identifier << "\". Expected " << functions[functionCall->identifier]->parameters.size() << ", received " << functionCall->arguments.size() << "\n";
+      std::cout << "IR generation error: Wrong argument count for function \"" << functionCall->identifier << "\". Expected " << ((Function*)declarations[functionCall->identifier]->dataType.get())->parameters.size() << ", received " << functionCall->arguments.size() << "\n";
       throw IRGenError();
     }
 
     for (const std::unique_ptr<Expression>& argument: functionCall->arguments)
     {
-      std::string name = generateExpression(absProgram, argument.get());
-      absProgram.emplace_back(Operation{Operation::AddArg, {name}});
+      std::pair<std::string, Operation::DataType> name = generateExpression(data, argument.get());
+      data.irProgram.emplace_back(Operation{name.second, Operation::AddArg, {name.first}});
     }
-    absProgram.emplace_back(Operation{Operation::Call, {std::to_string((uintptr_t)functionCall) + "_ReturnValue", functionCall->identifier}});
-    return std::to_string((uintptr_t)functionCall) + "_ReturnValue";
+
+    Operation::DataType returnType = ASTTypeToIRType(data, ((Function*)declarations[functionCall->identifier]->dataType.get())->returnType.get());
+
+    data.irProgram.emplace_back(Operation{returnType, Operation::Call, {std::to_string((uintptr_t)functionCall) + "_ReturnValue", functionCall->identifier}});
+    return {std::to_string((uintptr_t)functionCall) + "_ReturnValue", returnType};
   } else
   {
     std::cout << "IR generation error: Function \"" << functionCall->identifier << "\" is not defined\n";
@@ -660,16 +754,17 @@ std::string generateFunctionCall(std::vector<Operation>& absProgram, const Funct
   }
 }
 
-std::string generatePreUnaryOperator(std::vector<Operation>& absProgram, const PreUnaryOperator* preUnary)
+std::pair<std::string, Operation::DataType> GenerateIR::generatePreUnaryOperator(CommonIRData& data, const PreUnaryOperator* preUnary)
 {
-  std::string name = generateExpression(absProgram, preUnary->operand.get());
+  std::pair<std::string, Operation::DataType> name = generateExpression(data, preUnary->operand.get());
 
   switch (preUnary->preUnaryType)
   {
     case PreUnaryOperator::PreUnaryType::Address:
-      if (vars.contains(name))
+      if (declarations.contains(name.first))
       {
-        absProgram.emplace_back(Operation{Operation::GetAddress, {std::to_string((uintptr_t)preUnary) + "_Address", name}});
+        name.second.pointerDepth++;
+        data.irProgram.emplace_back(Operation{name.second, Operation::GetAddress, {std::to_string((uintptr_t)preUnary) + "_Address", name.first}});
       } else
       {
         std::cout << "IR generation error: Getting address of rvalue is illegal\n";
@@ -677,25 +772,34 @@ std::string generatePreUnaryOperator(std::vector<Operation>& absProgram, const P
       }
       break;
     case PreUnaryOperator::PreUnaryType::Dereference:
-      absProgram.emplace_back(Operation{Operation::Dereference, {std::to_string((uintptr_t)preUnary) + "_Dereference", name}});
+      if (name.second.pointerDepth > 0)
+      {
+        name.second.pointerDepth--;
+        data.irProgram.emplace_back(Operation{name.second, Operation::Dereference, {std::to_string((uintptr_t)preUnary) + "_Dereference", name.first}});
+      } else
+      {
+        std::cout << "IR generation error: Cannot dereference non-pointer type\n";
+        throw IRGenError();
+      }
       break;
-    case PreUnaryOperator::PreUnaryType::TypeCast:
-      absProgram.emplace_back(Operation{Operation::Set, {std::to_string((uintptr_t)preUnary) + (((TypeCast*)preUnary)->dataType->isVolatile ? "_Volatile" : "") + "_Casted", name}});
+    case PreUnaryOperator::PreUnaryType::TypeCast: {
+      TypeCast* typeCast = (TypeCast*)preUnary;
+      data.irProgram.emplace_back(Operation{ASTTypeToIRType(data, typeCast->dataType.get()), Operation::Set, {std::to_string((uintptr_t)preUnary) + (typeCast->dataType->isVolatile ? "_Volatile" : "") + "_Casted", name.first}});
       break;
-    case PreUnaryOperator::PreUnaryType::MathematicNegate:
-      absProgram.emplace_back(Operation{Operation::Negate, {std::to_string((uintptr_t)preUnary) + "_Negated", name}});
+    } case PreUnaryOperator::PreUnaryType::MathematicNegate:
+      data.irProgram.emplace_back(Operation{name.second, Operation::Negate, {std::to_string((uintptr_t)preUnary) + "_Negated", name.first}});
       break;
     case PreUnaryOperator::PreUnaryType::BitwiseNOT:
-      absProgram.emplace_back(Operation{Operation::BitwiseNOT, {std::to_string((uintptr_t)preUnary) + "_BitwiseNegated", name}});
+      data.irProgram.emplace_back(Operation{name.second, Operation::BitwiseNOT, {std::to_string((uintptr_t)preUnary) + "_BitwiseNegated", name.first}});
       break;
     case PreUnaryOperator::PreUnaryType::LogicalNegate:
-      absProgram.emplace_back(Operation{Operation::LogicalNOT, {std::to_string((uintptr_t)preUnary) + "_LogicalNegated", name}});
+      data.irProgram.emplace_back(Operation{name.second, Operation::LogicalNOT, {std::to_string((uintptr_t)preUnary) + "_LogicalNegated", name.first}});
       break;
     case PreUnaryOperator::PreUnaryType::Increment: {
-      if (vars.contains(name))
+      if (declarations.contains(name.first))
       {
-        absProgram.emplace_back(Operation{Operation::SetAddition, {name, name, "1"}});
-        absProgram.emplace_back(Operation{Operation::Set, {std::to_string((uintptr_t)preUnary) + "_Incremented", name}});
+        data.irProgram.emplace_back(Operation{name.second, Operation::SetAddition, {name.first, name.first, "1"}});
+        data.irProgram.emplace_back(Operation{name.second, Operation::Set, {std::to_string((uintptr_t)preUnary) + "_Incremented", name.first}});
       } else
       {
         std::cout << "IR generation error: Incrementing rvalue is illegal\n";
@@ -703,10 +807,10 @@ std::string generatePreUnaryOperator(std::vector<Operation>& absProgram, const P
       }
       break;
     } case PreUnaryOperator::PreUnaryType::Decrement:
-      if (vars.contains(name))
+      if (declarations.contains(name.first))
       {
-        absProgram.emplace_back(Operation{Operation::SetSubtraction, {name, name, "1"}});
-        absProgram.emplace_back(Operation{Operation::Set, {std::to_string((uintptr_t)preUnary) + "_Decremented", name}});
+        data.irProgram.emplace_back(Operation{name.second, Operation::SetSubtraction, {name.first, name.first, "1"}});
+        data.irProgram.emplace_back(Operation{name.second, Operation::Set, {std::to_string((uintptr_t)preUnary) + "_Decremented", name.first}});
       } else
       {
         std::cout << "IR generation error: Decrementing rvalue is illegal\n";
@@ -715,20 +819,20 @@ std::string generatePreUnaryOperator(std::vector<Operation>& absProgram, const P
       break;
   }
 
-  return absProgram.back().operands[0];
+  return {data.irProgram.back().operands[0], data.irProgram.back().type};
 }
 
-std::string generatePostUnaryOperator(std::vector<Operation>& absProgram, const PostUnaryOperator* postUnary)
+std::pair<std::string, Operation::DataType> GenerateIR::generatePostUnaryOperator(CommonIRData& data, const PostUnaryOperator* postUnary)
 {
-  std::string name = generateExpression(absProgram, postUnary->operand.get());
+  std::pair<std::string, Operation::DataType> name = generateExpression(data, postUnary->operand.get());
 
   switch (postUnary->postUnaryType)
   {
     case PostUnaryOperator::PostUnaryType::Increment: {
-      if (vars.contains(name))
+      if (declarations.contains(name.first))
       {
-        absProgram.emplace_back(Operation{Operation::Set, {std::to_string((uintptr_t)postUnary) + "_PostIncremented", name}});
-        absProgram.emplace_back(Operation{Operation::SetAddition, {name, name, "1"}});
+        data.irProgram.emplace_back(Operation{name.second, Operation::Set, {std::to_string((uintptr_t)postUnary) + "_PostIncremented", name.first}});
+        data.irProgram.emplace_back(Operation{name.second, Operation::SetAddition, {name.first, name.first, "1"}});
       } else
       {
         std::cout << "IR generation error: Incrementing rvalue is illegal\n";
@@ -736,10 +840,10 @@ std::string generatePostUnaryOperator(std::vector<Operation>& absProgram, const 
       }
       break;
     } case PostUnaryOperator::PostUnaryType::Decrement:
-      if (vars.contains(name))
+      if (declarations.contains(name.first))
       {
-        absProgram.emplace_back(Operation{Operation::Set, {std::to_string((uintptr_t)postUnary) + "_PostDecremented", name}});
-        absProgram.emplace_back(Operation{Operation::SetSubtraction, {name, name, "1"}});
+        data.irProgram.emplace_back(Operation{name.second, Operation::Set, {std::to_string((uintptr_t)postUnary) + "_PostDecremented", name.first}});
+        data.irProgram.emplace_back(Operation{name.second, Operation::SetSubtraction, {name.first, name.first, "1"}});
       } else
       {
         std::cout << "IR generation error: Decrementing rvalue is illegal\n";
@@ -748,21 +852,33 @@ std::string generatePostUnaryOperator(std::vector<Operation>& absProgram, const 
       break;
   }
 
-  return absProgram.end()[-2].operands[0];
+  return {data.irProgram.end()[-2].operands[0], data.irProgram.end()[-2].type};
 }
 
-std::string generateBinaryOperator(std::vector<Operation>& absProgram, const BinaryOperator* binary)
+std::pair<std::string, Operation::DataType> GenerateIR::generateBinaryOperator(CommonIRData& data, const BinaryOperator* binary)
 {
-  std::string leftOperandName = generateExpression(absProgram, binary->leftOperand.get());
-  std::string rightOperandName = generateExpression(absProgram, binary->rightOperand.get());
+  std::pair<std::string, Operation::DataType> leftOperandName = generateExpression(data, binary->leftOperand.get());
+  std::pair<std::string, Operation::DataType> rightOperandName;
+
+  if (binary->binaryType != BinaryOperator::BinaryType::DereferenceMemberAccess)
+  {
+    rightOperandName = generateExpression(data, binary->rightOperand.get());
+  } else if (binary->rightOperand->expressionType == Expression::ExpressionType::VariableAccess)
+  {
+    VariableAccess* identifier = ((VariableAccess*)binary->rightOperand.get());
+    std::pair<Operation::DataType, uint8_t>& memberData = memberOffsets[leftOperandName.second.identifier][identifier->identifier];
+
+    data.irProgram.emplace_back(Operation{{1, 1, 1}, Operation::Set, {std::to_string((uintptr_t)binary) + "_Casted", leftOperandName.first}});
+    data.irProgram.emplace_back(Operation{memberData.first, Operation::SetAddition, {std::to_string((uintptr_t)binary) + "_Member", std::to_string((uintptr_t)binary) + "_Casted", std::to_string(memberData.second)}});
+  }
 
   switch (binary->binaryType)
   {
     case BinaryOperator::BinaryType::VariableAssignment:
-      if (vars.contains(leftOperandName) || leftOperandName.find("_Dereference") != std::string::npos)
+      if (declarations.contains(leftOperandName.first) || leftOperandName.first.find("_Member") != std::string::npos || leftOperandName.first.find("_Dereference") != std::string::npos)
       {
-        absProgram.emplace_back(Operation{Operation::Set, {leftOperandName, rightOperandName}});
-        absProgram.emplace_back(Operation{Operation::Set, {std::to_string((uintptr_t)binary) + "_Assigned", leftOperandName}});
+        data.irProgram.emplace_back(Operation{leftOperandName.second, Operation::Set, {leftOperandName.first, rightOperandName.first}});
+        data.irProgram.emplace_back(Operation{leftOperandName.second, Operation::Set, {std::to_string((uintptr_t)binary) + "_Assigned", leftOperandName.first}});
       } else
       {
         std::cout << "IR generation error: Assigning rvalue is illegal\n";
@@ -770,88 +886,318 @@ std::string generateBinaryOperator(std::vector<Operation>& absProgram, const Bin
       }
       break;
     case BinaryOperator::BinaryType::Add:
-      absProgram.emplace_back(Operation{Operation::SetAddition, {std::to_string((uintptr_t)binary) + "_Added", leftOperandName, rightOperandName}});
+      data.irProgram.emplace_back(Operation{leftOperandName.second, Operation::SetAddition, {std::to_string((uintptr_t)binary) + "_Added", leftOperandName.first, rightOperandName.first}});
       break;
     case BinaryOperator::BinaryType::Subtract:
-      absProgram.emplace_back(Operation{Operation::SetSubtraction, {std::to_string((uintptr_t)binary) + "_Subtracted", leftOperandName, rightOperandName}});
+      data.irProgram.emplace_back(Operation{leftOperandName.second, Operation::SetSubtraction, {std::to_string((uintptr_t)binary) + "_Subtracted", leftOperandName.first, rightOperandName.first}});
       break;
     case BinaryOperator::BinaryType::Multiply:
-      absProgram.emplace_back(Operation{Operation::SetMultiplication, {std::to_string((uintptr_t)binary) + "_Multiplied", leftOperandName, rightOperandName}});
+      data.irProgram.emplace_back(Operation{leftOperandName.second, Operation::SetMultiplication, {std::to_string((uintptr_t)binary) + "_Multiplied", leftOperandName.first, rightOperandName.first}});
       break;
     case BinaryOperator::BinaryType::Divide:
-      absProgram.emplace_back(Operation{Operation::SetDivision, {std::to_string((uintptr_t)binary) + "_Divided", leftOperandName, rightOperandName}});
+      data.irProgram.emplace_back(Operation{leftOperandName.second, Operation::SetDivision, {std::to_string((uintptr_t)binary) + "_Divided", leftOperandName.first, rightOperandName.first}});
       break;
     case BinaryOperator::BinaryType::Modulo:
-      absProgram.emplace_back(Operation{Operation::SetModulo, {std::to_string((uintptr_t)binary) + "_Moduloed", leftOperandName, rightOperandName}});
+      data.irProgram.emplace_back(Operation{leftOperandName.second, Operation::SetModulo, {std::to_string((uintptr_t)binary) + "_Moduloed", leftOperandName.first, rightOperandName.first}});
       break;
     case BinaryOperator::BinaryType::LeftShift:
-      absProgram.emplace_back(Operation{Operation::SetLeftShift, {std::to_string((uintptr_t)binary) + "_LeftShifted", leftOperandName, rightOperandName}});
+      data.irProgram.emplace_back(Operation{leftOperandName.second, Operation::SetLeftShift, {std::to_string((uintptr_t)binary) + "_LeftShifted", leftOperandName.first, rightOperandName.first}});
       break;
     case BinaryOperator::BinaryType::RightShift:
-      absProgram.emplace_back(Operation{Operation::SetRightShift, {std::to_string((uintptr_t)binary) + "_RightShifted", leftOperandName, rightOperandName}});
+      data.irProgram.emplace_back(Operation{leftOperandName.second, Operation::SetRightShift, {std::to_string((uintptr_t)binary) + "_RightShifted", leftOperandName.first, rightOperandName.first}});
       break;
     case BinaryOperator::BinaryType::BitwiseOR:
-      absProgram.emplace_back(Operation{Operation::SetBitwiseOR, {std::to_string((uintptr_t)binary) + "_BitwiseOred", leftOperandName, rightOperandName}});
+      data.irProgram.emplace_back(Operation{leftOperandName.second, Operation::SetBitwiseOR, {std::to_string((uintptr_t)binary) + "_BitwiseOred", leftOperandName.first, rightOperandName.first}});
       break;
     case BinaryOperator::BinaryType::BitwiseAND:
-      absProgram.emplace_back(Operation{Operation::SetBitwiseAND, {std::to_string((uintptr_t)binary) + "_BitwiseAnded", leftOperandName, rightOperandName}});
+      data.irProgram.emplace_back(Operation{leftOperandName.second, Operation::SetBitwiseAND, {std::to_string((uintptr_t)binary) + "_BitwiseAnded", leftOperandName.first, rightOperandName.first}});
       break;
     case BinaryOperator::BinaryType::BitwiseXOR:
-      absProgram.emplace_back(Operation{Operation::SetBitwiseXOR, {std::to_string((uintptr_t)binary) + "_BitwiseXored", leftOperandName, rightOperandName}});
+      data.irProgram.emplace_back(Operation{leftOperandName.second, Operation::SetBitwiseXOR, {std::to_string((uintptr_t)binary) + "_BitwiseXored", leftOperandName.first, rightOperandName.first}});
       break;
     case BinaryOperator::BinaryType::LogicalOR:
-      absProgram.emplace_back(Operation{Operation::SetLogicalOR, {std::to_string((uintptr_t)binary) + "_LogicalOred", leftOperandName, rightOperandName}});
+      data.irProgram.emplace_back(Operation{{1, 1}, Operation::SetLogicalOR, {std::to_string((uintptr_t)binary) + "_LogicalOred", leftOperandName.first, rightOperandName.first}});
       break;
     case BinaryOperator::BinaryType::LogicalAND:
-      absProgram.emplace_back(Operation{Operation::SetLogicalAND, {std::to_string((uintptr_t)binary) + "_LogicalAnded", leftOperandName, rightOperandName}});
+      data.irProgram.emplace_back(Operation{{1, 1}, Operation::SetLogicalAND, {std::to_string((uintptr_t)binary) + "_LogicalAnded", leftOperandName.first, rightOperandName.first}});
       break;
     case BinaryOperator::BinaryType::Subscript:
 
       break;
     case BinaryOperator::BinaryType::Equal:
-      absProgram.emplace_back(Operation{Operation::SetEqual, {std::to_string((uintptr_t)binary) + "_Equaled", leftOperandName, rightOperandName}});
+      data.irProgram.emplace_back(Operation{{1, 1}, Operation::SetEqual, {std::to_string((uintptr_t)binary) + "_Equaled", leftOperandName.first, rightOperandName.first}});
       break;
     case BinaryOperator::BinaryType::NotEqual:
-      absProgram.emplace_back(Operation{Operation::SetNotEqual, {std::to_string((uintptr_t)binary) + "_NotEqualed", leftOperandName, rightOperandName}});
+      data.irProgram.emplace_back(Operation{{1, 1}, Operation::SetNotEqual, {std::to_string((uintptr_t)binary) + "_NotEqualed", leftOperandName.first, rightOperandName.first}});
       break;
     case BinaryOperator::BinaryType::Greater:
-      absProgram.emplace_back(Operation{Operation::SetGreater, {std::to_string((uintptr_t)binary) + "_Large", leftOperandName, rightOperandName}});
+      data.irProgram.emplace_back(Operation{{1, 1}, Operation::SetGreater, {std::to_string((uintptr_t)binary) + "_Large", leftOperandName.first, rightOperandName.first}});
       break;
     case BinaryOperator::BinaryType::Lesser:
-      absProgram.emplace_back(Operation{Operation::SetLesser, {std::to_string((uintptr_t)binary) + "_Small", leftOperandName, rightOperandName}});
+      data.irProgram.emplace_back(Operation{{1, 1}, Operation::SetLesser, {std::to_string((uintptr_t)binary) + "_Small", leftOperandName.first, rightOperandName.first}});
       break;
     case BinaryOperator::BinaryType::GreaterOrEqual:
-      absProgram.emplace_back(Operation{Operation::SetGreaterOrEqual, {std::to_string((uintptr_t)binary) + "_Largeish", leftOperandName, rightOperandName}});
+      data.irProgram.emplace_back(Operation{{1, 1}, Operation::SetGreaterOrEqual, {std::to_string((uintptr_t)binary) + "_Largeish", leftOperandName.first, rightOperandName.first}});
       break;
     case BinaryOperator::BinaryType::LesserOrEqual:
-      absProgram.emplace_back(Operation{Operation::SetLesserOrEqual, {std::to_string((uintptr_t)binary) + "_Smallish", leftOperandName, rightOperandName}});
+      data.irProgram.emplace_back(Operation{{1, 1}, Operation::SetLesserOrEqual, {std::to_string((uintptr_t)binary) + "_Smallish", leftOperandName.first, rightOperandName.first}});
       break;
   }
 
-  return absProgram.back().operands[0];
+  return {data.irProgram.back().operands[0], data.irProgram.back().type};
 }
 
-std::string generateTernaryOperator(std::vector<Operation>& absProgram, const TernaryOperator* ternary)
+std::pair<std::string, Operation::DataType> GenerateIR::generateTernaryOperator(CommonIRData& data, const TernaryOperator* ternary)
 {
   // conditional jump to end of if conditional
-  std::string name = generateExpression(absProgram, ternary->condition.get());
+  std::pair<std::string, Operation::DataType> name = generateExpression(data, ternary->condition.get());
 
-  absProgram.emplace_back(Operation{Operation::JumpIfZero, {std::to_string((std::uintptr_t)ternary) + "_TernaryOperatorFalse", name}});
+  data.irProgram.emplace_back(Operation{name.second, Operation::JumpIfZero, {std::to_string((std::uintptr_t)ternary) + "_TernaryOperatorFalse", name.first}});
 
   // if conditional body
-  std::string trueName = generateExpression(absProgram, ternary->trueOperand.get());
-  absProgram.emplace_back(Operation{Operation::Set, {name, trueName}});
+  std::pair<std::string, Operation::DataType> trueName = generateExpression(data, ternary->trueOperand.get());
+  data.irProgram.emplace_back(Operation{trueName.second, Operation::Set, {name.first, trueName.first}});
 
   // unconditional jump to end of else conditional
-  absProgram.emplace_back(Operation{Operation::Jump, {std::to_string((std::uintptr_t)ternary) + "_TernaryOperatorEnd"}});
+  data.irProgram.emplace_back(Operation{{}, Operation::Jump, {std::to_string((std::uintptr_t)ternary) + "_TernaryOperatorEnd"}});
 
-  absProgram.emplace_back(Operation{Operation::Label, {std::to_string((std::uintptr_t)ternary) + "_TernaryOperatorFalse"}});
+  data.irProgram.emplace_back(Operation{{}, Operation::Label, {std::to_string((std::uintptr_t)ternary) + "_TernaryOperatorFalse"}});
 
   // else body
-  std::string falseName = generateExpression(absProgram, ternary->falseOperand.get());
-  absProgram.emplace_back(Operation{Operation::Set, {name, falseName}});
+  std::pair<std::string, Operation::DataType> falseName = generateExpression(data, ternary->falseOperand.get());
+  data.irProgram.emplace_back(Operation{falseName.second, Operation::Set, {name.first, falseName.first}});
 
-  absProgram.emplace_back(Operation{Operation::Label, {std::to_string((std::uintptr_t)ternary) + "_TernaryOperatorEnd"}});
+  data.irProgram.emplace_back(Operation{{}, Operation::Label, {std::to_string((std::uintptr_t)ternary) + "_TernaryOperatorEnd"}});
 
   return name;
+}
+
+
+
+bool GenerateIR::resolveConstantOperations(std::vector<Operation> &irProgram)
+{
+  bool changed = false;
+
+  std::map<std::string, std::string> vars;
+
+  for (std::vector<Operation>::iterator i = irProgram.begin(); i != irProgram.end(); i++)
+  {
+    switch (i->code)
+    {
+      case Operation::Set:
+        if (i->operands[1].find_first_not_of("0123456789") == std::string::npos)
+        {
+          vars[i->operands[0]] = i->operands[1];
+        } else if (vars.contains(i->operands[1]))
+        {
+          i->operands[1] = vars[i->operands[1]];
+          changed = true;
+        }
+        break;
+      case Operation::Return:
+        if (vars.contains(i->operands[0]))
+        {
+          i->operands[0] = vars[i->operands[0]];
+          changed = true;
+        }
+        break;
+      case Operation::Dereference:
+      case Operation::SetAddition:
+        if (i->operands[1].find_first_not_of("0123456789") == std::string::npos && i->operands[2].find_first_not_of("0123456789") == std::string::npos)
+        {
+          vars[i->operands[0]] = std::to_string(std::stoi(i->operands[1]) + std::stoi(i->operands[2]));
+        } else if (vars.contains(i->operands[1]))
+        {
+          i->operands[1] = vars[i->operands[1]];
+          changed = true;
+        } else if (vars.contains(i->operands[2]))
+        {
+          i->operands[2] = vars[i->operands[2]];
+          changed = true;
+        }
+        break;
+      case Operation::SetSubtraction:
+      case Operation::SetMultiplication:
+      case Operation::SetDivision:
+      case Operation::SetModulo:
+      case Operation::SetBitwiseAND:
+      case Operation::SetBitwiseOR:
+      case Operation::SetBitwiseXOR:
+      case Operation::SetLeftShift:
+        if (i->operands[1].find_first_not_of("0123456789") == std::string::npos && i->operands[2].find_first_not_of("0123456789") == std::string::npos)
+        {
+          vars[i->operands[0]] = std::to_string(std::stoi(i->operands[1]) << std::stoi(i->operands[2]));
+        } else if (vars.contains(i->operands[1]))
+        {
+          i->operands[1] = vars[i->operands[1]];
+          changed = true;
+        } else if (vars.contains(i->operands[2]))
+        {
+          i->operands[2] = vars[i->operands[2]];
+          changed = true;
+        }
+        break;
+      case Operation::SetRightShift:
+      case Operation::SetLogicalAND:
+      case Operation::SetLogicalOR:
+      case Operation::SetEqual:
+      case Operation::SetNotEqual:
+      case Operation::SetGreater:
+      case Operation::SetLesser:
+      case Operation::SetGreaterOrEqual:
+      case Operation::SetLesserOrEqual:
+      case Operation::Negate:
+      case Operation::LogicalNOT:
+      case Operation::BitwiseNOT:
+        vars.erase(i->operands[0]);
+        break;
+      case Operation::Label:
+        vars.clear();
+        break;
+    }
+  }
+
+  return changed;
+}
+
+bool GenerateIR::trimInaccessibleCode(std::vector<Operation> &irProgram)
+{
+  bool changed = false;
+  bool accessible = true;
+
+  std::map<std::string, uint8_t> identifiers;
+
+  for (std::vector<Operation>::iterator i = irProgram.begin(); i != irProgram.end(); i++)
+  {
+    if (!accessible)
+    {
+      irProgram.erase(i--);
+      changed = true;
+    }
+
+    if (i->code == Operation::Label)
+    {
+      identifiers[i->operands[0]] |= 2;
+      accessible = true;
+    } else if (i->code == Operation::Jump || i->code == Operation::Return)
+    {
+      accessible = false;
+    }
+
+    if (i->code == Operation::Jump || i->code == Operation::JumpIfZero || i->code == Operation::JumpIfNotZero || i->code == Operation::Call)
+    {
+      identifiers[i->operands[0]] |= 1;
+    }
+
+    if (i->code == Operation::Set || 
+      i->code == Operation::Dereference || 
+      i->code == Operation::SetAddition || 
+      i->code == Operation::SetSubtraction || 
+      i->code == Operation::SetMultiplication || 
+      i->code == Operation::SetDivision || 
+      i->code == Operation::SetModulo || 
+      i->code == Operation::SetBitwiseAND || 
+      i->code == Operation::SetBitwiseOR || 
+      i->code == Operation::SetBitwiseXOR || 
+      i->code == Operation::SetLeftShift || 
+      i->code == Operation::SetRightShift || 
+      i->code == Operation::SetLogicalAND || 
+      i->code == Operation::SetLogicalOR || 
+      i->code == Operation::SetEqual || 
+      i->code == Operation::SetNotEqual || 
+      i->code == Operation::SetGreater || 
+      i->code == Operation::SetLesser || 
+      i->code == Operation::SetGreaterOrEqual || 
+      i->code == Operation::SetLesserOrEqual || 
+      i->code == Operation::Negate || 
+      i->code == Operation::LogicalNOT || 
+      i->code == Operation::BitwiseNOT)
+    {
+      if (i->operands[0].find("_Volatile") == std::string::npos)
+      {
+        identifiers[i->operands[0]] |= 2;
+      }
+      if (!i->operands[1].empty() && i->operands[1].find_first_not_of("0123456789") != std::string::npos)
+      {
+        identifiers[i->operands[1]] |= 1;
+      }
+      if (!i->operands[2].empty() && i->operands[2].find_first_not_of("0123456789") != std::string::npos)
+      {
+        identifiers[i->operands[2]] |= 1;
+      }
+    } else if (i->code != Operation::Label && 
+      i->code != Operation::Jump)
+    {
+      if (!i->operands[0].empty() && i->operands[0].find_first_not_of("0123456789") != std::string::npos)
+      {
+        identifiers[i->operands[0]] |= 1;
+      }
+      if (!i->operands[1].empty() && i->operands[1].find_first_not_of("0123456789") != std::string::npos)
+      {
+        identifiers[i->operands[1]] |= 1;
+      }
+      if (!i->operands[2].empty() && i->operands[2].find_first_not_of("0123456789") != std::string::npos)
+      {
+        identifiers[i->operands[2]] |= 1;
+      }
+    }
+  }
+
+  while (!identifiers.empty() && (identifiers.begin()->second != 2 || identifiers.begin()->first == "main_Function"))
+  {
+    identifiers.erase(identifiers.begin());
+  }
+
+  for (std::map<std::string, uint8_t>::iterator l = identifiers.begin(); l != identifiers.end(); l++)
+  {
+    if (l->second != 2 || l->first == "main_Function")
+    {
+      identifiers.erase(l--);
+    }
+  }
+
+  if (identifiers.empty())
+  {
+    return changed;
+  }
+
+  for (std::vector<Operation>::iterator i = irProgram.begin(); i != irProgram.end(); i++)
+  {
+    if (i->code == Operation::Set || 
+      i->code == Operation::Dereference || 
+      i->code == Operation::SetAddition || 
+      i->code == Operation::SetSubtraction || 
+      i->code == Operation::SetMultiplication || 
+      i->code == Operation::SetDivision || 
+      i->code == Operation::SetModulo || 
+      i->code == Operation::SetBitwiseAND || 
+      i->code == Operation::SetBitwiseOR || 
+      i->code == Operation::SetBitwiseXOR || 
+      i->code == Operation::SetLeftShift || 
+      i->code == Operation::SetRightShift || 
+      i->code == Operation::SetLogicalAND || 
+      i->code == Operation::SetLogicalOR || 
+      i->code == Operation::SetEqual || 
+      i->code == Operation::SetNotEqual || 
+      i->code == Operation::SetGreater || 
+      i->code == Operation::SetLesser || 
+      i->code == Operation::SetGreaterOrEqual || 
+      i->code == Operation::SetLesserOrEqual || 
+      i->code == Operation::Negate || 
+      i->code == Operation::LogicalNOT || 
+      i->code == Operation::BitwiseNOT || 
+      i->code == Operation::Label)
+    {
+      for (std::map<std::string, uint8_t>::iterator l = identifiers.begin(); l != identifiers.end(); l++)
+      {
+        if (i->operands[0] == l->first)
+        {
+          irProgram.erase(i--);
+          changed = true;
+        }
+      }
+    }
+  }
+
+  return changed;
 }

@@ -33,7 +33,7 @@ Expression* Expression::parse(CommonParseData& data, bool allowNullExpression)
 
     ParseError::expect(data.code.front().data, ")");
     data.code.pop_front();
-  } else if (data.code.front().type == Token::Constant)
+  } else if (data.code.front().type == Token::Constant || data.program->enums.contains(data.code.front().data))
   {
     expression = Constant::parse(data);
   } else if (data.code.front().type == Token::Identifier)

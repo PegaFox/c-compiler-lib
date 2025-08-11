@@ -5,6 +5,7 @@
 
 #include "parser/data_type.hpp"
 #include "parser/declaration.hpp"
+#include "parser/primitive_type.hpp"
 #include "parser/program.hpp"
 #include "parser/compound_statement.hpp"
 #include "parser/function.hpp"
@@ -30,11 +31,24 @@
 
 struct Operation
 {
+  struct DataType
+  {
+    uint8_t size = 0;
+    uint8_t alignment = 0;
+    uint8_t pointerDepth = 0;
+    bool isSigned = false;
+    bool isFloating = false;
+
+    // Identifier for structs and the like
+    std::string identifier = "";
+  } type;
+
   enum Opcode
   {
     Set,
     GetAddress,
-    Dereference,
+    DereferenceLValue,
+    DereferenceRValue,
     SetAddition,
     SetSubtraction,
     SetMultiplication,
@@ -67,58 +81,88 @@ struct Operation
   std::string operands[3];
 };
 
-DataType* copyDataType(const DataType* data);
 
-std::map<std::string, const Declaration*>::iterator getIdentifier(const std::string& identifier);
+class GenerateIR
+{
+  public:
+    
+    struct IRGenError
+    {
 
-std::vector<Operation> generateIR(const Program& AST);
+    };
 
-//void generateFunctionDeclaration(std::vector<Operation>& absProgram, const FunctionDeclaration* functionDeclaration);
+    std::vector<Operation> generateIR(const Program& AST);
 
-void generateStatement(std::vector<Operation>& absProgram, const Statement* statement);
+    void optimizeIR(std::vector<Operation> &asmCode);
 
-void generateCompoundStatement(std::vector<Operation>& absProgram, const CompoundStatement* compoundStatement);
+  private:
+    struct CommonIRData
+    {
+      std::vector<Operation> irProgram;
+      uint8_t pointerSize;
+    };
 
-std::string generateExpression(std::vector<Operation>& absProgram, const Expression* expression);
+    std::map<std::string, const Declaration*> declarations;
 
-std::string generateConstant(std::vector<Operation>& absProgram, const Constant* constant);
+    std::map<std::string, std::map<std::string, std::pair<Operation::DataType, uint8_t>>> memberOffsets;
 
-void generateReturn(std::vector<Operation>& absProgram, const Return* returnVal);
+    std::vector<const CompoundStatement*> scopes;
 
-void generateBreak(std::vector<Operation>& absProgram, const Break* breakStatement);
+    Operation::DataType ASTTypeToIRType(CommonIRData& data, DataType* dataType);
 
-void generateContinue(std::vector<Operation>& absProgram, const Continue* continueStatement);
+    std::map<std::string, const Declaration*>::iterator getIdentifier(const std::string& identifier);
 
-void generateLabel(std::vector<Operation>& absProgram, const Label* label);
+    //void generateFunctionDeclaration(CommonIRData& data, const FunctionDeclaration* functionDeclaration);
 
-void generateGoto(std::vector<Operation>& absProgram, const Goto* gotoStatement);
+    void generateStatement(CommonIRData& data, const Statement* statement);
 
-void generateDeclaration(std::vector<Operation>& absProgram, const Declaration* declaration, bool allowInitialization = true);
+    void generateCompoundStatement(CommonIRData& data, const CompoundStatement* compoundStatement);
 
-void generateIfConditional(std::vector<Operation>& absProgram, const IfConditional* ifConditional);
+    std::pair<std::string, Operation::DataType> generateExpression(CommonIRData& data, const Expression* expression);
 
-void generateSwitchCase(std::vector<Operation>& absProgram, const SwitchCase* switchCase);
+    std::pair<std::string, Operation::DataType> generateConstant(CommonIRData& data, const Constant* constant);
 
-void generateSwitchDefault(std::vector<Operation>& absProgram, const SwitchDefault* switchDefault);
+    void generateReturn(CommonIRData& data, const Return* returnVal);
 
-void generateSwitchConditional(std::vector<Operation>& absProgram, const SwitchConditional* switchConditional);
+    void generateBreak(CommonIRData& data, const Break* breakStatement);
 
-void generateDoWhileLoop(std::vector<Operation>& absProgram, const DoWhileLoop* doWhileLoop);
+    void generateContinue(CommonIRData& data, const Continue* continueStatement);
 
-void generateWhileLoop(std::vector<Operation>& absProgram, const WhileLoop* whileLoop);
+    void generateLabel(CommonIRData& data, const Label* label);
 
-void generateForLoop(std::vector<Operation>& absProgram, const ForLoop* forLoop);
+    void generateGoto(CommonIRData& data, const Goto* gotoStatement);
 
-std::string generateVariableAccess(std::vector<Operation>& absProgram, const VariableAccess* variableAccess);
+    void generateDeclaration(CommonIRData& data, const Declaration* declaration, bool allowInitialization = true);
 
-std::string generateFunctionCall(std::vector<Operation>& absProgram, const FunctionCall* functionCall);
+    void generateIfConditional(CommonIRData& data, const IfConditional* ifConditional);
 
-std::string generatePreUnaryOperator(std::vector<Operation>& absProgram, const PreUnaryOperator* preUnary);
+    void generateSwitchCase(CommonIRData& data, const SwitchCase* switchCase);
 
-std::string generatePostUnaryOperator(std::vector<Operation>& absProgram, const PostUnaryOperator* postUnary);
+    void generateSwitchDefault(CommonIRData& data, const SwitchDefault* switchDefault);
 
-std::string generateBinaryOperator(std::vector<Operation>& absProgram, const BinaryOperator* binary);
+    void generateSwitchConditional(CommonIRData& data, const SwitchConditional* switchConditional);
 
-std::string generateTernaryOperator(std::vector<Operation>& absProgram, const TernaryOperator* ternary);
+    void generateDoWhileLoop(CommonIRData& data, const DoWhileLoop* doWhileLoop);
+
+    void generateWhileLoop(CommonIRData& data, const WhileLoop* whileLoop);
+
+    void generateForLoop(CommonIRData& data, const ForLoop* forLoop);
+
+    std::pair<std::string, Operation::DataType> generateVariableAccess(CommonIRData& data, const VariableAccess* variableAccess);
+
+    std::pair<std::string, Operation::DataType> generateFunctionCall(CommonIRData& data, const FunctionCall* functionCall);
+
+    std::pair<std::string, Operation::DataType> generatePreUnaryOperator(CommonIRData& data, const PreUnaryOperator* preUnary);
+
+    std::pair<std::string, Operation::DataType> generatePostUnaryOperator(CommonIRData& data, const PostUnaryOperator* postUnary);
+
+    std::pair<std::string, Operation::DataType> generateBinaryOperator(CommonIRData& data, const BinaryOperator* binary);
+
+    std::pair<std::string, Operation::DataType> generateTernaryOperator(CommonIRData& data, const TernaryOperator* ternary);
+
+    bool resolveConstantOperations(std::vector<Operation> &absCode);
+
+    bool trimInaccessibleCode(std::vector<Operation> &absCode);
+};
 
 #endif // PF_GENERATE_IR_HPP

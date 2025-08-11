@@ -1,7 +1,5 @@
 #include "data_type.hpp"
 
-#include <iostream>
-
 #include "parse_error.hpp"
 #include "primitive_type.hpp"
 #include "pointer.hpp"

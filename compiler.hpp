@@ -28,6 +28,7 @@ class Compiler
       uint8_t floatSize = 4;
       uint8_t doubleSize = 8;
       uint8_t longDoubleSize = 10;
+      uint8_t pointerSize = 8;
     } typeSizes;
 
     bool doPreprocess = true;

@@ -12,7 +12,16 @@ Constant* Constant::parse(CommonParseData& data)
   Constant* constant = new Constant;
   PrimitiveType* constantType = new PrimitiveType;
 
-  if (data.code.front().data.front() == '\'' && data.code.front().data.back() == '\'')
+  if (data.program->enums.contains(data.code.front().data))
+  {
+    constantType->isFloating = (ENUM_TYPE(0.5f) == 0.5f);
+    constantType->isSigned = (ENUM_TYPE(-1) < ENUM_TYPE(0));
+    constantType->size = sizeof(ENUM_TYPE);
+
+    long int constVal = data.program->enums.contains(data.code.front().data);
+    std::copy((uint8_t*)(&constVal), (uint8_t*)(&constVal)+constantType->size, constant->value);
+    data.code.pop_front();
+  } else if (data.code.front().data.front() == '\'' && data.code.front().data.back() == '\'')
   { // char constant
     *constantType = PrimitiveType{false, true, data.typeSizes.charSize};
     constant->value[0] = data.code.front().data[1];

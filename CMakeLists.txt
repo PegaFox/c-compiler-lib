@@ -46,7 +46,6 @@ add_library(c-compiler-lib STATIC
   print_AST.cpp
 
   generate_IR.cpp
-  optimize_IR.cpp
 
   compiler.cpp
 

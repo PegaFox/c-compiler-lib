@@ -1,42 +1,19 @@
 
-struct Game
+int realFunction()
 {
-  int tiles[4];
-  int width;
-}* game;
+  return 42;
+}
+
+int (*proxyFunction)();
+
+int (*otherProxy)();
 
 int main()
 {
-  int x, y;
+  proxyFunction = realFunction;
 
-  //(game->(width * y)) + x; Current state
-  //game->(width * (y + x)); With no binary reformatting
-  //game->(width * (y + x)); With only associativity changing
-  //game->(width * y) + x; With less-or-equal on precedence checking
-  //game->(width * (y + x)); With greater-or-equal on precedence checking
-  //game->(width * (y + x)); With greater on precedence checking
-  //
-  /*
+  proxyFunction();
 
-  ->
- g  *
-   w +
-    y x
-
-  -> 
- g  +
-   * x
-  w y
-
-    +
-  -> x
- g  *
-   w y
-
-    +
-   * x
- -> y
-g  w
-  */
-  &game->tiles[game->width * y + x];
+  int* otherPointer = (int*)proxyFunction;
+  otherProxy = *proxyFunction;
 }

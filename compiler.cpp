@@ -10,7 +10,6 @@
 #include "parser/sub_expression.hpp"
 #include "print_AST.hpp"
 #include "generate_IR.hpp"
-#include "optimize_IR.hpp"
 
 Compiler::Compiler()
 {
@@ -42,7 +41,7 @@ void Compiler::compileFromArgs(int argc, char* argv[])
 
     for (const Token& token: code)
     {
-      std::cout << Token::typeStrings[token.type] << ": \"" << token.data << "\"\n";
+      //std::cout << Token::typeStrings[token.type] << ": \"" << token.data << "\"\n";
     }
   
     Program AST(code, typeSizes);
@@ -52,11 +51,12 @@ void Compiler::compileFromArgs(int argc, char* argv[])
     std::cout << "AST:\n";
     PrintAST printer(AST);
 
-    std::vector<Operation> asmCode = generateIR(AST);
+    GenerateIR irEngine;
+    std::vector<Operation> asmCode = irEngine.generateIR(AST);
 
     if (optimize)
     {
-      optimizeIR(asmCode);
+      irEngine.optimizeIR(asmCode);
     }
 
     fileText = printIR(asmCode);

@@ -11,6 +11,8 @@ class Program;
 #include "AST_node.hpp"
 
 struct Statement;
+struct Expression;
+struct Constant;
 struct DataType;
 struct Declaration;
 
@@ -23,6 +25,8 @@ class Program: public ASTnode
 {
   public:
     friend Statement;
+    friend Expression;
+    friend Constant;
     friend DataType;
     friend Declaration;
 
