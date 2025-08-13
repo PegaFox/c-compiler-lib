@@ -79,8 +79,7 @@ ASTiterator& ASTiterator::operator++()
             {
               if (node+1 == compoundStatement->body.end())
               {
-                path.pop_back();
-                ptr = path.back().first;
+                stepOut();
                 goto topOfConditionals;
               } else
               {
@@ -107,8 +106,7 @@ ASTiterator& ASTiterator::operator++()
                 ptr = constant->dataType.get();
               } else
               {
-                path.pop_back();
-                ptr = path.back().first;
+                stepOut();
                 goto topOfConditionals;
               }
               break;
@@ -135,8 +133,7 @@ ASTiterator& ASTiterator::operator++()
                 {
                   if (node+1 == functionCall->arguments.end())
                   {
-                    path.pop_back();
-                    ptr = path.back().first;
+                    stepOut();
                     goto topOfConditionals;
                   } else
                   {
@@ -159,8 +156,7 @@ ASTiterator& ASTiterator::operator++()
                 ptr = subExpression->expression.get();
               } else
               {
-                path.pop_back();
-                ptr = path.back().first;
+                stepOut();
                 goto topOfConditionals;
               }
               break;
@@ -172,8 +168,7 @@ ASTiterator& ASTiterator::operator++()
                 ptr = preUnaryOperator->operand.get();
               } else
               {
-                path.pop_back();
-                ptr = path.back().first;
+                stepOut();
                 goto topOfConditionals;
               }
               break;
@@ -185,8 +180,7 @@ ASTiterator& ASTiterator::operator++()
                 ptr = postUnaryOperator->operand.get();
               } else
               {
-                path.pop_back();
-                ptr = path.back().first;
+                stepOut();
                 goto topOfConditionals;
               }
               break;
@@ -202,8 +196,7 @@ ASTiterator& ASTiterator::operator++()
                 ptr = binaryOperator->rightOperand.get();
               } else if (path.back().second == &binaryOperator->rightOperand)
               {
-                path.pop_back();
-                ptr = path.back().first;
+                stepOut();
                 goto topOfConditionals;
               }
               break;
@@ -223,8 +216,7 @@ ASTiterator& ASTiterator::operator++()
                 ptr = ternaryOperator->falseOperand.get();
               } else if (!ternaryOperator->falseOperand || path.back().second == &ternaryOperator->falseOperand)
               {
-                path.pop_back();
-                ptr = path.back().first;
+                stepOut();
                 goto topOfConditionals;
               }
               break;
@@ -243,8 +235,7 @@ ASTiterator& ASTiterator::operator++()
             ptr = returnStatement->data.get();
           } else
           {
-            path.pop_back();
-            ptr = path.back().first;
+            stepOut();
             goto topOfConditionals;
           }
           break;
@@ -272,8 +263,7 @@ ASTiterator& ASTiterator::operator++()
             ptr = declaration->value.get();
           } else if (!declaration->value || path.back().second == &declaration->value)
           {
-            path.pop_back();
-            ptr = path.back().first;
+            stepOut();
             goto topOfConditionals;
           }
           break;
@@ -293,8 +283,7 @@ ASTiterator& ASTiterator::operator++()
             ptr = ifConditional->elseStatement.get();
           } else if (!ifConditional->elseStatement || path.back().second == &ifConditional->elseStatement)
           {
-            path.pop_back();
-            ptr = path.back().first;
+            stepOut();
             goto topOfConditionals;
           }
           break;
@@ -306,8 +295,7 @@ ASTiterator& ASTiterator::operator++()
             ptr = switchCase->requirement.get();
           } else
           {
-            path.pop_back();
-            ptr = path.back().first;
+            stepOut();
             goto topOfConditionals;
           }
           break;
@@ -327,8 +315,7 @@ ASTiterator& ASTiterator::operator++()
             ptr = switchConditional->body.get();
           } else if (path.back().second == &switchConditional->body)
           {
-            path.pop_back();
-            ptr = path.back().first;
+            stepOut();
             goto topOfConditionals;
           }
           break;
@@ -344,8 +331,7 @@ ASTiterator& ASTiterator::operator++()
             ptr = doWhileLoop->body.get();
           } else if (path.back().second == &doWhileLoop->body)
           {
-            path.pop_back();
-            ptr = path.back().first;
+            stepOut();
             goto topOfConditionals;
           }
           break;
@@ -361,8 +347,7 @@ ASTiterator& ASTiterator::operator++()
             ptr = whileLoop->body.get();
           } else if (path.back().second == &whileLoop->body)
           {
-            path.pop_back();
-            ptr = path.back().first;
+            stepOut();
             goto topOfConditionals;
           }
           break;
@@ -386,8 +371,7 @@ ASTiterator& ASTiterator::operator++()
             ptr = forLoop->body.get();
           } else if (path.back().second == &forLoop->body)
           {
-            path.pop_back();
-            ptr = path.back().first;
+            stepOut();
             goto topOfConditionals;
           }
           break;
@@ -435,8 +419,7 @@ ASTiterator& ASTiterator::operator++()
             ptr = pointer->dataType.get();
           } else
           {
-            path.pop_back();
-            ptr = path.back().first;
+            stepOut();
             goto topOfConditionals;
           }
           break;
@@ -456,9 +439,8 @@ ASTiterator& ASTiterator::operator++()
                 ptr = functionDeclaration->body.get();
               } else
               {*/
-                path.pop_back();
-                ptr = path.back().first;
-                goto topOfConditionals;
+              stepOut();
+              goto topOfConditionals;
               //}
             } else
             {
@@ -468,8 +450,7 @@ ASTiterator& ASTiterator::operator++()
           //} else if (path.back().second == &functionDeclaration->body)
           } else if (path.back().second == &function->parameters.back())
           {
-            path.pop_back();
-            ptr = path.back().first;
+            stepOut();
             goto topOfConditionals;
           } else
           {
@@ -485,9 +466,8 @@ ASTiterator& ASTiterator::operator++()
                     ptr = function->body.get();
                   } else
                   {*/
-                    path.pop_back();
-                    ptr = path.back().first;
-                    goto topOfConditionals;
+                  stepOut();
+                  goto topOfConditionals;
                   //}
                 } else
                 {
@@ -511,8 +491,7 @@ ASTiterator& ASTiterator::operator++()
             ptr = array->size.get();
           } else if (path.back().second == &array->size)
           {
-            path.pop_back();
-            ptr = path.back().first;
+            stepOut();
             goto topOfConditionals;
           }
           break;
@@ -542,8 +521,7 @@ ASTiterator& ASTiterator::operator++()
             }
           } else
           {
-            path.pop_back();
-            ptr = path.back().first;
+            stepOut();
             goto topOfConditionals;
           }
           break;
@@ -564,5 +542,17 @@ ASTiterator ASTiterator::operator++(int) {ASTiterator tmp = *this; ++(*this); re
 bool ASTiterator::firstTime(pointer ptr)
 {
   return path.empty() || (ptr != path.back().first);
+}
+
+void ASTiterator::stepOut()
+{
+  path.pop_back();
+  if (!path.empty())
+  { 
+    ptr = path.back().first;
+  } else
+  {
+    ptr = nullptr;
+  }
 }
 

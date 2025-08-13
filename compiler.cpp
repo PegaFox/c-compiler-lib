@@ -37,22 +37,22 @@ void Compiler::compileFromArgs(int argc, char* argv[])
   if (doCompile)
   {
     std::list<Token> code = lex(fileText);
-    std::cout << "Tokens:\n";
+    /*std::cout << "Tokens:\n";
 
     for (const Token& token: code)
     {
-      //std::cout << Token::typeStrings[token.type] << ": \"" << token.data << "\"\n";
-    }
+      std::cout << Token::typeStrings[token.type] << ": \"" << token.data << "\"\n";
+    }*/
   
     Program AST(code, typeSizes);
 
     optimizeAST(AST);
   
-    std::cout << "AST:\n";
-    PrintAST printer(AST);
+    //std::cout << "AST:\n";
+    //PrintAST printer(AST);
 
     GenerateIR irEngine;
-    std::vector<Operation> asmCode = irEngine.generateIR(AST);
+    std::vector<Operation> asmCode = irEngine.generateIR(AST, typeSizes.pointerSize);
 
     if (optimize)
     {
@@ -169,6 +169,31 @@ std::string Compiler::printIR(const std::vector<Operation>& asmCode)
 
   for (const Operation& operation : asmCode)
   {
+    if (operation.type.isFloating)
+    {
+      fileData << 'f';
+    } else if (operation.type.isSigned)
+    {
+      fileData << 'i';
+    } else if (!operation.type.identifier.empty())
+    {
+      fileData << "struct " << operation.type.identifier << ':';
+    } else
+    {
+      fileData << 'u';
+    }
+
+    if (operation.type.arrayLength > 0)
+    {
+      fileData << operation.type.size << ':' << (int)operation.type.alignment << std::string(operation.type.pointerDepth-1, '*');
+      fileData << '[' << operation.type.arrayLength << ']';
+    } else
+    {
+      fileData << operation.type.size << ':' << (int)operation.type.alignment << std::string(operation.type.pointerDepth, '*');
+    }
+
+    fileData << ' ';
+
     switch (operation.code)
     {
       case Operation::Set:
@@ -177,8 +202,11 @@ std::string Compiler::printIR(const std::vector<Operation>& asmCode)
       case Operation::GetAddress:
         fileData << operation.operands[0] << " = &" << operation.operands[1] << '\n';
         break;
-      case Operation::Dereference:
+      case Operation::DereferenceRValue:
         fileData << operation.operands[0] << " = *" << operation.operands[1] << '\n';
+        break;
+      case Operation::DereferenceLValue:
+        fileData << "*" << operation.operands[0] << " = " << operation.operands[1] << '\n';
         break;
       case Operation::SetAddition:
         fileData << operation.operands[0] << " = " << operation.operands[1] << " + " << operation.operands[2] << '\n';
@@ -248,9 +276,16 @@ std::string Compiler::printIR(const std::vector<Operation>& asmCode)
         break;
       case Operation::Return:
         fileData << "Return " << operation.operands[0] << '\n';
+        if (operation.operands[0].empty())
+        {
+          fileData << "\n";
+        }
+        break;
+      case Operation::AddArg:
+        fileData << "AddArg " << operation.operands[0] << '\n';
         break;
       case Operation::Call:
-        fileData << "Call " << operation.operands[0] << '\n';
+        fileData << "Call " << operation.operands[1] << " -> " << operation.operands[0] << '\n';
         break;
       case Operation::Jump:
         fileData << "Jump " << operation.operands[0] << '\n';

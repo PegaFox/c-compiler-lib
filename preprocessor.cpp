@@ -191,6 +191,10 @@ bool Preprocessor::handleConditionalDirective(std::string& directiveStr)
       {
         directiveStr.replace(0, varName.size()+1, "0");
       }
+    } else
+    {
+      std::cout << "Error: invalid conditional directive \"" << directiveStr << "\"\n";
+      break;
     }
   }
 

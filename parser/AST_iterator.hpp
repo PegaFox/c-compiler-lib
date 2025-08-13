@@ -35,6 +35,8 @@ struct ASTiterator
 
   private:
     bool firstTime(pointer ptr);
+
+    void stepOut();
 };
 
 #endif // PF_PARSER_AST_ITERATOR_HPP

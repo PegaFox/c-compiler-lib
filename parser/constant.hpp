@@ -10,7 +10,7 @@ struct Constant: public Expression
 {
   std::unique_ptr<DataType> dataType;
 
-  uint8_t value[16];
+  uint8_t value[16] = {0};
 
   Constant();
 

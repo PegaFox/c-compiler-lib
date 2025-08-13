@@ -40,9 +40,9 @@
   return result;
 }*/
 
-std::vector<Operation> GenerateIR::generateIR(const Program& AST)
+std::vector<Operation> GenerateIR::generateIR(const Program& AST, uint8_t pointerSize)
 {
-  CommonIRData data;
+  CommonIRData data{{}, pointerSize};
 
   for (const std::unique_ptr<ASTnode>& node : AST.nodes)
   {
@@ -88,43 +88,52 @@ Operation::DataType GenerateIR::ASTTypeToIRType(CommonIRData& data, DataType* da
     } case DataType::GeneralType::Array: {
       Array* array = (Array*)dataType;
 
-      // We can't store both the size of the array, and the size of each member, but since arrays are always lvalues (using them as rvalues casts them to pointers) we can fetch the size of each element from the declarations map and store the total structure size here.
+      // We store the size of each element in .size, and the size of the array in elements in .arrayLength
       Operation::DataType childType = ASTTypeToIRType(data, array->dataType.get());
 
       if (array->size->expressionType == Expression::ExpressionType::Constant)
       {
-        childType.size *= (uint64_t)((Constant*)array->size.get())->value;
-      } else
-      {
-        childType.size = 0;
+        childType.arrayLength = *(uint64_t*)(((Constant*)array->size.get())->value);
       }
       
       childType.pointerDepth++;
       return childType;
     } case DataType::GeneralType::Struct: {
       Struct* structure = (Struct*)dataType;
-
+      
       Operation::DataType result;
-      for (std::pair<std::unique_ptr<Declaration>, uint8_t>& member: structure->members)
-      {
-        Operation::DataType memberType;
-        if (member.first->dataType->generalType != DataType::GeneralType::Pointer)
-        {
-          memberType = ASTTypeToIRType(data, member.first->dataType.get());
-        } else
-        {
-          memberType = {data.pointerSize, data.pointerSize};
-        }
+      result.identifier = structure->identifier;
 
-        result.alignment = std::max(result.alignment, memberType.alignment);
-        result.size += memberType.alignment - result.size%memberType.alignment;
-        result.size += memberType.size;
+      if (memberOffsets.contains(structure->identifier))
+      {
+        result = memberOffsets[structure->identifier].first;
+      } else
+      {
+        for (std::pair<std::unique_ptr<Declaration>, uint8_t>& member: structure->members)
+        {
+          Operation::DataType memberType;
+          if (member.first->dataType->generalType != DataType::GeneralType::Pointer)
+          {
+            memberType = ASTTypeToIRType(data, member.first->dataType.get());
+          } else
+          {
+            memberType = {data.pointerSize, data.pointerSize};
+          }
+
+          result.alignment = std::max(result.alignment, memberType.alignment);
+          
+          if (result.size%memberType.alignment != 0)
+          {
+            result.size += memberType.alignment - result.size%memberType.alignment;
+          }
+          result.size += memberType.size * (memberType.arrayLength == 0 ? 1 : memberType.arrayLength);
+        }
       }
 
       return result;
-    } default:
-      std::cout << "IR generation error: Invalid data type\n";
-      throw IRGenError();
+    } case DataType::GeneralType::Function:
+
+      return {};
   }
 }
 
@@ -347,7 +356,7 @@ std::pair<std::string, Operation::DataType> GenerateIR::generateConstant(CommonI
   // number comes first to ensure that the variable name is unique (identifiers can't start with numbers in C)
   if (constant->dataType->generalType == DataType::GeneralType::PrimitiveType)
   {
-    data.irProgram.emplace_back(Operation{ASTTypeToIRType(data, constant->dataType.get()), Operation::Set, {std::to_string((uintptr_t)constant) + "_Constant", std::to_string(*((long int*)constant->value))}});
+    data.irProgram.emplace_back(Operation{ASTTypeToIRType(data, constant->dataType.get()), Operation::Set, {std::to_string((uintptr_t)constant) + "_Constant", std::to_string(*((int64_t*)constant->value))}});
   }
   
   return {data.irProgram.back().operands[0], data.irProgram.back().type};
@@ -458,25 +467,27 @@ void GenerateIR::generateDeclaration(CommonIRData& data, const Declaration* decl
 {
   if (declaration->dataType->generalType == DataType::GeneralType::Struct && !((Struct*)declaration->dataType.get())->members.empty())
   {
+    memberOffsets[((Struct*)declaration->dataType.get())->identifier].first = ASTTypeToIRType(data, declaration->dataType.get());
+
     uint8_t offset = 0;
     for (std::pair<std::unique_ptr<Declaration>, uint8_t>& m: ((Struct*)declaration->dataType.get())->members)
     {
       Declaration* member = m.first.get();
 
-      Operation::DataType memberType;
-      if (member->dataType->generalType != DataType::GeneralType::Pointer)
-      {
-        memberType = ASTTypeToIRType(data, member->dataType.get());
-      } else
+      Operation::DataType memberType = ASTTypeToIRType(data, member->dataType.get());
+      if (memberType.pointerDepth > 0)
       {
         memberType = {data.pointerSize, data.pointerSize};
       }
 
       uint8_t bitfield = m.second;
 
-      offset += memberType.alignment - offset%memberType.alignment;
+      if (offset%memberType.alignment != 0)
+      {
+        offset += memberType.alignment - offset%memberType.alignment;
+      }
 
-      memberOffsets[((Struct*)declaration->dataType.get())->identifier][member->identifier] = {memberType, offset};
+      memberOffsets[((Struct*)declaration->dataType.get())->identifier].second[member->identifier] = {ASTTypeToIRType(data, member->dataType.get()), offset};
 
       offset += memberType.size;
     }
@@ -510,7 +521,7 @@ void GenerateIR::generateDeclaration(CommonIRData& data, const Declaration* decl
       if (declaration->value->statementType == Statement::StatementType::Expression)
       {
         std::pair<std::string, Operation::DataType> outputName = generateExpression(data, (Expression*)declaration->value.get());
-        data.irProgram.emplace_back(Operation{outputName.second, Operation::Set, {name, outputName.first}});
+        data.irProgram.emplace_back(Operation{ASTTypeToIRType(data, declaration->dataType.get()), Operation::Set, {name, outputName.first}});
       } else 
       {
         scopes.emplace_back((CompoundStatement*)declaration->value.get());
@@ -761,7 +772,7 @@ std::pair<std::string, Operation::DataType> GenerateIR::generatePreUnaryOperator
   switch (preUnary->preUnaryType)
   {
     case PreUnaryOperator::PreUnaryType::Address:
-      if (declarations.contains(name.first))
+      if (declarations.contains(name.first) || name.first.find("_Dereference") != std::string::npos)
       {
         name.second.pointerDepth++;
         data.irProgram.emplace_back(Operation{name.second, Operation::GetAddress, {std::to_string((uintptr_t)preUnary) + "_Address", name.first}});
@@ -775,12 +786,20 @@ std::pair<std::string, Operation::DataType> GenerateIR::generatePreUnaryOperator
       if (name.second.pointerDepth > 0)
       {
         name.second.pointerDepth--;
-        data.irProgram.emplace_back(Operation{name.second, Operation::Dereference, {std::to_string((uintptr_t)preUnary) + "_Dereference", name.first}});
+        data.irProgram.emplace_back(Operation{name.second, Operation::DereferenceRValue, {std::to_string((uintptr_t)preUnary) + "_Dereference", name.first}});
       } else
       {
         std::cout << "IR generation error: Cannot dereference non-pointer type\n";
         throw IRGenError();
       }
+      break;
+    case PreUnaryOperator::PreUnaryType::Sizeof:
+      if (name.second.pointerDepth > 0)
+      {
+        name.second.size = data.pointerSize;
+      }
+
+      data.irProgram.emplace_back(Operation{{data.pointerSize, data.pointerSize}, Operation::Set, {std::to_string((uintptr_t)preUnary) + "_Size", std::to_string(name.second.size)}});
       break;
     case PreUnaryOperator::PreUnaryType::TypeCast: {
       TypeCast* typeCast = (TypeCast*)preUnary;
@@ -857,8 +876,20 @@ std::pair<std::string, Operation::DataType> GenerateIR::generatePostUnaryOperato
 
 std::pair<std::string, Operation::DataType> GenerateIR::generateBinaryOperator(CommonIRData& data, const BinaryOperator* binary)
 {
-  std::pair<std::string, Operation::DataType> leftOperandName = generateExpression(data, binary->leftOperand.get());
+  std::pair<std::string, Operation::DataType> leftOperandName;
   std::pair<std::string, Operation::DataType> rightOperandName;
+
+  if (
+    binary->binaryType < BinaryOperator::BinaryType::VariableAssignment ||
+    binary->binaryType > BinaryOperator::BinaryType::BitwiseXOREqual ||
+    ((binary->leftOperand->expressionType != Expression::ExpressionType::PreUnaryOperator ||
+    ((PreUnaryOperator*)binary->leftOperand.get())->preUnaryType != PreUnaryOperator::PreUnaryType::Dereference) &&
+    (binary->leftOperand->expressionType != Expression::ExpressionType::BinaryOperator &&
+    (((BinaryOperator*)binary->leftOperand.get())->binaryType != BinaryOperator::BinaryType::Subscript ||
+    ((BinaryOperator*)binary->leftOperand.get())->binaryType != BinaryOperator::BinaryType::DereferenceMemberAccess))))
+  {
+    leftOperandName = generateExpression(data, binary->leftOperand.get());
+  }
 
   if (binary->binaryType != BinaryOperator::BinaryType::DereferenceMemberAccess)
   {
@@ -866,19 +897,80 @@ std::pair<std::string, Operation::DataType> GenerateIR::generateBinaryOperator(C
   } else if (binary->rightOperand->expressionType == Expression::ExpressionType::VariableAccess)
   {
     VariableAccess* identifier = ((VariableAccess*)binary->rightOperand.get());
-    std::pair<Operation::DataType, uint8_t>& memberData = memberOffsets[leftOperandName.second.identifier][identifier->identifier];
+    std::pair<Operation::DataType, uint8_t> memberData = memberOffsets[leftOperandName.second.identifier].second[identifier->identifier];
 
     data.irProgram.emplace_back(Operation{{1, 1, 1}, Operation::Set, {std::to_string((uintptr_t)binary) + "_Casted", leftOperandName.first}});
-    data.irProgram.emplace_back(Operation{memberData.first, Operation::SetAddition, {std::to_string((uintptr_t)binary) + "_Member", std::to_string((uintptr_t)binary) + "_Casted", std::to_string(memberData.second)}});
+
+    memberData.first.pointerDepth++;
+    data.irProgram.emplace_back(Operation{memberData.first, Operation::SetAddition, {std::to_string((uintptr_t)binary) + "_Pointer", std::to_string((uintptr_t)binary) + "_Casted", std::to_string(memberData.second)}});
+    memberData.first.pointerDepth--;
+
+    data.irProgram.emplace_back(Operation{memberData.first, Operation::DereferenceRValue, {std::to_string((uintptr_t)binary) + "_Member", std::to_string((uintptr_t)binary) + "_Pointer"}});
+  }
+
+  if (binary->binaryType >= BinaryOperator::BinaryType::VariableAssignment &&
+    binary->binaryType <= BinaryOperator::BinaryType::BitwiseXOREqual)
+  {
+    bool gotPointer = true;
+
+    if (
+      binary->leftOperand->expressionType == Expression::ExpressionType::PreUnaryOperator &&
+      ((PreUnaryOperator*)binary->leftOperand.get())->preUnaryType == PreUnaryOperator::PreUnaryType::Dereference)
+    {
+      leftOperandName = generateExpression(data, ((PreUnaryOperator*)binary->leftOperand.get())->operand.get());
+      data.irProgram.emplace_back(Operation{leftOperandName.second, Operation::DereferenceLValue, {leftOperandName.first, rightOperandName.first}});
+
+    } else if (binary->leftOperand->expressionType == Expression::ExpressionType::BinaryOperator)
+    {
+      if (((BinaryOperator*)binary->leftOperand.get())->binaryType == BinaryOperator::BinaryType::Subscript)
+      {
+        leftOperandName = generateExpression(data, ((BinaryOperator*)binary->leftOperand.get())->leftOperand.get());
+        leftOperandName.second.arrayLength = 0;
+        std::pair<std::string, Operation::DataType> childRightOperandName = generateExpression(data, ((BinaryOperator*)binary->leftOperand.get())->rightOperand.get());
+
+        data.irProgram.emplace_back(Operation{leftOperandName.second, Operation::SetAddition, {std::to_string((uintptr_t)binary) + "_Added", leftOperandName.first, childRightOperandName.first}});
+
+        leftOperandName.second.pointerDepth--;
+        leftOperandName.first = std::to_string((uintptr_t)binary) + "_Added";
+        data.irProgram.emplace_back(Operation{leftOperandName.second, Operation::DereferenceLValue, {leftOperandName.first, rightOperandName.first}});
+      } else if (((BinaryOperator*)binary->leftOperand.get())->binaryType == BinaryOperator::BinaryType::DereferenceMemberAccess)
+      {
+        leftOperandName = generateExpression(data, ((BinaryOperator*)binary->leftOperand.get())->leftOperand.get());
+
+        VariableAccess* identifier = ((VariableAccess*)((BinaryOperator*)binary->leftOperand.get())->rightOperand.get());
+        std::pair<Operation::DataType, uint8_t> memberData = memberOffsets[leftOperandName.second.identifier].second[identifier->identifier];
+
+        data.irProgram.emplace_back(Operation{{1, 1, 1}, Operation::Set, {std::to_string((uintptr_t)binary) + "_Casted", leftOperandName.first}});
+
+        memberData.first.pointerDepth++;
+        data.irProgram.emplace_back(Operation{memberData.first, Operation::SetAddition, {std::to_string((uintptr_t)binary) + "_Pointer", std::to_string((uintptr_t)binary) + "_Casted", std::to_string(memberData.second)}});
+        memberData.first.pointerDepth--;
+
+        leftOperandName = {std::to_string((uintptr_t)binary) + "_Pointer", memberData.first};
+        data.irProgram.emplace_back(Operation{memberData.first, Operation::DereferenceLValue, {leftOperandName.first, rightOperandName.first}});
+      } else
+      {
+        gotPointer = false;
+      }
+    } else
+    {
+      gotPointer = false;
+    }
+
+    if (gotPointer)
+    {
+      data.irProgram.emplace_back(Operation{rightOperandName.second, Operation::Set, {std::to_string((uintptr_t)binary) + "_Assigned", rightOperandName.first}});
+      return {data.irProgram.back().operands[0], data.irProgram.back().type};
+    }
   }
 
   switch (binary->binaryType)
   {
     case BinaryOperator::BinaryType::VariableAssignment:
-      if (declarations.contains(leftOperandName.first) || leftOperandName.first.find("_Member") != std::string::npos || leftOperandName.first.find("_Dereference") != std::string::npos)
+      if (declarations.contains(leftOperandName.first) || leftOperandName.first.find("_Member") != std::string::npos)
       {
         data.irProgram.emplace_back(Operation{leftOperandName.second, Operation::Set, {leftOperandName.first, rightOperandName.first}});
-        data.irProgram.emplace_back(Operation{leftOperandName.second, Operation::Set, {std::to_string((uintptr_t)binary) + "_Assigned", leftOperandName.first}});
+        data.irProgram.emplace_back(Operation{rightOperandName.second, Operation::Set, {std::to_string((uintptr_t)binary) + "_Assigned", rightOperandName.first}});
       } else
       {
         std::cout << "IR generation error: Assigning rvalue is illegal\n";
@@ -898,7 +990,7 @@ std::pair<std::string, Operation::DataType> GenerateIR::generateBinaryOperator(C
       data.irProgram.emplace_back(Operation{leftOperandName.second, Operation::SetDivision, {std::to_string((uintptr_t)binary) + "_Divided", leftOperandName.first, rightOperandName.first}});
       break;
     case BinaryOperator::BinaryType::Modulo:
-      data.irProgram.emplace_back(Operation{leftOperandName.second, Operation::SetModulo, {std::to_string((uintptr_t)binary) + "_Moduloed", leftOperandName.first, rightOperandName.first}});
+      data.irProgram.emplace_back(Operation{leftOperandName.second, Operation::SetModulo, {std::to_string((uintptr_t)binary) + "_Modulus", leftOperandName.first, rightOperandName.first}});
       break;
     case BinaryOperator::BinaryType::LeftShift:
       data.irProgram.emplace_back(Operation{leftOperandName.second, Operation::SetLeftShift, {std::to_string((uintptr_t)binary) + "_LeftShifted", leftOperandName.first, rightOperandName.first}});
@@ -922,7 +1014,11 @@ std::pair<std::string, Operation::DataType> GenerateIR::generateBinaryOperator(C
       data.irProgram.emplace_back(Operation{{1, 1}, Operation::SetLogicalAND, {std::to_string((uintptr_t)binary) + "_LogicalAnded", leftOperandName.first, rightOperandName.first}});
       break;
     case BinaryOperator::BinaryType::Subscript:
+      leftOperandName.second.arrayLength = 0;
+      data.irProgram.emplace_back(Operation{leftOperandName.second, Operation::SetAddition, {std::to_string((uintptr_t)binary) + "_Added", leftOperandName.first, rightOperandName.first}});
 
+      leftOperandName.second.pointerDepth--;
+      data.irProgram.emplace_back(Operation{leftOperandName.second, Operation::DereferenceRValue, {std::to_string((uintptr_t)binary) + "_Dereference", data.irProgram.back().operands[0]}});
       break;
     case BinaryOperator::BinaryType::Equal:
       data.irProgram.emplace_back(Operation{{1, 1}, Operation::SetEqual, {std::to_string((uintptr_t)binary) + "_Equaled", leftOperandName.first, rightOperandName.first}});
@@ -1001,7 +1097,8 @@ bool GenerateIR::resolveConstantOperations(std::vector<Operation> &irProgram)
           changed = true;
         }
         break;
-      case Operation::Dereference:
+      case Operation::DereferenceLValue:
+      case Operation::DereferenceRValue:
       case Operation::SetAddition:
         if (i->operands[1].find_first_not_of("0123456789") == std::string::npos && i->operands[2].find_first_not_of("0123456789") == std::string::npos)
         {
@@ -1090,7 +1187,8 @@ bool GenerateIR::trimInaccessibleCode(std::vector<Operation> &irProgram)
     }
 
     if (i->code == Operation::Set || 
-      i->code == Operation::Dereference || 
+      i->code == Operation::DereferenceLValue || 
+      i->code == Operation::DereferenceRValue || 
       i->code == Operation::SetAddition || 
       i->code == Operation::SetSubtraction || 
       i->code == Operation::SetMultiplication || 
@@ -1164,7 +1262,8 @@ bool GenerateIR::trimInaccessibleCode(std::vector<Operation> &irProgram)
   for (std::vector<Operation>::iterator i = irProgram.begin(); i != irProgram.end(); i++)
   {
     if (i->code == Operation::Set || 
-      i->code == Operation::Dereference || 
+      i->code == Operation::DereferenceLValue || 
+      i->code == Operation::DereferenceRValue || 
       i->code == Operation::SetAddition || 
       i->code == Operation::SetSubtraction || 
       i->code == Operation::SetMultiplication || 

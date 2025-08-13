@@ -33,11 +33,14 @@ struct Operation
 {
   struct DataType
   {
-    uint8_t size = 0;
+    uint16_t size = 0;
     uint8_t alignment = 0;
     uint8_t pointerDepth = 0;
+
     bool isSigned = false;
     bool isFloating = false;
+
+    uint16_t arrayLength = 0;
 
     // Identifier for structs and the like
     std::string identifier = "";
@@ -91,7 +94,7 @@ class GenerateIR
 
     };
 
-    std::vector<Operation> generateIR(const Program& AST);
+    std::vector<Operation> generateIR(const Program& AST, uint8_t pointerSize);
 
     void optimizeIR(std::vector<Operation> &asmCode);
 
@@ -104,7 +107,7 @@ class GenerateIR
 
     std::map<std::string, const Declaration*> declarations;
 
-    std::map<std::string, std::map<std::string, std::pair<Operation::DataType, uint8_t>>> memberOffsets;
+    std::map<std::string, std::pair<Operation::DataType, std::map<std::string, std::pair<Operation::DataType, uint8_t>>>> memberOffsets;
 
     std::vector<const CompoundStatement*> scopes;
 
