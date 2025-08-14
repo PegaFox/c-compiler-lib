@@ -118,7 +118,7 @@ std::list<Token> lex(std::string code)
   {
     std::string test = code.substr(pos, end - pos);
 
-    if (test.find_last_not_of("_"+letters+numbers) != test.npos && test.find_first_of("_"+letters) < test.find_last_not_of("_"+letters+numbers))
+    if (test.find_last_not_of("_"+letters+numbers) != test.npos && test.find_first_of("_"+letters) < test.find_first_of(numbers+".") && test.find_first_of("_"+letters) < test.find_last_not_of("_"+letters+numbers))
     {
       if (test.find_first_not_of("_"+whitespace+letters+numbers) < test.find_first_of("_"+letters+numbers))
       {
@@ -132,9 +132,9 @@ std::list<Token> lex(std::string code)
         tokenized.push_back(Token{Token::Identifier, identifierStr});
         pos = end-1;
       }
-    } else if (test.find_last_not_of("_"+letters+numbers) != test.npos && test.find_first_of(numbers) < test.find_last_not_of("_"+letters+numbers))
+    } else if (test.find_last_not_of("_"+letters+numbers+".") != test.npos && test.find_first_of(numbers) < test.find_last_not_of("_"+letters+numbers+"."))
     {
-      tokenized.push_back(Token{Token::Constant, test.substr(test.find_first_of(numbers), test.find_last_not_of(numbers)-test.find_first_of(numbers))});
+      tokenized.push_back(Token{Token::Constant, test.substr(test.find_first_of(numbers), test.find_last_not_of(numbers+".")-test.find_first_of(numbers))});
       pos = end-1;
     } else if (test.find_first_of("'") != test.npos || test.find_first_of("\"") != test.npos)
     {
@@ -220,7 +220,7 @@ std::list<Token> lex(std::string code)
       std::size_t testPos = code.find(token, pos);
       if (testPos < tokenPos)
       {
-        if (currentType == Token::Keyword && std::string("_"+letters+numbers).find(code[testPos+token.size()]) != code.npos)
+        if (currentType == Token::Keyword && std::string("_"+letters+numbers+".").find(code[testPos+token.size()]) != code.npos)
         {
           continue;
         }
@@ -229,7 +229,7 @@ std::list<Token> lex(std::string code)
       }
     }
 
-    if (tokenPos == 0 || (tokenPos <= code.find_first_of("_"+letters, pos) && tokenPos < code.find_first_of(numbers, pos) && tokenPos < code.find_first_of("'\"", pos))) {
+    if (tokenPos == 0 || (tokenPos <= code.find_first_of("_"+letters, pos) && tokenPos < code.find_first_of(numbers+".", pos) && tokenPos < code.find_first_of("'\"", pos))) {
       tokenized.push_back(firstToken);
       pos = tokenPos + firstToken.data.size();
       end = pos;

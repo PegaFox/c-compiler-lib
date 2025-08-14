@@ -15,12 +15,12 @@ Preprocessor::Preprocessor()
 
 }
 
-Preprocessor::Preprocessor(std::string& code, const std::vector<std::string>& includeDirs)
+Preprocessor::Preprocessor(std::string workingDir, std::string& code, const std::vector<std::string>& includeDirs)
 {
-  code = preprocess(code, includeDirs);
+  code = preprocess(workingDir, code, includeDirs);
 }
 
-std::string Preprocessor::preprocess(std::string code, const std::vector<std::string>& includeDirs)
+std::string Preprocessor::preprocess(std::string workingDir, std::string code, const std::vector<std::string>& includeDirs)
 {
   removeSingleLineComments(code);
 
@@ -30,7 +30,7 @@ std::string Preprocessor::preprocess(std::string code, const std::vector<std::st
 
   convertConstantTypes(code);
 
-  handlePreprocessingDirectives(code, includeDirs);
+  handlePreprocessingDirectives(workingDir, code, includeDirs);
 
   resolveDefinitions(code);
 
@@ -103,7 +103,7 @@ void Preprocessor::convertConstantTypes(std::string& code)
   }
 }
 
-std::string Preprocessor::handleIncludeDirective(std::string& directiveStr, const std::vector<std::string>& includeDirs)
+std::string Preprocessor::handleIncludeDirective(std::string& workingDir, std::string& directiveStr, const std::vector<std::string>& includeDirs)
 {
   std::size_t pos;
 
@@ -112,7 +112,7 @@ std::string Preprocessor::handleIncludeDirective(std::string& directiveStr, cons
   std::string filename;
   if ((pos = directiveStr.find('\"')) != directiveStr.npos)
   {
-    filename = std::string("./") + directiveStr.substr(pos+1, directiveStr.find('\"', pos+1) - (pos+1));
+    filename = workingDir + directiveStr.substr(pos+1, directiveStr.find('\"', pos+1) - (pos+1));
     fileStr = Compiler::loadFile(filename);
   } else if ((pos = directiveStr.find('<')) != directiveStr.npos)
   {
@@ -132,7 +132,7 @@ std::string Preprocessor::handleIncludeDirective(std::string& directiveStr, cons
     std::cout << "Error: could not find file " << filename << '\n';
   }
 
-  return preprocess(fileStr, includeDirs);
+  return preprocess(workingDir, fileStr, includeDirs);
 }
 
 bool Preprocessor::handleConditionalDirective(std::string& directiveStr)
@@ -208,7 +208,7 @@ bool Preprocessor::handleConditionalDirective(std::string& directiveStr)
 
 }
 
-void Preprocessor::handlePreprocessingDirectives(std::string& code, const std::vector<std::string>& includeDirs)
+void Preprocessor::handlePreprocessingDirectives(std::string& workingDir, std::string& code, const std::vector<std::string>& includeDirs)
 {
   std::size_t pos = 0;
 
@@ -223,7 +223,7 @@ void Preprocessor::handlePreprocessingDirectives(std::string& code, const std::v
 
     if (directiveStr.find("include") != directiveStr.npos)
     {
-      code.insert(pos, handleIncludeDirective(directiveStr, includeDirs));
+      code.insert(pos, handleIncludeDirective(workingDir, directiveStr, includeDirs));
     } else if (directiveStr.find("define") != directiveStr.npos)
     {
       definitions.push_front(std::array<std::string, 2>());

@@ -23,9 +23,9 @@ struct PrimitiveType: public DataType
     LongDouble
   } type;*/
 
-  bool isFloating;
-  bool isSigned;
-  uint8_t size;
+  bool isFloating = false;
+  bool isSigned = false;
+  uint8_t size = 0;
 
   PrimitiveType();
 

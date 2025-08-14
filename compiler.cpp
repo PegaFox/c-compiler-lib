@@ -25,42 +25,48 @@ void Compiler::compileFromArgs(int argc, char* argv[])
 {
   handleArgs(argc, argv);
 
-  std::string fileText = loadFile(inputFilename);
+  std::vector<Operation> irCode;
 
-  if (doPreprocess)
+  for (std::string& inputFilename: inputFilenames)
   {
-    // updates filetext
-    Preprocessor preprocessor(fileText, includeDirs);
-    std::cout << "Preprocessed:\n" << fileText << '\n';
-  }
+    std::string fileText = loadFile(inputFilename);
 
-  if (doCompile)
-  {
-    std::list<Token> code = lex(fileText);
-    /*std::cout << "Tokens:\n";
-
-    for (const Token& token: code)
+    if (doPreprocess && inputFilename.find(".s") == std::string::npos && inputFilename.find(".i") == std::string::npos)
     {
-      std::cout << Token::typeStrings[token.type] << ": \"" << token.data << "\"\n";
-    }*/
-  
-    Program AST(code, typeSizes);
-
-    optimizeAST(AST);
-  
-    //std::cout << "AST:\n";
-    //PrintAST printer(AST);
-
-    GenerateIR irEngine;
-    std::vector<Operation> asmCode = irEngine.generateIR(AST, typeSizes.pointerSize);
-
-    if (optimize)
-    {
-      irEngine.optimizeIR(asmCode);
+      // updates filetext
+      Preprocessor preprocessor(inputFilename.substr(0, inputFilename.find_last_of('/')+1), fileText, includeDirs);
+      std::cout << "Preprocessed:\n" << fileText << '\n';
     }
 
-    fileText = printIR(asmCode);
-    std::cout << "Intermediate Representation:\n" << fileText << '\n';
+    if (doCompile && inputFilename.find(".s") == std::string::npos)
+    {
+      std::list<Token> code = lex(fileText);
+      /*std::cout << "Tokens:\n";
+
+      for (const Token& token: code)
+      {
+        std::cout << Token::typeStrings[token.type] << ": \"" << token.data << "\"\n";
+      }*/
+    
+      Program AST(code, typeSizes);
+
+      optimizeAST(AST);
+    
+      //std::cout << "AST:\n";
+      //PrintAST printer(AST);
+
+      GenerateIR irEngine;
+      std::vector<Operation> localIR = irEngine.generateIR(AST, typeSizes.pointerSize);
+      irCode.insert(irCode.cend(), localIR.cbegin(), localIR.cend());
+
+      if (optimize)
+      {
+        irEngine.optimizeIR(irCode);
+      }
+
+      fileText = printIR(irCode);
+      std::cout << "Intermediate Representation:\n" << fileText << '\n';
+    }
   }
 }
 
@@ -88,22 +94,15 @@ int Compiler::handleArgs(int argc, char* argv[])
     {
       doCompile = false;
       doAssemble = false;
-    } else if (argStr == "-O")
+    } else if (argStr == "-O0")
+    {
+      optimize = false;
+    } else if (argStr == "-O" || argStr == "-O1" || argStr == "-O2" || argStr == "-O3")
     {
       optimize = true;
-    } else if (argStr.find(".mc1") != argStr.npos)
+    } else if (argStr.find(".s") != argStr.npos || argStr.find(".c") != argStr.npos || argStr.find(".i") != argStr.npos)
     {
-      doPreprocess = false;
-      doCompile = false;
-      inputFilename = argStr;
-    } else if (argStr.find(".c") != argStr.npos)
-    {
-      doPreprocess = true;
-      inputFilename = argStr;
-    } else if (argStr.find(".i") != argStr.npos)
-    {
-      doPreprocess = false;
-      inputFilename = argStr;
+      inputFilenames.emplace_back("./"+argStr);
     }/* else if (argStr.find(".h") != argStr.npos) add precompiled headers
     {
       doPreprocess = true;
@@ -112,7 +111,7 @@ int Compiler::handleArgs(int argc, char* argv[])
 
   }
 
-  if (inputFilename.empty())
+  if (inputFilenames.empty())
   {
     std::clog << "Error: No input file(s), compilation terminated\n";
     return -1;

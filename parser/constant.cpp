@@ -30,8 +30,32 @@ Constant* Constant::parse(CommonParseData& data)
   { // str constant
 
   } else if (data.code.front().data.front() >= '0' && data.code.front().data.front() <= '9')
-  { // int constant
-    if (data.code.front().data.back() == 'L')
+  { // number constant
+    if (data.code.front().data.find('.') != std::string::npos)
+    { // float constant
+      if (data.code.front().data.back() == 'f' || data.code.front().data.back() == 'F')
+      { // float
+        float constVal = std::stof(data.code.front().data);
+        data.code.pop_front();
+
+        *constantType = PrimitiveType{true, true, data.typeSizes.floatSize};
+        std::copy((uint8_t*)(&constVal), (uint8_t*)(&constVal)+constantType->size, constant->value);
+      } else if (data.code.front().data.back() == 'l' || data.code.front().data.back() == 'L')
+      { // long double
+        long double constVal = std::stold(data.code.front().data);
+        data.code.pop_front();
+
+        *constantType = PrimitiveType{true, true, data.typeSizes.longDoubleSize};
+        std::copy((uint8_t*)(&constVal), (uint8_t*)(&constVal)+constantType->size, constant->value);
+      } else
+      { // double
+        double constVal = std::stod(data.code.front().data);
+        data.code.pop_front();
+
+        *constantType = PrimitiveType{true, true, data.typeSizes.doubleSize};
+        std::copy((uint8_t*)(&constVal), (uint8_t*)(&constVal)+constantType->size, constant->value);
+      }
+    } else if (data.code.front().data.back() == 'L')
     { // long int
       if (data.code.front().data[data.code.front().data.size()-2] == 'U')
       { // unsigned long int

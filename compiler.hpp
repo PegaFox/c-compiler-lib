@@ -12,7 +12,7 @@ class Program;
 class Compiler
 {
   public:
-    std::string inputFilename;
+    std::vector<std::string> inputFilenames;
 
     std::string outputFilename = "a.out";
 

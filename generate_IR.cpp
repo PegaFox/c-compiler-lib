@@ -117,7 +117,7 @@ Operation::DataType GenerateIR::ASTTypeToIRType(CommonIRData& data, DataType* da
             memberType = ASTTypeToIRType(data, member.first->dataType.get());
           } else
           {
-            memberType = {data.pointerSize, data.pointerSize};
+            memberType = {data.typeSizes.pointerSize, data.typeSizes.pointerSize};
           }
 
           result.alignment = std::max(result.alignment, memberType.alignment);
@@ -356,7 +356,28 @@ std::pair<std::string, Operation::DataType> GenerateIR::generateConstant(CommonI
   // number comes first to ensure that the variable name is unique (identifiers can't start with numbers in C)
   if (constant->dataType->generalType == DataType::GeneralType::PrimitiveType)
   {
-    data.irProgram.emplace_back(Operation{ASTTypeToIRType(data, constant->dataType.get()), Operation::Set, {std::to_string((uintptr_t)constant) + "_Constant", std::to_string(*((int64_t*)constant->value))}});
+    data.irProgram.emplace_back(Operation{ASTTypeToIRType(data, constant->dataType.get()), Operation::Set, {std::to_string((uintptr_t)constant) + "_Constant", "NaN"}});
+
+    PrimitiveType* primitiveType = (PrimitiveType*)constant->dataType.get();
+    if (primitiveType->isFloating)
+    {
+      if (primitiveType->size == data.typeSizes.floatSize)
+      {
+        data.irProgram.back().operands[1] = std::to_string(*((float*)constant->value));
+      } else if (primitiveType->size == data.typeSizes.doubleSize)
+      {
+        data.irProgram.back().operands[1] = std::to_string(*((double*)constant->value));
+      } else if (primitiveType->size == data.typeSizes.longDoubleSize)
+      {
+        data.irProgram.back().operands[1] = std::to_string(*((long double*)constant->value));
+      }
+    } else if (primitiveType->isSigned)
+    {
+      data.irProgram.back().operands[1] = std::to_string(*((int64_t*)constant->value));
+    } else
+    {
+      data.irProgram.back().operands[1] = std::to_string(*((uint64_t*)constant->value));
+    }
   }
   
   return {data.irProgram.back().operands[0], data.irProgram.back().type};
@@ -477,7 +498,7 @@ void GenerateIR::generateDeclaration(CommonIRData& data, const Declaration* decl
       Operation::DataType memberType = ASTTypeToIRType(data, member->dataType.get());
       if (memberType.pointerDepth > 0)
       {
-        memberType = {data.pointerSize, data.pointerSize};
+        memberType = {data.typeSizes.pointerSize, data.typeSizes.pointerSize};
       }
 
       uint8_t bitfield = m.second;
@@ -796,10 +817,10 @@ std::pair<std::string, Operation::DataType> GenerateIR::generatePreUnaryOperator
     case PreUnaryOperator::PreUnaryType::Sizeof:
       if (name.second.pointerDepth > 0)
       {
-        name.second.size = data.pointerSize;
+        name.second.size = data.typeSizes.pointerSize;
       }
 
-      data.irProgram.emplace_back(Operation{{data.pointerSize, data.pointerSize}, Operation::Set, {std::to_string((uintptr_t)preUnary) + "_Size", std::to_string(name.second.size)}});
+      data.irProgram.emplace_back(Operation{{data.typeSizes.pointerSize, data.typeSizes.pointerSize}, Operation::Set, {std::to_string((uintptr_t)preUnary) + "_Size", std::to_string(name.second.size)}});
       break;
     case PreUnaryOperator::PreUnaryType::TypeCast: {
       TypeCast* typeCast = (TypeCast*)preUnary;

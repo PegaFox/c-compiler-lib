@@ -102,7 +102,7 @@ class GenerateIR
     struct CommonIRData
     {
       std::vector<Operation> irProgram;
-      uint8_t pointerSize;
+      Compiler::TypeSizes typeSizes;
     };
 
     std::map<std::string, const Declaration*> declarations;
