@@ -18,7 +18,7 @@
 
 */
 
-#include "compiler.hpp"
+#include <C_compiler.hpp>
 
 int main(int argc, char* argv[])
 {
@@ -26,7 +26,13 @@ int main(int argc, char* argv[])
   
   compiler.includeDirs.emplace_back("./include/");
 
-  compiler.compileFromArgs(argc, argv);
+  std::vector<Operation> irCode = compiler.compileFromArgs(argc, argv);
+
+  std::ofstream outFile(compiler.outputFilename);
+
+  outFile << compiler.printIR(irCode);
+
+  outFile.close();
 
   return 0;
 }

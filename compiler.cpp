@@ -16,12 +16,12 @@ Compiler::Compiler()
 
 }
 
-Compiler::Compiler(int argc, char* argv[])
+Compiler::Compiler(int argc, char* argv[], std::vector<Operation>& irCode)
 {
-  compileFromArgs(argc, argv);
+  irCode = compileFromArgs(argc, argv);
 }
 
-void Compiler::compileFromArgs(int argc, char* argv[])
+std::vector<Operation> Compiler::compileFromArgs(int argc, char* argv[])
 {
   handleArgs(argc, argv);
 
@@ -35,7 +35,7 @@ void Compiler::compileFromArgs(int argc, char* argv[])
     {
       // updates filetext
       Preprocessor preprocessor(inputFilename.substr(0, inputFilename.find_last_of('/')+1), fileText, includeDirs);
-      std::cout << "Preprocessed:\n" << fileText << '\n';
+      //std::cout << "Preprocessed:\n" << fileText << '\n';
     }
 
     if (doCompile && inputFilename.find(".s") == std::string::npos)
@@ -64,10 +64,12 @@ void Compiler::compileFromArgs(int argc, char* argv[])
         irEngine.optimizeIR(irCode);
       }
 
-      fileText = printIR(irCode);
-      std::cout << "Intermediate Representation:\n" << fileText << '\n';
+      //fileText = printIR(irCode);
+      //std::cout << "Intermediate Representation:\n" << fileText << '\n';
     }
   }
+
+  return irCode;
 }
 
 int Compiler::handleArgs(int argc, char* argv[])
@@ -79,7 +81,7 @@ int Compiler::handleArgs(int argc, char* argv[])
     if (argStr == "-o" && arg < argc-1)
     {
       arg++;
-      outputFilename = argStr;
+      outputFilename = argv[arg];
     } else if (argStr.substr(0, 2) == "-I" && argStr.size() > 2)
     {
       includeDirs.push_back(argStr.substr(2));
@@ -158,15 +160,14 @@ void Compiler::optimizeAST(Program& AST)
       }
       i++;
     }
-    std::cout << i << '\n';
   } while (changed);
 }
 
-std::string Compiler::printIR(const std::vector<Operation>& asmCode)
+std::string Compiler::printIR(const std::vector<Operation>& irCode)
 {
   std::stringstream fileData;
 
-  for (const Operation& operation : asmCode)
+  for (const Operation& operation : irCode)
   {
     if (operation.type.isFloating)
     {

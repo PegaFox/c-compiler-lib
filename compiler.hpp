@@ -41,9 +41,9 @@ class Compiler
 
     Compiler();
 
-    Compiler(int argc, char* argv[]);
+    Compiler(int argc, char* argv[], std::vector<Operation>& irCode);
 
-    void compileFromArgs(int argc, char* argv[]);
+    std::vector<Operation> compileFromArgs(int argc, char* argv[]);
 
     int handleArgs(int argc, char* argv[]);
 
@@ -51,7 +51,7 @@ class Compiler
 
     static void optimizeAST(Program& AST);
   
-    static std::string printIR(const std::vector<Operation>& asmCode);
+    static std::string printIR(const std::vector<Operation>& irCode);
 };
 
 #endif // PF_COMPILER_HPP

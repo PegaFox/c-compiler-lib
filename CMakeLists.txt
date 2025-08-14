@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.30)
+cmake_minimum_required(VERSION 3.7...3.30)
 
 set(CMAKE_CXX_STANDARD 20)
 
@@ -52,6 +52,9 @@ add_library(c-compiler-lib STATIC
   save_file.cpp
 )
 
-add_executable(main main.cpp)
+if (BUILD_EXAMPLES)
 
-target_link_libraries(main PRIVATE c-compiler-lib)
+  include_directories(${CMAKE_SOURCE_DIR})
+  add_subdirectory(examples/IR_only)
+
+endif()
