@@ -1,14 +1,4 @@
-#include <iostream>
-#include <cstdint>
 #include <fstream>
-#include <sstream>
-#include <list>
-#include <memory>
-#include <algorithm>
-#include <vector>
-#include <map>
-#include <array>
-#include <set>
 
 /*
 

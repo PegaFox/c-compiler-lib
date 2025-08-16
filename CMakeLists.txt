@@ -55,6 +55,8 @@ add_library(c-compiler-lib STATIC
 if (BUILD_EXAMPLES)
 
   include_directories(${CMAKE_SOURCE_DIR})
+
   add_subdirectory(examples/IR_only)
+  add_subdirectory(examples/x86_backend)
 
 endif()

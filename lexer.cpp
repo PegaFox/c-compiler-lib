@@ -236,7 +236,7 @@ std::list<Token> lex(std::string code)
     }
   }
 
-  if (pos < code.size()-1)
+  if (pos < code.size()-1 && code.substr(pos).find_first_not_of(whitespace) != std::string::npos)
   {
     std::cout << "Lex error: Encountered garbage characters at end of file\n";
     throw LexError();

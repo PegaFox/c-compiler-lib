@@ -59,14 +59,15 @@ std::vector<Operation> Compiler::compileFromArgs(int argc, char* argv[])
       std::vector<Operation> localIR = irEngine.generateIR(AST, typeSizes.pointerSize);
       irCode.insert(irCode.cend(), localIR.cbegin(), localIR.cend());
 
-      if (optimize)
-      {
-        irEngine.optimizeIR(irCode);
-      }
-
       //fileText = printIR(irCode);
       //std::cout << "Intermediate Representation:\n" << fileText << '\n';
     }
+  }
+
+  if (optimize)
+  {
+    GenerateIR irEngine;
+    irEngine.optimizeIR(irCode);
   }
 
   return irCode;
@@ -285,7 +286,7 @@ std::string Compiler::printIR(const std::vector<Operation>& irCode)
         fileData << "AddArg " << operation.operands[0] << '\n';
         break;
       case Operation::Call:
-        fileData << "Call " << operation.operands[1] << " -> " << operation.operands[0] << '\n';
+        fileData << "Call " << operation.operands[0] << " -> " << operation.operands[1] << '\n';
         break;
       case Operation::Jump:
         fileData << "Jump " << operation.operands[0] << '\n';

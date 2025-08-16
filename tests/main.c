@@ -8,4 +8,6 @@ int main()
 
   minesweeper_set_cursor(game, 5, 5);
   minesweeper_open_tile(game, game->selected_tile);
+
+  return 0;
 }

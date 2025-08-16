@@ -777,7 +777,7 @@ std::pair<std::string, Operation::DataType> GenerateIR::generateFunctionCall(Com
 
     Operation::DataType returnType = ASTTypeToIRType(data, ((Function*)declarations[functionCall->identifier]->dataType.get())->returnType.get());
 
-    data.irProgram.emplace_back(Operation{returnType, Operation::Call, {std::to_string((uintptr_t)functionCall) + "_ReturnValue", functionCall->identifier}});
+    data.irProgram.emplace_back(Operation{returnType, Operation::Call, {functionCall->identifier, std::to_string((uintptr_t)functionCall) + "_ReturnValue"}});
     return {std::to_string((uintptr_t)functionCall) + "_ReturnValue", returnType};
   } else
   {
@@ -1099,17 +1099,26 @@ bool GenerateIR::resolveConstantOperations(std::vector<Operation> &irProgram)
 
   for (std::vector<Operation>::iterator i = irProgram.begin(); i != irProgram.end(); i++)
   {
+    if (vars.contains(i->operands[1]))
+    {
+      i->operands[1] = vars[i->operands[1]];
+      changed = true;
+    } else if (vars.contains(i->operands[2]))
+    {
+      i->operands[2] = vars[i->operands[2]];
+      changed = true;
+    }
+
     switch (i->code)
     {
       case Operation::Set:
-        if (i->operands[1].find_first_not_of("0123456789") == std::string::npos)
+        if (i->operands[1].find_first_not_of(".0123456789") == std::string::npos)
         {
           vars[i->operands[0]] = i->operands[1];
-        } else if (vars.contains(i->operands[1]))
-        {
-          i->operands[1] = vars[i->operands[1]];
-          changed = true;
         }
+        break;
+      case Operation::GetAddress:
+
         break;
       case Operation::Return:
         if (vars.contains(i->operands[0]))
@@ -1118,56 +1127,170 @@ bool GenerateIR::resolveConstantOperations(std::vector<Operation> &irProgram)
           changed = true;
         }
         break;
+      case Operation::AddArg:
+        if (vars.contains(i->operands[0]))
+        {
+          i->operands[0] = vars[i->operands[0]];
+          changed = true;
+        }
+        break;
+      case Operation::JumpIfZero:
+        if (vars.contains(i->operands[0]))
+        {
+          if (std::stoi(vars[i->operands[0]]) == 0)
+          {
+            i->code = Operation::Jump;
+          } else
+          {
+            irProgram.erase(i--);
+          }
+          changed = true;
+        }
+        break;
+      case Operation::JumpIfNotZero:
+        if (vars.contains(i->operands[0]))
+        {
+          if (std::stoi(vars[i->operands[0]]) != 0)
+          {
+            i->code = Operation::Jump;
+          } else
+          {
+            irProgram.erase(i--);
+          }
+          changed = true;
+        }
+        break;
       case Operation::DereferenceLValue:
+
+        break;
       case Operation::DereferenceRValue:
+
+        break;
       case Operation::SetAddition:
-        if (i->operands[1].find_first_not_of("0123456789") == std::string::npos && i->operands[2].find_first_not_of("0123456789") == std::string::npos)
+        if (i->operands[1].find_first_not_of(".0123456789") == std::string::npos && i->operands[2].find_first_not_of(".0123456789") == std::string::npos)
         {
           vars[i->operands[0]] = std::to_string(std::stoi(i->operands[1]) + std::stoi(i->operands[2]));
-        } else if (vars.contains(i->operands[1]))
-        {
-          i->operands[1] = vars[i->operands[1]];
-          changed = true;
-        } else if (vars.contains(i->operands[2]))
-        {
-          i->operands[2] = vars[i->operands[2]];
-          changed = true;
         }
         break;
       case Operation::SetSubtraction:
+        if (i->operands[1].find_first_not_of(".0123456789") == std::string::npos && i->operands[2].find_first_not_of(".0123456789") == std::string::npos)
+        {
+          vars[i->operands[0]] = std::to_string(std::stoi(i->operands[1]) - std::stoi(i->operands[2]));
+        }
+        break;
       case Operation::SetMultiplication:
+        if (i->operands[1].find_first_not_of(".0123456789") == std::string::npos && i->operands[2].find_first_not_of(".0123456789") == std::string::npos)
+        {
+          vars[i->operands[0]] = std::to_string(std::stoi(i->operands[1]) * std::stoi(i->operands[2]));
+        }
+        break;
       case Operation::SetDivision:
+        if (i->operands[1].find_first_not_of(".0123456789") == std::string::npos && i->operands[2].find_first_not_of(".0123456789") == std::string::npos)
+        {
+          vars[i->operands[0]] = std::to_string(std::stoi(i->operands[1]) / std::stoi(i->operands[2]));
+        }
+        break;
       case Operation::SetModulo:
+        if (i->operands[1].find_first_not_of(".0123456789") == std::string::npos && i->operands[2].find_first_not_of(".0123456789") == std::string::npos)
+        {
+          vars[i->operands[0]] = std::to_string(std::stoi(i->operands[1]) % std::stoi(i->operands[2]));
+        }
+        break;
       case Operation::SetBitwiseAND:
+        if (i->operands[1].find_first_not_of(".0123456789") == std::string::npos && i->operands[2].find_first_not_of(".0123456789") == std::string::npos)
+        {
+          vars[i->operands[0]] = std::to_string(std::stoi(i->operands[1]) & std::stoi(i->operands[2]));
+        }
+        break;
       case Operation::SetBitwiseOR:
+        if (i->operands[1].find_first_not_of(".0123456789") == std::string::npos && i->operands[2].find_first_not_of(".0123456789") == std::string::npos)
+        {
+          vars[i->operands[0]] = std::to_string(std::stoi(i->operands[1]) | std::stoi(i->operands[2]));
+        }
+        break;
       case Operation::SetBitwiseXOR:
+        if (i->operands[1].find_first_not_of(".0123456789") == std::string::npos && i->operands[2].find_first_not_of(".0123456789") == std::string::npos)
+        {
+          vars[i->operands[0]] = std::to_string(std::stoi(i->operands[1]) ^ std::stoi(i->operands[2]));
+        }
+        break;
       case Operation::SetLeftShift:
-        if (i->operands[1].find_first_not_of("0123456789") == std::string::npos && i->operands[2].find_first_not_of("0123456789") == std::string::npos)
+        if (i->operands[1].find_first_not_of(".0123456789") == std::string::npos && i->operands[2].find_first_not_of(".0123456789") == std::string::npos)
         {
           vars[i->operands[0]] = std::to_string(std::stoi(i->operands[1]) << std::stoi(i->operands[2]));
-        } else if (vars.contains(i->operands[1]))
-        {
-          i->operands[1] = vars[i->operands[1]];
-          changed = true;
-        } else if (vars.contains(i->operands[2]))
-        {
-          i->operands[2] = vars[i->operands[2]];
-          changed = true;
         }
         break;
       case Operation::SetRightShift:
+        if (i->operands[1].find_first_not_of(".0123456789") == std::string::npos && i->operands[2].find_first_not_of(".0123456789") == std::string::npos)
+        {
+          vars[i->operands[0]] = std::to_string(std::stoi(i->operands[1]) >> std::stoi(i->operands[2]));
+        }
+        break;
       case Operation::SetLogicalAND:
+        if (i->operands[1].find_first_not_of(".0123456789") == std::string::npos && i->operands[2].find_first_not_of(".0123456789") == std::string::npos)
+        {
+          vars[i->operands[0]] = std::to_string(std::stoi(i->operands[1]) && std::stoi(i->operands[2]));
+        }
+        break;
       case Operation::SetLogicalOR:
+        if (i->operands[1].find_first_not_of(".0123456789") == std::string::npos && i->operands[2].find_first_not_of(".0123456789") == std::string::npos)
+        {
+          vars[i->operands[0]] = std::to_string(std::stoi(i->operands[1]) || std::stoi(i->operands[2]));
+        }
+        break;
       case Operation::SetEqual:
+        if (i->operands[1].find_first_not_of(".0123456789") == std::string::npos && i->operands[2].find_first_not_of(".0123456789") == std::string::npos)
+        {
+          vars[i->operands[0]] = std::to_string(std::stoi(i->operands[1]) == std::stoi(i->operands[2]));
+        }
+        break;
       case Operation::SetNotEqual:
+        if (i->operands[1].find_first_not_of(".0123456789") == std::string::npos && i->operands[2].find_first_not_of(".0123456789") == std::string::npos)
+        {
+          vars[i->operands[0]] = std::to_string(std::stoi(i->operands[1]) != std::stoi(i->operands[2]));
+        }
+        break;
       case Operation::SetGreater:
+        if (i->operands[1].find_first_not_of(".0123456789") == std::string::npos && i->operands[2].find_first_not_of(".0123456789") == std::string::npos)
+        {
+          vars[i->operands[0]] = std::to_string(std::stoi(i->operands[1]) > std::stoi(i->operands[2]));
+        }
+        break;
       case Operation::SetLesser:
+        if (i->operands[1].find_first_not_of(".0123456789") == std::string::npos && i->operands[2].find_first_not_of(".0123456789") == std::string::npos)
+        {
+          vars[i->operands[0]] = std::to_string(std::stoi(i->operands[1]) < std::stoi(i->operands[2]));
+        }
+        break;
       case Operation::SetGreaterOrEqual:
+        if (i->operands[1].find_first_not_of(".0123456789") == std::string::npos && i->operands[2].find_first_not_of(".0123456789") == std::string::npos)
+        {
+          vars[i->operands[0]] = std::to_string(std::stoi(i->operands[1]) >= std::stoi(i->operands[2]));
+        }
+        break;
       case Operation::SetLesserOrEqual:
+        if (i->operands[1].find_first_not_of(".0123456789") == std::string::npos && i->operands[2].find_first_not_of(".0123456789") == std::string::npos)
+        {
+          vars[i->operands[0]] = std::to_string(std::stoi(i->operands[1]) <= std::stoi(i->operands[2]));
+        }
+        break;
       case Operation::Negate:
+        if (i->operands[1].find_first_not_of(".0123456789") == std::string::npos)
+        {
+          vars[i->operands[0]] = std::to_string(-std::stoi(i->operands[1]));
+        }
+        break;
       case Operation::LogicalNOT:
+        if (i->operands[1].find_first_not_of(".0123456789") == std::string::npos)
+        {
+          vars[i->operands[0]] = std::to_string(!std::stoi(i->operands[1]));
+        }
+        break;
       case Operation::BitwiseNOT:
-        vars.erase(i->operands[0]);
+        if (i->operands[1].find_first_not_of(".0123456789") == std::string::npos)
+        {
+          vars[i->operands[0]] = std::to_string(~std::stoi(i->operands[1]));
+        }
         break;
       case Operation::Label:
         vars.clear();
@@ -1187,17 +1310,19 @@ bool GenerateIR::trimInaccessibleCode(std::vector<Operation> &irProgram)
 
   for (std::vector<Operation>::iterator i = irProgram.begin(); i != irProgram.end(); i++)
   {
+    if (i->code == Operation::Label)
+    {
+      identifiers[i->operands[0]] |= 2;
+      accessible = true;
+    }
+
     if (!accessible)
     {
       irProgram.erase(i--);
       changed = true;
     }
 
-    if (i->code == Operation::Label)
-    {
-      identifiers[i->operands[0]] |= 2;
-      accessible = true;
-    } else if (i->code == Operation::Jump || i->code == Operation::Return)
+    if (i->code == Operation::Jump || i->code == Operation::Return)
     {
       accessible = false;
     }
@@ -1236,40 +1361,41 @@ bool GenerateIR::trimInaccessibleCode(std::vector<Operation> &irProgram)
       {
         identifiers[i->operands[0]] |= 2;
       }
-      if (!i->operands[1].empty() && i->operands[1].find_first_not_of("0123456789") != std::string::npos)
+      if (!i->operands[1].empty() && i->operands[1].find_first_not_of(".0123456789") != std::string::npos)
       {
         identifiers[i->operands[1]] |= 1;
       }
-      if (!i->operands[2].empty() && i->operands[2].find_first_not_of("0123456789") != std::string::npos)
+      if (!i->operands[2].empty() && i->operands[2].find_first_not_of(".0123456789") != std::string::npos)
       {
         identifiers[i->operands[2]] |= 1;
       }
     } else if (i->code != Operation::Label && 
       i->code != Operation::Jump)
     {
-      if (!i->operands[0].empty() && i->operands[0].find_first_not_of("0123456789") != std::string::npos)
+      if (!i->operands[0].empty() && i->operands[0].find_first_not_of(".0123456789") != std::string::npos)
       {
         identifiers[i->operands[0]] |= 1;
       }
-      if (!i->operands[1].empty() && i->operands[1].find_first_not_of("0123456789") != std::string::npos)
+      if (!i->operands[1].empty() && i->operands[1].find_first_not_of(".0123456789") != std::string::npos)
       {
         identifiers[i->operands[1]] |= 1;
       }
-      if (!i->operands[2].empty() && i->operands[2].find_first_not_of("0123456789") != std::string::npos)
+      if (!i->operands[2].empty() && i->operands[2].find_first_not_of(".0123456789") != std::string::npos)
       {
         identifiers[i->operands[2]] |= 1;
       }
     }
   }
 
-  while (!identifiers.empty() && (identifiers.begin()->second != 2 || identifiers.begin()->first == "main_Function"))
+  // This marks certain values to be kept
+  while (!identifiers.empty() && (identifiers.begin()->second != 2 || identifiers.begin()->first == "main"))
   {
     identifiers.erase(identifiers.begin());
   }
 
   for (std::map<std::string, uint8_t>::iterator l = identifiers.begin(); l != identifiers.end(); l++)
   {
-    if (l->second != 2 || l->first == "main_Function")
+    if (l->second != 2 || l->first == "main")
     {
       identifiers.erase(l--);
     }
@@ -1312,7 +1438,7 @@ bool GenerateIR::trimInaccessibleCode(std::vector<Operation> &irProgram)
       {
         if (i->operands[0] == l->first)
         {
-          irProgram.erase(i--);
+          irProgram.erase(i);
           changed = true;
         }
       }
