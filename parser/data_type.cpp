@@ -454,6 +454,14 @@ DataType* DataType::parse(CommonParseData& data, std::list<Token>::iterator orig
     function->returnType = std::unique_ptr<DataType>(DataType::parse(data, origin));
   } else
   {
+    bool isConst = false;
+    if (origin->data == "const")
+    {
+      isConst = true;
+
+      data.code.erase(origin--);
+    }
+
     if (origin->type == Token::Keyword && (
       origin->data == "void" ||
       origin->data == "signed" ||
@@ -530,6 +538,13 @@ DataType* DataType::parse(CommonParseData& data, std::list<Token>::iterator orig
       {
         data.code.erase(origin--);
         ((PrimitiveType*)dataType)->isSigned = false;
+      }
+
+      if (origin->data == "const")
+      {
+        isConst = true;
+
+        data.code.erase(origin--);
       }
     } else if (origin->type == Token::Identifier)
     {
@@ -633,6 +648,8 @@ DataType* DataType::parse(CommonParseData& data, std::list<Token>::iterator orig
 
       dataType = parse(data, origin);
     }
+
+    dataType->isConst = isConst;
   }
 
   if (identifier.type == Token::Identifier)
