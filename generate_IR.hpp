@@ -89,7 +89,7 @@ struct IRprogram
   struct Function
   {
     // value.first is the parameter index, value.second is the parameter type
-    std::map<std::string, std::pair<uint8_t, Operation::DataType>> parameters;
+    std::vector<std::pair<std::string, Operation::DataType>> parameters;
     std::vector<Operation> body;
   };
   std::vector<Function> program;
