@@ -20,7 +20,7 @@ ForLoop* ForLoop::parse(CommonParseData& data)
 
   if (data.code.front().data != ";")
   {
-    if (data.code.front().type == Token::Keyword)
+    if (data.code.front().type == Token::Keyword || data.program->typedefs.contains(data.code.front().data))
     {
       forLoop->initialization = std::unique_ptr<Declaration>(Declaration::parse(data));
     } else

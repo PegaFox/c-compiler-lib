@@ -15,6 +15,7 @@ struct Expression;
 struct Constant;
 struct DataType;
 struct Declaration;
+struct ForLoop;
 
 typedef int32_t ENUM_TYPE;
 //typedef uint8_t PFCC_SIZE_T;
@@ -29,6 +30,7 @@ class Program: public ASTnode
     friend Constant;
     friend DataType;
     friend Declaration;
+    friend ForLoop;
 
     std::vector<std::unique_ptr<ASTnode>> nodes;
 
