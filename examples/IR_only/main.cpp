@@ -16,7 +16,7 @@ int main(int argc, char* argv[])
   
   compiler.includeDirs.emplace_back("./include/");
 
-  std::vector<Operation> irCode = compiler.compileFromArgs(argc, argv);
+  IRprogram irCode = compiler.compileFromArgs(argc, argv);
 
   std::ofstream outFile(compiler.outputFilename);
 

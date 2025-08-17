@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-struct Operation;
+struct IRprogram;
 
 class Program;
 
@@ -41,9 +41,10 @@ class Compiler
 
     Compiler();
 
-    Compiler(int argc, char* argv[], std::vector<Operation>& irCode);
+    // Populates an empty program (provided by reference) with IR
+    Compiler(int argc, char* argv[], IRprogram& irCode);
 
-    std::vector<Operation> compileFromArgs(int argc, char* argv[]);
+    IRprogram compileFromArgs(int argc, char* argv[]);
 
     int handleArgs(int argc, char* argv[]);
 
@@ -51,7 +52,7 @@ class Compiler
 
     static void optimizeAST(Program& AST);
   
-    static std::string printIR(const std::vector<Operation>& irCode);
+    static std::string printIR(const IRprogram& irCode);
 };
 
 #endif // PF_COMPILER_HPP

@@ -84,24 +84,37 @@ struct Operation
   std::string operands[3];
 };
 
+struct IRprogram
+{
+  struct Function
+  {
+    // value.first is the parameter index, value.second is the parameter type
+    std::map<std::string, std::pair<uint8_t, Operation::DataType>> parameters;
+    std::vector<Operation> body;
+  };
+  std::vector<Function> program;
+};
 
 class GenerateIR
 {
   public:
-    
     struct IRGenError
     {
 
     };
 
-    std::vector<Operation> generateIR(const Program& AST, uint8_t pointerSize);
+    IRprogram generateIR(const Program& AST, uint8_t pointerSize);
 
-    void optimizeIR(std::vector<Operation> &asmCode);
+    void optimizeIR(IRprogram& asmCode);
 
   private:
     struct CommonIRData
     {
-      std::vector<Operation> irProgram;
+      // Pointer to the body of the function currently being filled
+      std::vector<Operation>* instrArray = nullptr;
+
+      IRprogram irProgram;
+
       Compiler::TypeSizes typeSizes;
     };
 
@@ -163,9 +176,9 @@ class GenerateIR
 
     std::pair<std::string, Operation::DataType> generateTernaryOperator(CommonIRData& data, const TernaryOperator* ternary);
 
-    bool resolveConstantOperations(std::vector<Operation> &absCode);
+    bool resolveConstantOperations(IRprogram& irProgram);
 
-    bool trimInaccessibleCode(std::vector<Operation> &absCode);
+    bool trimInaccessibleCode(IRprogram& irProgram);
 };
 
 #endif // PF_GENERATE_IR_HPP

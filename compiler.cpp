@@ -16,16 +16,16 @@ Compiler::Compiler()
 
 }
 
-Compiler::Compiler(int argc, char* argv[], std::vector<Operation>& irCode)
+Compiler::Compiler(int argc, char* argv[], IRprogram& irCode)
 {
   irCode = compileFromArgs(argc, argv);
 }
 
-std::vector<Operation> Compiler::compileFromArgs(int argc, char* argv[])
+IRprogram Compiler::compileFromArgs(int argc, char* argv[])
 {
   handleArgs(argc, argv);
 
-  std::vector<Operation> irCode;
+  IRprogram irCode;
 
   for (std::string& inputFilename: inputFilenames)
   {
@@ -56,8 +56,8 @@ std::vector<Operation> Compiler::compileFromArgs(int argc, char* argv[])
       //PrintAST printer(AST);
 
       GenerateIR irEngine;
-      std::vector<Operation> localIR = irEngine.generateIR(AST, typeSizes.pointerSize);
-      irCode.insert(irCode.cend(), localIR.cbegin(), localIR.cend());
+      IRprogram localIR = irEngine.generateIR(AST, typeSizes.pointerSize);
+      irCode.program.insert(irCode.program.cend(), localIR.program.cbegin(), localIR.program.cend());
 
       //fileText = printIR(irCode);
       //std::cout << "Intermediate Representation:\n" << fileText << '\n';
@@ -164,139 +164,139 @@ void Compiler::optimizeAST(Program& AST)
   } while (changed);
 }
 
-std::string Compiler::printIR(const std::vector<Operation>& irCode)
+std::string Compiler::printIR(const IRprogram& irCode)
 {
   std::stringstream fileData;
 
-  for (const Operation& operation : irCode)
+  for (const IRprogram::Function& function: irCode.program)
   {
-    if (operation.type.isFloating)
+    fileData << "\nFunction:\n";
+    for (const Operation& operation: function.body)
     {
-      fileData << 'f';
-    } else if (operation.type.isSigned)
-    {
-      fileData << 'i';
-    } else if (!operation.type.identifier.empty())
-    {
-      fileData << "struct " << operation.type.identifier << ':';
-    } else
-    {
-      fileData << 'u';
-    }
+      if (operation.type.isFloating)
+      {
+        fileData << 'f';
+      } else if (operation.type.isSigned)
+      {
+        fileData << 'i';
+      } else if (!operation.type.identifier.empty())
+      {
+        fileData << "struct " << operation.type.identifier << ':';
+      } else
+      {
+        fileData << 'u';
+      }
 
-    if (operation.type.arrayLength > 0)
-    {
-      fileData << operation.type.size << ':' << (int)operation.type.alignment << std::string(operation.type.pointerDepth-1, '*');
-      fileData << '[' << operation.type.arrayLength << ']';
-    } else
-    {
-      fileData << operation.type.size << ':' << (int)operation.type.alignment << std::string(operation.type.pointerDepth, '*');
-    }
+      if (operation.type.arrayLength > 0)
+      {
+        fileData << operation.type.size << ':' << (int)operation.type.alignment << std::string(operation.type.pointerDepth-1, '*');
+        fileData << '[' << operation.type.arrayLength << ']';
+      } else
+      {
+        fileData << operation.type.size << ':' << (int)operation.type.alignment << std::string(operation.type.pointerDepth, '*');
+      }
 
-    fileData << ' ';
+      fileData << ' ';
 
-    switch (operation.code)
-    {
-      case Operation::Set:
-        fileData << operation.operands[0] << " = " << operation.operands[1] << '\n';
-        break;
-      case Operation::GetAddress:
-        fileData << operation.operands[0] << " = &" << operation.operands[1] << '\n';
-        break;
-      case Operation::DereferenceRValue:
-        fileData << operation.operands[0] << " = *" << operation.operands[1] << '\n';
-        break;
-      case Operation::DereferenceLValue:
-        fileData << "*" << operation.operands[0] << " = " << operation.operands[1] << '\n';
-        break;
-      case Operation::SetAddition:
-        fileData << operation.operands[0] << " = " << operation.operands[1] << " + " << operation.operands[2] << '\n';
-        break;
-      case Operation::SetSubtraction:
-        fileData << operation.operands[0] << " = " << operation.operands[1] << " - " << operation.operands[2] << '\n';
-        break;
-      case Operation::SetMultiplication:
-        fileData << operation.operands[0] << " = " << operation.operands[1] << " * " << operation.operands[2] << '\n';
-        break;
-      case Operation::SetDivision:
-        fileData << operation.operands[0] << " = " << operation.operands[1] << " / " << operation.operands[2] << '\n';
-        break;
-      case Operation::SetModulo:
-        fileData << operation.operands[0] << " = " << operation.operands[1] << " % " << operation.operands[2] << '\n';
-        break;
-      case Operation::SetBitwiseAND:
-        fileData << operation.operands[0] << " = " << operation.operands[1] << " & " << operation.operands[2] << '\n';
-        break;
-      case Operation::SetBitwiseOR:
-        fileData << operation.operands[0] << " = " << operation.operands[1] << " | " << operation.operands[2] << '\n';
-        break;
-      case Operation::SetBitwiseXOR:
-        fileData << operation.operands[0] << " = " << operation.operands[1] << " ^ " << operation.operands[2] << '\n';
-        break;
-      case Operation::SetLeftShift:
-        fileData << operation.operands[0] << " = " << operation.operands[1] << " << " << operation.operands[2] << '\n';
-        break;
-      case Operation::SetRightShift:
-        fileData << operation.operands[0] << " = " << operation.operands[1] << " >> " << operation.operands[2] << '\n';
-        break;
-      case Operation::SetLogicalAND:
-        fileData << operation.operands[0] << " = " << operation.operands[1] << " && " << operation.operands[2] << '\n';
-        break;
-      case Operation::SetLogicalOR:
-        fileData << operation.operands[0] << " = " << operation.operands[1] << " || " << operation.operands[2] << '\n';
-        break;
-      case Operation::SetEqual:
-        fileData << operation.operands[0] << " = " << operation.operands[1] << " == " << operation.operands[2] << '\n';
-        break;
-      case Operation::SetNotEqual:
-        fileData << operation.operands[0] << " = " << operation.operands[1] << " != " << operation.operands[2] << '\n';
-        break;
-      case Operation::SetGreater:
-        fileData << operation.operands[0] << " = " << operation.operands[1] << " > " << operation.operands[2] << '\n';
-        break;
-      case Operation::SetLesser:
-        fileData << operation.operands[0] << " = " << operation.operands[1] << " < " << operation.operands[2] << '\n';
-        break;
-      case Operation::SetGreaterOrEqual:
-        fileData << operation.operands[0] << " = " << operation.operands[1] << " >= " << operation.operands[2] << '\n';
-        break;
-      case Operation::SetLesserOrEqual:
-        fileData << operation.operands[0] << " = " << operation.operands[1] << " <= " << operation.operands[2] << '\n';
-        break;
-      case Operation::Negate:
-        fileData << operation.operands[0] << " = -" << operation.operands[1] << '\n';
-        break;
-      case Operation::LogicalNOT:
-        fileData << operation.operands[0] << " = !" << operation.operands[1] << '\n';
-        break;
-      case Operation::BitwiseNOT:
-        fileData << operation.operands[0] << " = ~" << operation.operands[1] << '\n';
-        break;
-      case Operation::Label:
-        fileData << operation.operands[0] << ":\n";
-        break;
-      case Operation::Return:
-        fileData << "Return " << operation.operands[0] << '\n';
-        if (operation.operands[0].empty())
-        {
-          fileData << "\n";
-        }
-        break;
-      case Operation::AddArg:
-        fileData << "AddArg " << operation.operands[0] << '\n';
-        break;
-      case Operation::Call:
-        fileData << "Call " << operation.operands[0] << " -> " << operation.operands[1] << '\n';
-        break;
-      case Operation::Jump:
-        fileData << "Jump " << operation.operands[0] << '\n';
-        break;
-      case Operation::JumpIfZero:
-        fileData << "Jump " << operation.operands[0] << " if " << operation.operands[1] << " == 0\n";
-        break;
-      case Operation::JumpIfNotZero:
-        fileData << "Jump " << operation.operands[0] << " if " << operation.operands[1] << " != 0\n";
-        break;
+      switch (operation.code)
+      {
+        case Operation::Set:
+          fileData << operation.operands[0] << " = " << operation.operands[1] << '\n';
+          break;
+        case Operation::GetAddress:
+          fileData << operation.operands[0] << " = &" << operation.operands[1] << '\n';
+          break;
+        case Operation::DereferenceRValue:
+          fileData << operation.operands[0] << " = *" << operation.operands[1] << '\n';
+          break;
+        case Operation::DereferenceLValue:
+          fileData << "*" << operation.operands[0] << " = " << operation.operands[1] << '\n';
+          break;
+        case Operation::SetAddition:
+          fileData << operation.operands[0] << " = " << operation.operands[1] << " + " << operation.operands[2] << '\n';
+          break;
+        case Operation::SetSubtraction:
+          fileData << operation.operands[0] << " = " << operation.operands[1] << " - " << operation.operands[2] << '\n';
+          break;
+        case Operation::SetMultiplication:
+          fileData << operation.operands[0] << " = " << operation.operands[1] << " * " << operation.operands[2] << '\n';
+          break;
+        case Operation::SetDivision:
+          fileData << operation.operands[0] << " = " << operation.operands[1] << " / " << operation.operands[2] << '\n';
+          break;
+        case Operation::SetModulo:
+          fileData << operation.operands[0] << " = " << operation.operands[1] << " % " << operation.operands[2] << '\n';
+          break;
+        case Operation::SetBitwiseAND:
+          fileData << operation.operands[0] << " = " << operation.operands[1] << " & " << operation.operands[2] << '\n';
+          break;
+        case Operation::SetBitwiseOR:
+          fileData << operation.operands[0] << " = " << operation.operands[1] << " | " << operation.operands[2] << '\n';
+          break;
+        case Operation::SetBitwiseXOR:
+          fileData << operation.operands[0] << " = " << operation.operands[1] << " ^ " << operation.operands[2] << '\n';
+          break;
+        case Operation::SetLeftShift:
+          fileData << operation.operands[0] << " = " << operation.operands[1] << " << " << operation.operands[2] << '\n';
+          break;
+        case Operation::SetRightShift:
+          fileData << operation.operands[0] << " = " << operation.operands[1] << " >> " << operation.operands[2] << '\n';
+          break;
+        case Operation::SetLogicalAND:
+          fileData << operation.operands[0] << " = " << operation.operands[1] << " && " << operation.operands[2] << '\n';
+          break;
+        case Operation::SetLogicalOR:
+          fileData << operation.operands[0] << " = " << operation.operands[1] << " || " << operation.operands[2] << '\n';
+          break;
+        case Operation::SetEqual:
+          fileData << operation.operands[0] << " = " << operation.operands[1] << " == " << operation.operands[2] << '\n';
+          break;
+        case Operation::SetNotEqual:
+          fileData << operation.operands[0] << " = " << operation.operands[1] << " != " << operation.operands[2] << '\n';
+          break;
+        case Operation::SetGreater:
+          fileData << operation.operands[0] << " = " << operation.operands[1] << " > " << operation.operands[2] << '\n';
+          break;
+        case Operation::SetLesser:
+          fileData << operation.operands[0] << " = " << operation.operands[1] << " < " << operation.operands[2] << '\n';
+          break;
+        case Operation::SetGreaterOrEqual:
+          fileData << operation.operands[0] << " = " << operation.operands[1] << " >= " << operation.operands[2] << '\n';
+          break;
+        case Operation::SetLesserOrEqual:
+          fileData << operation.operands[0] << " = " << operation.operands[1] << " <= " << operation.operands[2] << '\n';
+          break;
+        case Operation::Negate:
+          fileData << operation.operands[0] << " = -" << operation.operands[1] << '\n';
+          break;
+        case Operation::LogicalNOT:
+          fileData << operation.operands[0] << " = !" << operation.operands[1] << '\n';
+          break;
+        case Operation::BitwiseNOT:
+          fileData << operation.operands[0] << " = ~" << operation.operands[1] << '\n';
+          break;
+        case Operation::Label:
+          fileData << operation.operands[0] << ":\n";
+          break;
+        case Operation::Return:
+          fileData << "Return " << operation.operands[0] << '\n';
+          break;
+        case Operation::AddArg:
+          fileData << "AddArg " << operation.operands[0] << '\n';
+          break;
+        case Operation::Call:
+          fileData << "Call " << operation.operands[0] << " -> " << operation.operands[1] << '\n';
+          break;
+        case Operation::Jump:
+          fileData << "Jump " << operation.operands[0] << '\n';
+          break;
+        case Operation::JumpIfZero:
+          fileData << "Jump " << operation.operands[0] << " if " << operation.operands[1] << " == 0\n";
+          break;
+        case Operation::JumpIfNotZero:
+          fileData << "Jump " << operation.operands[0] << " if " << operation.operands[1] << " != 0\n";
+          break;
+      }
     }
   }
 

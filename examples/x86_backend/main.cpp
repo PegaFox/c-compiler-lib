@@ -22,7 +22,7 @@ int main(int argc, char* argv[])
   
   compiler.includeDirs.emplace_back("./include/");
 
-  std::vector<Operation> irCode = compiler.compileFromArgs(argc, argv);
+  IRprogram irCode = compiler.compileFromArgs(argc, argv);
 
   std::vector<std::array<std::string, 3>> asmCode = generateASM(irCode, compiler.outputFilename);
 

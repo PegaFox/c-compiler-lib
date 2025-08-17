@@ -11,7 +11,7 @@ std::string generateRegisterName(uint8_t index, uint8_t size);
 
 constexpr std::string getSuffix(uint8_t size);
 
-std::vector<std::array<std::string, 3>> generateASM(const std::vector<Operation>& irCode, std::string& outputFilename)
+std::vector<std::array<std::string, 3>> generateASM(const IRprogram& irCode, std::string& outputFilename)
 {
   std::vector<std::array<std::string, 3>> asmCode = {
     {".file", "\""+outputFilename+"\""},
@@ -21,118 +21,121 @@ std::vector<std::array<std::string, 3>> generateASM(const std::vector<Operation>
 
   std::map<std::string, uint16_t> variableLocations;
 
-  for (const Operation& irOp: irCode)
+  for (const IRprogram::Function& function: irCode.program)
   {
-    switch (irOp.code)
+    for (const Operation& irOp: function.body)
     {
-      case Operation::Set:
+      switch (irOp.code)
+      {
+        case Operation::Set:
 
-        break;
-      case Operation::GetAddress:
+          break;
+        case Operation::GetAddress:
 
-        break;
-      case Operation::DereferenceLValue:
+          break;
+        case Operation::DereferenceLValue:
 
-        break;
-      case Operation::DereferenceRValue:
+          break;
+        case Operation::DereferenceRValue:
 
-        break;
-      case Operation::SetAddition:
+          break;
+        case Operation::SetAddition:
 
-        break;
-      case Operation::SetSubtraction:
+          break;
+        case Operation::SetSubtraction:
 
-        break;
-      case Operation::SetMultiplication:
+          break;
+        case Operation::SetMultiplication:
 
-        break;
-      case Operation::SetDivision:
+          break;
+        case Operation::SetDivision:
 
-        break;
-      case Operation::SetModulo:
+          break;
+        case Operation::SetModulo:
 
-        break;
-      case Operation::SetBitwiseAND:
+          break;
+        case Operation::SetBitwiseAND:
 
-        break;
-      case Operation::SetBitwiseOR:
+          break;
+        case Operation::SetBitwiseOR:
 
-        break;
-      case Operation::SetBitwiseXOR:
+          break;
+        case Operation::SetBitwiseXOR:
 
-        break;
-      case Operation::SetLeftShift:
+          break;
+        case Operation::SetLeftShift:
 
-        break;
-      case Operation::SetRightShift:
+          break;
+        case Operation::SetRightShift:
 
-        break;
-      case Operation::SetLogicalAND:
+          break;
+        case Operation::SetLogicalAND:
 
-        break;
-      case Operation::SetLogicalOR:
+          break;
+        case Operation::SetLogicalOR:
 
-        break;
-      case Operation::SetEqual:
+          break;
+        case Operation::SetEqual:
 
-        break;
-      case Operation::SetNotEqual:
+          break;
+        case Operation::SetNotEqual:
 
-        break;
-      case Operation::SetGreater:
+          break;
+        case Operation::SetGreater:
 
-        break;
-      case Operation::SetLesser:
+          break;
+        case Operation::SetLesser:
 
-        break;
-      case Operation::SetGreaterOrEqual:
+          break;
+        case Operation::SetGreaterOrEqual:
 
-        break;
-      case Operation::SetLesserOrEqual:
+          break;
+        case Operation::SetLesserOrEqual:
 
-        break;
-      case Operation::Negate:
+          break;
+        case Operation::Negate:
 
-        break;
-      case Operation::LogicalNOT:
+          break;
+        case Operation::LogicalNOT:
 
-        break;
-      case Operation::BitwiseNOT:
+          break;
+        case Operation::BitwiseNOT:
 
-        break;
-      case Operation::Label:
-        asmCode.emplace_back(std::array<std::string, 3>{"l"+irOp.operands[0]+":"});
-        break;
-      case Operation::Return:
-        if (!irOp.operands[0].empty() && irOp.operands[0][0] >= '0' && irOp.operands[0][0] <= '9' && irOp.operands[0].find('_') == std::string::npos)
-        {
-          asmCode.insert(asmCode.end(), {
-            {"mov", generateRegisterName(0, irOp.type.size), irOp.operands[0]},
-            {"ret"}
-          });
-        }
-        break;
-      case Operation::AddArg:
-        /*if (irOp.operands[0].find_first_not_of(".0123456789") == std::string::npos)
-        {
-          asmCode.emplace_back(std::array<std::string, 3>{"push", irOp.operands[0]});
-        } else
-        {
-          asmCode.emplace_back(std::array<std::string, 3>{"push", generateRegisterName(0, irOp.type.size)});
-        }*/
-        break;
-      case Operation::Call:
+          break;
+        case Operation::Label:
+          asmCode.emplace_back(std::array<std::string, 3>{"l"+irOp.operands[0]+":"});
+          break;
+        case Operation::Return:
+          if (!irOp.operands[0].empty() && irOp.operands[0][0] >= '0' && irOp.operands[0][0] <= '9' && irOp.operands[0].find('_') == std::string::npos)
+          {
+            asmCode.insert(asmCode.end(), {
+              {"mov", generateRegisterName(0, irOp.type.size), irOp.operands[0]},
+              {"ret"}
+            });
+          }
+          break;
+        case Operation::AddArg:
+          /*if (irOp.operands[0].find_first_not_of(".0123456789") == std::string::npos)
+          {
+            asmCode.emplace_back(std::array<std::string, 3>{"push", irOp.operands[0]});
+          } else
+          {
+            asmCode.emplace_back(std::array<std::string, 3>{"push", generateRegisterName(0, irOp.type.size)});
+          }*/
+          break;
+        case Operation::Call:
 
-        break;
-      case Operation::Jump:
+          break;
+        case Operation::Jump:
 
-        break;
-      case Operation::JumpIfZero:
+          break;
+        case Operation::JumpIfZero:
 
-        break;
-      case Operation::JumpIfNotZero:
+          break;
+        case Operation::JumpIfNotZero:
 
-        break;
+          break;
+      }
     }
   }
 
