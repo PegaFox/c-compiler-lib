@@ -454,6 +454,7 @@ DataType* DataType::parse(CommonParseData& data, std::list<Token>::iterator orig
     function->returnType = std::unique_ptr<DataType>(DataType::parse(data, origin));
   } else
   {
+    bool isVolatile = false;
     bool isConst = false;
     if (origin->data == "const")
     {
@@ -538,6 +539,13 @@ DataType* DataType::parse(CommonParseData& data, std::list<Token>::iterator orig
       {
         data.code.erase(origin--);
         ((PrimitiveType*)dataType)->isSigned = false;
+      }
+
+      if (origin->data == "volatile")
+      {
+        isVolatile = true;
+
+        data.code.erase(origin--);
       }
 
       if (origin->data == "const")
@@ -649,6 +657,7 @@ DataType* DataType::parse(CommonParseData& data, std::list<Token>::iterator orig
       dataType = parse(data, origin);
     }
 
+    dataType->isVolatile = isVolatile;
     dataType->isConst = isConst;
   }
 
