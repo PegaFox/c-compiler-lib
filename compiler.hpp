@@ -6,6 +6,7 @@
 #include <vector>
 
 struct IRprogram;
+struct Operation;
 
 class Program;
 
@@ -53,6 +54,7 @@ class Compiler
     static void optimizeAST(Program& AST);
   
     static std::string printIR(const IRprogram& irCode);
+    static std::string printIRoperation(const Operation& irOperation);
 };
 
 #endif // PF_COMPILER_HPP

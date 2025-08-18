@@ -166,139 +166,148 @@ void Compiler::optimizeAST(Program& AST)
 
 std::string Compiler::printIR(const IRprogram& irCode)
 {
-  std::stringstream fileData;
+  std::stringstream irString;
 
   for (const IRprogram::Function& function: irCode.program)
   {
-    fileData << "\nFunction:\n";
+    irString << "\nFunction:\n";
     for (const Operation& operation: function.body)
     {
-      if (operation.type.isFloating)
-      {
-        fileData << 'f';
-      } else if (operation.type.isSigned)
-      {
-        fileData << 'i';
-      } else if (!operation.type.identifier.empty())
-      {
-        fileData << "struct " << operation.type.identifier << ':';
-      } else
-      {
-        fileData << 'u';
-      }
-
-      if (operation.type.arrayLength > 0)
-      {
-        fileData << operation.type.size << ':' << (int)operation.type.alignment << std::string(operation.type.pointerDepth-1, '*');
-        fileData << '[' << operation.type.arrayLength << ']';
-      } else
-      {
-        fileData << operation.type.size << ':' << (int)operation.type.alignment << std::string(operation.type.pointerDepth, '*');
-      }
-
-      fileData << ' ';
-
-      switch (operation.code)
-      {
-        case Operation::Set:
-          fileData << operation.operands[0] << " = " << operation.operands[1] << '\n';
-          break;
-        case Operation::GetAddress:
-          fileData << operation.operands[0] << " = &" << operation.operands[1] << '\n';
-          break;
-        case Operation::DereferenceRValue:
-          fileData << operation.operands[0] << " = *" << operation.operands[1] << '\n';
-          break;
-        case Operation::DereferenceLValue:
-          fileData << "*" << operation.operands[0] << " = " << operation.operands[1] << '\n';
-          break;
-        case Operation::SetAddition:
-          fileData << operation.operands[0] << " = " << operation.operands[1] << " + " << operation.operands[2] << '\n';
-          break;
-        case Operation::SetSubtraction:
-          fileData << operation.operands[0] << " = " << operation.operands[1] << " - " << operation.operands[2] << '\n';
-          break;
-        case Operation::SetMultiplication:
-          fileData << operation.operands[0] << " = " << operation.operands[1] << " * " << operation.operands[2] << '\n';
-          break;
-        case Operation::SetDivision:
-          fileData << operation.operands[0] << " = " << operation.operands[1] << " / " << operation.operands[2] << '\n';
-          break;
-        case Operation::SetModulo:
-          fileData << operation.operands[0] << " = " << operation.operands[1] << " % " << operation.operands[2] << '\n';
-          break;
-        case Operation::SetBitwiseAND:
-          fileData << operation.operands[0] << " = " << operation.operands[1] << " & " << operation.operands[2] << '\n';
-          break;
-        case Operation::SetBitwiseOR:
-          fileData << operation.operands[0] << " = " << operation.operands[1] << " | " << operation.operands[2] << '\n';
-          break;
-        case Operation::SetBitwiseXOR:
-          fileData << operation.operands[0] << " = " << operation.operands[1] << " ^ " << operation.operands[2] << '\n';
-          break;
-        case Operation::SetLeftShift:
-          fileData << operation.operands[0] << " = " << operation.operands[1] << " << " << operation.operands[2] << '\n';
-          break;
-        case Operation::SetRightShift:
-          fileData << operation.operands[0] << " = " << operation.operands[1] << " >> " << operation.operands[2] << '\n';
-          break;
-        case Operation::SetLogicalAND:
-          fileData << operation.operands[0] << " = " << operation.operands[1] << " && " << operation.operands[2] << '\n';
-          break;
-        case Operation::SetLogicalOR:
-          fileData << operation.operands[0] << " = " << operation.operands[1] << " || " << operation.operands[2] << '\n';
-          break;
-        case Operation::SetEqual:
-          fileData << operation.operands[0] << " = " << operation.operands[1] << " == " << operation.operands[2] << '\n';
-          break;
-        case Operation::SetNotEqual:
-          fileData << operation.operands[0] << " = " << operation.operands[1] << " != " << operation.operands[2] << '\n';
-          break;
-        case Operation::SetGreater:
-          fileData << operation.operands[0] << " = " << operation.operands[1] << " > " << operation.operands[2] << '\n';
-          break;
-        case Operation::SetLesser:
-          fileData << operation.operands[0] << " = " << operation.operands[1] << " < " << operation.operands[2] << '\n';
-          break;
-        case Operation::SetGreaterOrEqual:
-          fileData << operation.operands[0] << " = " << operation.operands[1] << " >= " << operation.operands[2] << '\n';
-          break;
-        case Operation::SetLesserOrEqual:
-          fileData << operation.operands[0] << " = " << operation.operands[1] << " <= " << operation.operands[2] << '\n';
-          break;
-        case Operation::Negate:
-          fileData << operation.operands[0] << " = -" << operation.operands[1] << '\n';
-          break;
-        case Operation::LogicalNOT:
-          fileData << operation.operands[0] << " = !" << operation.operands[1] << '\n';
-          break;
-        case Operation::BitwiseNOT:
-          fileData << operation.operands[0] << " = ~" << operation.operands[1] << '\n';
-          break;
-        case Operation::Label:
-          fileData << operation.operands[0] << ":\n";
-          break;
-        case Operation::Return:
-          fileData << "Return " << operation.operands[0] << '\n';
-          break;
-        case Operation::AddArg:
-          fileData << "AddArg " << operation.operands[0] << '\n';
-          break;
-        case Operation::Call:
-          fileData << "Call " << operation.operands[0] << " -> " << operation.operands[1] << '\n';
-          break;
-        case Operation::Jump:
-          fileData << "Jump " << operation.operands[0] << '\n';
-          break;
-        case Operation::JumpIfZero:
-          fileData << "Jump " << operation.operands[0] << " if " << operation.operands[1] << " == 0\n";
-          break;
-        case Operation::JumpIfNotZero:
-          fileData << "Jump " << operation.operands[0] << " if " << operation.operands[1] << " != 0\n";
-          break;
-      }
+      irString << printIRoperation(operation);
     }
   }
 
-  return fileData.str();
+  return irString.str();
+}
+
+std::string Compiler::printIRoperation(const Operation& irOperation)
+{
+  std::stringstream opString;
+
+  if (irOperation.type.isFloating)
+  {
+    opString << 'f';
+  } else if (irOperation.type.isSigned)
+  {
+    opString << 'i';
+  } else if (!irOperation.type.identifier.empty())
+  {
+    opString << "struct " << irOperation.type.identifier << ':';
+  } else
+  {
+    opString << 'u';
+  }
+
+  if (irOperation.type.arrayLength > 0)
+  {
+    opString << irOperation.type.size << ':' << (int)irOperation.type.alignment << std::string(irOperation.type.pointerDepth-1, '*');
+    opString << '[' << irOperation.type.arrayLength << ']';
+  } else
+  {
+    opString << irOperation.type.size << ':' << (int)irOperation.type.alignment << std::string(irOperation.type.pointerDepth, '*');
+  }
+
+  opString << ' ';
+
+  switch (irOperation.code)
+  {
+    case Operation::Set:
+      opString << irOperation.operands[0] << " = " << irOperation.operands[1] << '\n';
+      break;
+    case Operation::GetAddress:
+      opString << irOperation.operands[0] << " = &" << irOperation.operands[1] << '\n';
+      break;
+    case Operation::DereferenceRValue:
+      opString << irOperation.operands[0] << " = *" << irOperation.operands[1] << '\n';
+      break;
+    case Operation::DereferenceLValue:
+      opString << "*" << irOperation.operands[0] << " = " << irOperation.operands[1] << '\n';
+      break;
+    case Operation::SetAddition:
+      opString << irOperation.operands[0] << " = " << irOperation.operands[1] << " + " << irOperation.operands[2] << '\n';
+      break;
+    case Operation::SetSubtraction:
+      opString << irOperation.operands[0] << " = " << irOperation.operands[1] << " - " << irOperation.operands[2] << '\n';
+      break;
+    case Operation::SetMultiplication:
+      opString << irOperation.operands[0] << " = " << irOperation.operands[1] << " * " << irOperation.operands[2] << '\n';
+      break;
+    case Operation::SetDivision:
+      opString << irOperation.operands[0] << " = " << irOperation.operands[1] << " / " << irOperation.operands[2] << '\n';
+      break;
+    case Operation::SetModulo:
+      opString << irOperation.operands[0] << " = " << irOperation.operands[1] << " % " << irOperation.operands[2] << '\n';
+      break;
+    case Operation::SetBitwiseAND:
+      opString << irOperation.operands[0] << " = " << irOperation.operands[1] << " & " << irOperation.operands[2] << '\n';
+      break;
+    case Operation::SetBitwiseOR:
+      opString << irOperation.operands[0] << " = " << irOperation.operands[1] << " | " << irOperation.operands[2] << '\n';
+      break;
+    case Operation::SetBitwiseXOR:
+      opString << irOperation.operands[0] << " = " << irOperation.operands[1] << " ^ " << irOperation.operands[2] << '\n';
+      break;
+    case Operation::SetLeftShift:
+      opString << irOperation.operands[0] << " = " << irOperation.operands[1] << " << " << irOperation.operands[2] << '\n';
+      break;
+    case Operation::SetRightShift:
+      opString << irOperation.operands[0] << " = " << irOperation.operands[1] << " >> " << irOperation.operands[2] << '\n';
+      break;
+    case Operation::SetLogicalAND:
+      opString << irOperation.operands[0] << " = " << irOperation.operands[1] << " && " << irOperation.operands[2] << '\n';
+      break;
+    case Operation::SetLogicalOR:
+      opString << irOperation.operands[0] << " = " << irOperation.operands[1] << " || " << irOperation.operands[2] << '\n';
+      break;
+    case Operation::SetEqual:
+      opString << irOperation.operands[0] << " = " << irOperation.operands[1] << " == " << irOperation.operands[2] << '\n';
+      break;
+    case Operation::SetNotEqual:
+      opString << irOperation.operands[0] << " = " << irOperation.operands[1] << " != " << irOperation.operands[2] << '\n';
+      break;
+    case Operation::SetGreater:
+      opString << irOperation.operands[0] << " = " << irOperation.operands[1] << " > " << irOperation.operands[2] << '\n';
+      break;
+    case Operation::SetLesser:
+      opString << irOperation.operands[0] << " = " << irOperation.operands[1] << " < " << irOperation.operands[2] << '\n';
+      break;
+    case Operation::SetGreaterOrEqual:
+      opString << irOperation.operands[0] << " = " << irOperation.operands[1] << " >= " << irOperation.operands[2] << '\n';
+      break;
+    case Operation::SetLesserOrEqual:
+      opString << irOperation.operands[0] << " = " << irOperation.operands[1] << " <= " << irOperation.operands[2] << '\n';
+      break;
+    case Operation::Negate:
+      opString << irOperation.operands[0] << " = -" << irOperation.operands[1] << '\n';
+      break;
+    case Operation::LogicalNOT:
+      opString << irOperation.operands[0] << " = !" << irOperation.operands[1] << '\n';
+      break;
+    case Operation::BitwiseNOT:
+      opString << irOperation.operands[0] << " = ~" << irOperation.operands[1] << '\n';
+      break;
+    case Operation::Label:
+      opString << irOperation.operands[0] << ":\n";
+      break;
+    case Operation::Return:
+      opString << "Return " << irOperation.operands[0] << '\n';
+      break;
+    case Operation::AddArg:
+      opString << "AddArg " << irOperation.operands[0] << '\n';
+      break;
+    case Operation::Call:
+      opString << "Call " << irOperation.operands[0] << " -> " << irOperation.operands[1] << '\n';
+      break;
+    case Operation::Jump:
+      opString << "Jump " << irOperation.operands[0] << '\n';
+      break;
+    case Operation::JumpIfZero:
+      opString << "Jump " << irOperation.operands[0] << " if " << irOperation.operands[1] << " == 0\n";
+      break;
+    case Operation::JumpIfNotZero:
+      opString << "Jump " << irOperation.operands[0] << " if " << irOperation.operands[1] << " != 0\n";
+      break;
+  }
+
+  return opString.str();
 }
