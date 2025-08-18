@@ -556,9 +556,18 @@ void GenerateIR::generateDeclaration(CommonIRData& data, const Declaration* decl
       {
         scopes.emplace_back((CompoundStatement*)declaration->value.get());
 
+        // Only create a new function if the last one has something in it. Otherwise, reuse the old one.
+        if (!data.instrArray->empty() || !data.irProgram.program.back().parameters.empty())
+        {
+          data.irProgram.program.emplace_back();
+          data.instrArray = &data.irProgram.program.back().body;
+        }
+
         for (const std::unique_ptr<Declaration>& parameter: ((Function*)declaration->dataType.get())->parameters)
         {
           generateDeclaration(data, parameter.get(), false);
+
+          data.irProgram.program.back().parameters.emplace_back(parameter->identifier, ASTTypeToIRType(data, parameter->dataType.get()));
         }
 
         data.instrArray->emplace_back(Operation{{}, Operation::Label, {name}});
@@ -1402,6 +1411,12 @@ bool GenerateIR::trimInaccessibleCode(IRprogram& irProgram)
         }
       }
       index++;
+    }
+
+    if (f->body.empty())
+    {
+      irProgram.program.erase(f);
+      break;
     }
   }
 
