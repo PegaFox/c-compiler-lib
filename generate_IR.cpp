@@ -567,7 +567,7 @@ void GenerateIR::generateDeclaration(CommonIRData& data, const Declaration* decl
         {
           generateDeclaration(data, parameter.get(), false);
 
-          data.irProgram.program.back().parameters.emplace_back(parameter->identifier, ASTTypeToIRType(data, parameter->dataType.get()));
+          data.irProgram.program.back().parameters.emplace_back(getIdentifier(parameter->identifier)->first, ASTTypeToIRType(data, parameter->dataType.get()));
         }
 
         data.instrArray->emplace_back(Operation{{}, Operation::Label, {name}});
