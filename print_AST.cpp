@@ -469,7 +469,7 @@ void PrintAST::printConstant(const Constant* constant)
   depth++;
   std::cout << depthPadding() << "Constant {\n";
   depth++;
-  std::cout << depthPadding() << "Type: \"" << printDataType(constant->dataType.get()) << "\"\n";
+  std::cout << depthPadding() << "Type: \"" << printDataType(&constant->dataType) << "\"\n";
   std::cout << depthPadding() << "Value: ";
 
   std::cout << *((long int*)constant->value) << '\n';

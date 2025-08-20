@@ -1,5 +1,6 @@
 int main()
 {
-  float thisIsAFloat = 3.14159f;
+  const char* label = "label";
+
   return 0;
 }

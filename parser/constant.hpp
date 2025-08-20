@@ -3,12 +3,12 @@
 
 #include <memory>
 
-#include "data_type.hpp"
+#include "primitive_type.hpp"
 #include "expression.hpp"
 
 struct Constant: public Expression
 {
-  std::unique_ptr<DataType> dataType;
+  PrimitiveType dataType;
 
   uint8_t value[16] = {0};
 

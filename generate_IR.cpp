@@ -80,7 +80,7 @@ void GenerateIR::optimizeIR(IRprogram& irProgram)
   } while (changed);
 }
 
-Operation::DataType GenerateIR::ASTTypeToIRType(CommonIRData& data, DataType* dataType)
+Operation::DataType GenerateIR::ASTTypeToIRType(CommonIRData& data, const DataType* dataType)
 {
   switch (dataType->generalType)
   {
@@ -364,30 +364,26 @@ std::pair<std::string, Operation::DataType> GenerateIR::generateExpression(Commo
 std::pair<std::string, Operation::DataType> GenerateIR::generateConstant(CommonIRData& data, const Constant* constant)
 {
   // number comes first to ensure that the variable name is unique (identifiers can't start with numbers in C)
-  if (constant->dataType->generalType == DataType::GeneralType::PrimitiveType)
-  {
-    data.instrArray->emplace_back(Operation{ASTTypeToIRType(data, constant->dataType.get()), Operation::Set, {std::to_string((uintptr_t)constant) + "_Constant", "NaN"}});
+  data.instrArray->emplace_back(Operation{ASTTypeToIRType(data, &constant->dataType), Operation::Set, {std::to_string((uintptr_t)constant) + "_Constant", "NaN"}});
 
-    PrimitiveType* primitiveType = (PrimitiveType*)constant->dataType.get();
-    if (primitiveType->isFloating)
+  if (constant->dataType.isFloating)
+  {
+    if (constant->dataType.size == data.typeSizes.floatSize)
     {
-      if (primitiveType->size == data.typeSizes.floatSize)
-      {
-        data.instrArray->back().operands[1] = std::to_string(*((float*)constant->value));
-      } else if (primitiveType->size == data.typeSizes.doubleSize)
-      {
-        data.instrArray->back().operands[1] = std::to_string(*((double*)constant->value));
-      } else if (primitiveType->size == data.typeSizes.longDoubleSize)
-      {
-        data.instrArray->back().operands[1] = std::to_string(*((long double*)constant->value));
-      }
-    } else if (primitiveType->isSigned)
+      data.instrArray->back().operands[1] = std::to_string(*((float*)constant->value));
+    } else if (constant->dataType.size == data.typeSizes.doubleSize)
     {
-      data.instrArray->back().operands[1] = std::to_string(*((int64_t*)constant->value));
-    } else
+      data.instrArray->back().operands[1] = std::to_string(*((double*)constant->value));
+    } else if (constant->dataType.size == data.typeSizes.longDoubleSize)
     {
-      data.instrArray->back().operands[1] = std::to_string(*((uint64_t*)constant->value));
+      data.instrArray->back().operands[1] = std::to_string(*((long double*)constant->value));
     }
+  } else if (constant->dataType.isSigned)
+  {
+    data.instrArray->back().operands[1] = std::to_string(*((int64_t*)constant->value));
+  } else
+  {
+    data.instrArray->back().operands[1] = std::to_string(*((uint64_t*)constant->value));
   }
   
   return {data.instrArray->back().operands[0], data.instrArray->back().type};

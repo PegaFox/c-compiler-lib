@@ -103,7 +103,7 @@ ASTiterator& ASTiterator::operator++()
               if (firstTime(constant))
               {
                 path.push_back({constant, &constant->dataType});
-                ptr = constant->dataType.get();
+                ptr = &constant->dataType;
               } else
               {
                 stepOut();

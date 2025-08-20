@@ -125,7 +125,7 @@ class GenerateIR
 
     std::vector<const CompoundStatement*> scopes;
 
-    Operation::DataType ASTTypeToIRType(CommonIRData& data, DataType* dataType);
+    Operation::DataType ASTTypeToIRType(CommonIRData& data, const DataType* dataType);
 
     std::map<std::string, const Declaration*>::iterator getIdentifier(const std::string& identifier);
 
