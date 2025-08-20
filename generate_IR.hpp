@@ -39,6 +39,7 @@ struct Operation
 
     bool isSigned = false;
     bool isFloating = false;
+    bool isVolatile = false;
 
     uint16_t arrayLength = 0;
 

@@ -87,7 +87,7 @@ Operation::DataType GenerateIR::ASTTypeToIRType(CommonIRData& data, DataType* da
     case DataType::GeneralType::PrimitiveType: {
       PrimitiveType* primitiveType = (PrimitiveType*)dataType;
 
-      return {primitiveType->size, primitiveType->size, 0, primitiveType->isSigned, primitiveType->isFloating};
+      return {primitiveType->size, primitiveType->size, 0, primitiveType->isSigned, primitiveType->isFloating, dataType->isVolatile};
     } case DataType::GeneralType::Pointer: {
       Pointer* pointer = (Pointer*)dataType;
       
@@ -112,6 +112,7 @@ Operation::DataType GenerateIR::ASTTypeToIRType(CommonIRData& data, DataType* da
       
       Operation::DataType result;
       result.identifier = structure->identifier;
+      result.isVolatile = dataType->isVolatile;
 
       if (memberOffsets.contains(structure->identifier))
       {
@@ -1382,7 +1383,7 @@ bool GenerateIR::trimInaccessibleCode(IRprogram& irProgram)
         i->code == Operation::LogicalNOT || 
         i->code == Operation::BitwiseNOT)
       {
-        if (i->operands[0].find("_Volatile") == std::string::npos)
+        if (!i->type.isVolatile)
         {
           identifiers[i->operands[0]] |= 2;
         }
