@@ -1156,9 +1156,9 @@ bool GenerateIR::resolveConstantOperations(IRprogram& irProgram)
           }
           break;
         case Operation::JumpIfZero:
-          if (vars.contains(i->operands[0]))
+          if (i->operands[1].find_first_not_of(".0123456789") == std::string::npos)
           {
-            if (std::stoi(vars[i->operands[0]]) == 0)
+            if (std::stoi(i->operands[1]) == 0)
             {
               i->code = Operation::Jump;
             } else
@@ -1169,9 +1169,9 @@ bool GenerateIR::resolveConstantOperations(IRprogram& irProgram)
           }
           break;
         case Operation::JumpIfNotZero:
-          if (vars.contains(i->operands[0]))
+          if (i->operands[1].find_first_not_of(".0123456789") == std::string::npos)
           {
-            if (std::stoi(vars[i->operands[0]]) != 0)
+            if (std::stoi(i->operands[1]) != 0)
             {
               i->code = Operation::Jump;
             } else
