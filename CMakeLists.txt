@@ -35,6 +35,7 @@ add_library(c-compiler-lib STATIC
   parser/switch_case.cpp       
   parser/while_loop.cpp
   parser/constant.cpp        
+  parser/string_literal.cpp        
   parser/function.cpp 
   parser/pre_unary_operator.cpp 
   parser/switch_conditional.cpp

@@ -23,6 +23,7 @@
 #include "parser/while_loop.hpp"
 #include "parser/for_loop.hpp"
 #include "parser/variable_access.hpp"
+#include "parser/string_literal.hpp"
 #include "parser/function_call.hpp"
 #include "parser/pre_unary_operator.hpp"
 #include "parser/post_unary_operator.hpp"
@@ -45,6 +46,8 @@ struct Operation
 
     // Identifier for structs and the like
     std::string identifier = "";
+
+    uint16_t diskSize(uint8_t pointerSize);
   } type;
 
   enum Opcode
@@ -93,6 +96,12 @@ struct IRprogram
     std::vector<std::pair<std::string, Operation::DataType>> parameters;
     std::vector<Operation> body;
   };
+
+  std::vector<uint8_t> staticData;
+
+  // map of indices into the staticData array
+  std::map<std::string, std::size_t> staticVariables;
+
   std::vector<Function> program;
 };
 
@@ -166,6 +175,8 @@ class GenerateIR
     void generateForLoop(CommonIRData& data, const ForLoop* forLoop);
 
     std::pair<std::string, Operation::DataType> generateVariableAccess(CommonIRData& data, const VariableAccess* variableAccess);
+
+    std::pair<std::string, Operation::DataType> generateStringLiteral(CommonIRData& data, const StringLiteral* stringLiteral);
 
     std::pair<std::string, Operation::DataType> generateFunctionCall(CommonIRData& data, const FunctionCall* functionCall);
 

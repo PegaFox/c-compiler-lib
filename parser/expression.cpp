@@ -4,6 +4,7 @@
 
 #include "parse_error.hpp"
 #include "constant.hpp"
+#include "string_literal.hpp"
 #include "sub_expression.hpp"
 #include "pre_unary_operator.hpp"
 #include "post_unary_operator.hpp"
@@ -33,6 +34,9 @@ Expression* Expression::parse(CommonParseData& data, bool allowNullExpression)
 
     ParseError::expect(data.code.front().data, ")");
     data.code.pop_front();
+  } else if (data.code.front().data[0] == '"')
+  { 
+    expression = StringLiteral::parse(data);
   } else if (data.code.front().type == Token::Constant || data.program->enums.contains(data.code.front().data))
   {
     expression = Constant::parse(data);

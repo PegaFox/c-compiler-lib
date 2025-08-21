@@ -12,6 +12,7 @@ struct Expression: public Statement
     Constant,
     FunctionCall,
     VariableAccess,
+    StringLiteral,
     SubExpression,
     PreUnaryOperator,
     PostUnaryOperator,

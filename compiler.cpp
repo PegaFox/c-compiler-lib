@@ -3,6 +3,7 @@
 #include <iostream>
 #include <sstream>
 #include <fstream>
+#include <format>
 
 #include "preprocessor.hpp"
 #include "lexer.hpp"
@@ -57,7 +58,13 @@ IRprogram Compiler::compileFromArgs(int argc, char* argv[])
 
       GenerateIR irEngine;
       IRprogram localIR = irEngine.generateIR(AST, typeSizes.pointerSize);
+
       irCode.program.insert(irCode.program.cend(), localIR.program.cbegin(), localIR.program.cend());
+      for (const std::pair<std::string, std::size_t>& var: localIR.staticVariables)
+      {
+        irCode.staticVariables[var.first] = var.second + irCode.staticData.size();
+      }
+      irCode.staticData.insert(irCode.staticData.end(), localIR.staticData.begin(), localIR.staticData.end());
 
       //fileText = printIR(irCode);
       //std::cout << "Intermediate Representation:\n" << fileText << '\n';
@@ -167,6 +174,25 @@ void Compiler::optimizeAST(Program& AST)
 std::string Compiler::printIR(const IRprogram& irCode)
 {
   std::stringstream irString;
+
+  std::map<std::size_t, std::string> staticVars;
+  for (const std::pair<std::string, std::size_t>& var: irCode.staticVariables)
+  {
+    staticVars[var.second] = var.first;
+  }
+
+  irString << "Static Data:\n";
+  for (uint16_t b = 0; b < irCode.staticData.size(); b++)
+  {
+    if (b == staticVars.begin()->first)
+    {
+      irString << "\n" << staticVars.begin()->second << ":\n";
+      staticVars.erase(b);
+    }
+
+    irString << "0x" + std::format("{:X}", irCode.staticData[b]) + " ";
+  }
+  irString << "\n";
 
   for (const IRprogram::Function& function: irCode.program)
   {

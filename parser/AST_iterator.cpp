@@ -148,6 +148,10 @@ ASTiterator& ASTiterator::operator++()
               ptr = path.back().first;
               goto topOfConditionals;
               break;
+            case Expression::ExpressionType::StringLiteral:
+              ptr = path.back().first;
+              goto topOfConditionals;
+              break;
             case Expression::ExpressionType::SubExpression: {
               SubExpression* subExpression = (SubExpression*)expression;
               if (firstTime(subExpression))

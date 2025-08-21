@@ -348,10 +348,11 @@ DataType* DataType::parse(CommonParseData& data, std::list<Token>::iterator orig
         origin->data == "enum" ||
         origin->data == "struct" ||
         origin->data == "union" ||
+        origin->data == "const" ||
+        origin->data == "extern" ||
         origin->data == "void" ||
         origin->data == "signed" ||
         origin->data == "unsigned" ||
-        origin->data == "short" ||
         origin->data == "short" ||
         origin->data == "long" ||
         origin->data == "char" ||

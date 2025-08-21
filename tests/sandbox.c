@@ -1,6 +1,10 @@
+void getLabel(const char* label)
+{
+  return;
+}
+
 int main()
 {
-  const char* label = "label";
-
+  getLabel("Hello, World!\n");
   return 0;
 }

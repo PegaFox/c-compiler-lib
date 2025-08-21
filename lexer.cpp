@@ -139,22 +139,20 @@ std::list<Token> lex(std::string code)
     } else if (test.find_first_of("'") != test.npos || test.find_first_of("\"") != test.npos)
     {
       tokenized.push_back(Token{Token::Constant, ""});
-      std::size_t c = code.find_first_of(test.find_first_of("'") < test.find_first_of("\"") ? "'" : "\"", pos);
-      while (c < code.size())
-      {
-        tokenized.back().data.push_back(code[c]);
-        c++;
 
+      for (std::size_t c = code.find_first_of(test.find_first_of("'") < test.find_first_of("\"") ? "'" : "\"", pos); c < code.size(); c++)
+      {
         switch (code[c])
         {
           case '\'':
           case '"':
-            if (code[c] == tokenized.back().data.front())
+            tokenized.back().data.push_back(code[c]);
+
+            if (tokenized.back().data.size() > 1 && code[c] == tokenized.back().data.front())
             {
-              tokenized.back().data.push_back(code[c]);
               pos = c+1;
               end = pos;
-              c = -1;
+              c = -2;
             }
             break;
           case '\\':
@@ -198,6 +196,10 @@ std::list<Token> lex(std::string code)
                 c--;
                 break;
             }
+
+            break;
+          default:
+            tokenized.back().data.push_back(code[c]);
             break;
         }
       }

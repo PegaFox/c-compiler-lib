@@ -40,11 +40,28 @@
   return result;
 }*/
 
+uint16_t Operation::DataType::diskSize(uint8_t pointerSize)
+{
+  if (pointerDepth > 0)
+  {
+    return pointerSize;
+  }
+
+  if (arrayLength > 0)
+  {
+    return size * arrayLength;
+  }
+
+  return size;
+}
+
 IRprogram GenerateIR::generateIR(const Program& AST, uint8_t pointerSize)
 {
   CommonIRData data{
     nullptr,
     IRprogram{
+      std::vector<uint8_t>{},
+      std::map<std::string, std::size_t>{},
       std::vector<IRprogram::Function>{
         IRprogram::Function{{}, {}}
       }
@@ -346,6 +363,8 @@ std::pair<std::string, Operation::DataType> GenerateIR::generateExpression(Commo
       return generateConstant(data, (Constant*)expression);
     case Expression::ExpressionType::VariableAccess:
       return generateVariableAccess(data, (VariableAccess*)expression);
+    case Expression::ExpressionType::StringLiteral:
+      return generateStringLiteral(data, (StringLiteral*)expression);
     case Expression::ExpressionType::FunctionCall:
       return generateFunctionCall(data, (FunctionCall*)expression);
     case Expression::ExpressionType::SubExpression:
@@ -492,6 +511,8 @@ void GenerateIR::generateGoto(CommonIRData& data, const Goto* gotoStatement)
 
 void GenerateIR::generateDeclaration(CommonIRData& data, const Declaration* declaration, bool allowInitialization)
 {
+  Operation::DataType declarationType = ASTTypeToIRType(data, declaration->dataType.get());
+
   if (declaration->dataType->generalType == DataType::GeneralType::Struct && !((Struct*)declaration->dataType.get())->members.empty())
   {
     memberOffsets[((Struct*)declaration->dataType.get())->identifier].first = ASTTypeToIRType(data, declaration->dataType.get());
@@ -547,8 +568,21 @@ void GenerateIR::generateDeclaration(CommonIRData& data, const Declaration* decl
 
       if (declaration->value->statementType == Statement::StatementType::Expression)
       {
-        std::pair<std::string, Operation::DataType> outputName = generateExpression(data, (Expression*)declaration->value.get());
-        data.instrArray->emplace_back(Operation{ASTTypeToIRType(data, declaration->dataType.get()), Operation::Set, {name, outputName.first}});
+        if (scopes.empty())
+        {
+          data.irProgram.staticVariables[name] = data.irProgram.staticData.size();
+          data.irProgram.staticData.resize(data.irProgram.staticData.size()+declarationType.diskSize(data.typeSizes.pointerSize));
+        }
+
+        if (scopes.empty() && ((Expression*)declaration->value.get())->expressionType == Expression::ExpressionType::Constant)
+        {
+          // move the variable value into the static data array
+          std::copy(((Constant*)declaration->value.get())->value, ((Constant*)declaration->value.get())->value+declarationType.diskSize(data.typeSizes.pointerSize), data.irProgram.staticData.data()+data.irProgram.staticVariables[name]);
+        } else
+        {
+          std::pair<std::string, Operation::DataType> outputName = generateExpression(data, (Expression*)declaration->value.get());
+          data.instrArray->emplace_back(Operation{ASTTypeToIRType(data, declaration->dataType.get()), Operation::Set, {name, outputName.first}});
+        }
       } else 
       {
         scopes.emplace_back((CompoundStatement*)declaration->value.get());
@@ -772,6 +806,14 @@ std::pair<std::string, Operation::DataType> GenerateIR::generateVariableAccess(C
     std::cout << "IR generation error: \"" << variableAccess->identifier << "\" is not a variable\n";
     throw IRGenError();
   }
+}
+
+std::pair<std::string, Operation::DataType> GenerateIR::generateStringLiteral(CommonIRData& data, const StringLiteral* stringLiteral)
+{
+  data.irProgram.staticVariables[std::to_string((uintptr_t)stringLiteral) + "_Literal"] = data.irProgram.staticData.size();
+  data.irProgram.staticData.insert(data.irProgram.staticData.end(), stringLiteral->value.begin(), stringLiteral->value.end()+1);
+
+  return {std::to_string((uintptr_t)stringLiteral) + "_Literal", {1, 1, 1, true, false, false, uint16_t(stringLiteral->value.size()+1)}};
 }
 
 std::pair<std::string, Operation::DataType> GenerateIR::generateFunctionCall(CommonIRData& data, const FunctionCall* functionCall)
