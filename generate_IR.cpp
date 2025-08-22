@@ -40,7 +40,7 @@
   return result;
 }*/
 
-uint16_t Operation::DataType::diskSize(uint8_t pointerSize)
+uint16_t Operation::DataType::diskSize(uint8_t pointerSize) const
 {
   if (pointerDepth > 0)
   {

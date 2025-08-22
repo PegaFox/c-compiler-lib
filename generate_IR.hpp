@@ -47,7 +47,7 @@ struct Operation
     // Identifier for structs and the like
     std::string identifier = "";
 
-    uint16_t diskSize(uint8_t pointerSize);
+    uint16_t diskSize(uint8_t pointerSize) const;
   } type;
 
   enum Opcode
