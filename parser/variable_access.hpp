@@ -7,7 +7,7 @@
 
 struct VariableAccess: public Expression
 {
-  std::string identifier;
+  std::string_view identifier;
 
   VariableAccess();
 

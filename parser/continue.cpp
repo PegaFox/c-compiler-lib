@@ -9,7 +9,8 @@ Continue::Continue()
 
 Continue* Continue::parse(CommonParseData& data)
 {
-  Continue* continueStatement = new Continue;
+  Continue* continueStatement;
+  continueStatement = data.program->arenaAlloc(continueStatement);
 
   ParseError::expect(data.code.front().data, "continue");
   data.code.pop_front();

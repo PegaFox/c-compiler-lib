@@ -68,12 +68,12 @@ ASTiterator& ASTiterator::operator++()
             } else
             {
               path.push_back({compoundStatement, &(compoundStatement->body[0])});
-              ptr = compoundStatement->body[0].get();
+              ptr = compoundStatement->body[0];
               break;
             }
           }
 
-          for (std::vector<std::unique_ptr<Statement>>::iterator node = compoundStatement->body.begin(); node != compoundStatement->body.end(); node++)
+          for (std::vector<Statement*>::iterator node = compoundStatement->body.begin(); node != compoundStatement->body.end(); node++)
           {
             if (&(*node) == path.back().second)
             {
@@ -84,7 +84,7 @@ ASTiterator& ASTiterator::operator++()
               } else
               {
                 path.back().second = &(*(node+1));
-                ptr = (node+1)->get();
+                ptr = *(node+1);
               }
               break;
             }
@@ -122,12 +122,12 @@ ASTiterator& ASTiterator::operator++()
                } else
                {
                   path.push_back({functionCall, &(functionCall->arguments[0])});
-                  ptr = functionCall->arguments[0].get();
+                  ptr = functionCall->arguments[0];
                   break;
                 }
               }
 
-              for (std::vector<std::unique_ptr<Expression>>::iterator node = functionCall->arguments.begin(); node != functionCall->arguments.end(); node++)
+              for (std::vector<Expression*>::iterator node = functionCall->arguments.begin(); node != functionCall->arguments.end(); node++)
               {
                 if (&(*node) == path.back().second)
                 {
@@ -138,7 +138,7 @@ ASTiterator& ASTiterator::operator++()
                   } else
                   {
                     path.back().second = &(*(node+1));
-                    ptr = (node+1)->get();
+                    ptr = *(node+1);
                   }
                   break;
                 }
@@ -157,7 +157,7 @@ ASTiterator& ASTiterator::operator++()
               if (firstTime(subExpression))
               {
                 path.push_back({subExpression, &subExpression->expression});
-                ptr = subExpression->expression.get();
+                ptr = subExpression->expression;
               } else
               {
                 stepOut();
@@ -169,7 +169,7 @@ ASTiterator& ASTiterator::operator++()
               if (firstTime(preUnaryOperator))
               {
                 path.push_back({preUnaryOperator, &preUnaryOperator->operand});
-                ptr = preUnaryOperator->operand.get();
+                ptr = preUnaryOperator->operand;
               } else
               {
                 stepOut();
@@ -181,7 +181,7 @@ ASTiterator& ASTiterator::operator++()
               if (firstTime(postUnaryOperator))
               {
                 path.push_back({postUnaryOperator, &postUnaryOperator->operand});
-                ptr = postUnaryOperator->operand.get();
+                ptr = postUnaryOperator->operand;
               } else
               {
                 stepOut();
@@ -193,11 +193,11 @@ ASTiterator& ASTiterator::operator++()
               if (firstTime(binaryOperator))
               {
                 path.push_back({binaryOperator, &binaryOperator->leftOperand});
-                ptr = binaryOperator->leftOperand.get();
+                ptr = binaryOperator->leftOperand;
               } else if (path.back().second == &binaryOperator->leftOperand)
               {
                 path.back().second = &binaryOperator->rightOperand;
-                ptr = binaryOperator->rightOperand.get();
+                ptr = binaryOperator->rightOperand;
               } else if (path.back().second == &binaryOperator->rightOperand)
               {
                 stepOut();
@@ -209,15 +209,15 @@ ASTiterator& ASTiterator::operator++()
               if (firstTime(ternaryOperator))
               {
                 path.push_back({ternaryOperator, &ternaryOperator->condition});
-                ptr = ternaryOperator->condition.get();
+                ptr = ternaryOperator->condition;
               } else if (path.back().second == &ternaryOperator->condition)
               {
                 path.back().second = &ternaryOperator->trueOperand;
-                ptr = ternaryOperator->trueOperand.get();
+                ptr = ternaryOperator->trueOperand;
               } else if (ternaryOperator->falseOperand && path.back().second == &ternaryOperator->trueOperand)
               {
                 path.back().second = &ternaryOperator->falseOperand;
-                ptr = ternaryOperator->falseOperand.get();
+                ptr = ternaryOperator->falseOperand;
               } else if (!ternaryOperator->falseOperand || path.back().second == &ternaryOperator->falseOperand)
               {
                 stepOut();
@@ -236,7 +236,7 @@ ASTiterator& ASTiterator::operator++()
           if (firstTime(returnStatement))
           {
             path.push_back({returnStatement, &returnStatement->data});
-            ptr = returnStatement->data.get();
+            ptr = returnStatement->data;
           } else
           {
             stepOut();
@@ -260,11 +260,11 @@ ASTiterator& ASTiterator::operator++()
           if (firstTime(declaration))
           {
             path.push_back({declaration, &declaration->dataType});
-            ptr = declaration->dataType.get();
+            ptr = declaration->dataType;
           } else if (declaration->value && path.back().second == &declaration->dataType)
           {
             path.back().second = &declaration->value;
-            ptr = declaration->value.get();
+            ptr = declaration->value;
           } else if (!declaration->value || path.back().second == &declaration->value)
           {
             stepOut();
@@ -276,15 +276,15 @@ ASTiterator& ASTiterator::operator++()
           if (firstTime(ifConditional))
           {
             path.push_back({ifConditional, &ifConditional->condition});
-            ptr = ifConditional->condition.get();
+            ptr = ifConditional->condition;
           } else if (path.back().second == &ifConditional->condition)
           {
             path.back().second = &ifConditional->body;
-            ptr = ifConditional->body.get();
+            ptr = ifConditional->body;
           } else if (ifConditional->elseStatement && path.back().second == &ifConditional->body)
           {
             path.back().second = &ifConditional->elseStatement;
-            ptr = ifConditional->elseStatement.get();
+            ptr = ifConditional->elseStatement;
           } else if (!ifConditional->elseStatement || path.back().second == &ifConditional->elseStatement)
           {
             stepOut();
@@ -296,7 +296,7 @@ ASTiterator& ASTiterator::operator++()
           if (firstTime(switchCase))
           {
             path.push_back({switchCase, &switchCase->requirement});
-            ptr = switchCase->requirement.get();
+            ptr = switchCase->requirement;
           } else
           {
             stepOut();
@@ -312,11 +312,11 @@ ASTiterator& ASTiterator::operator++()
           if (firstTime(switchConditional))
           {
             path.push_back({switchConditional, &switchConditional->value});
-            ptr = switchConditional->value.get();
+            ptr = switchConditional->value;
           } else if (path.back().second == &switchConditional->value)
           {
             path.back().second = &switchConditional->body;
-            ptr = switchConditional->body.get();
+            ptr = switchConditional->body;
           } else if (path.back().second == &switchConditional->body)
           {
             stepOut();
@@ -328,11 +328,11 @@ ASTiterator& ASTiterator::operator++()
           if (firstTime(doWhileLoop))
           {
             path.push_back({doWhileLoop, &doWhileLoop->condition});
-            ptr = doWhileLoop->condition.get();
+            ptr = doWhileLoop->condition;
           } else if (path.back().second == &doWhileLoop->condition)
           {
             path.back().second = &doWhileLoop->body;
-            ptr = doWhileLoop->body.get();
+            ptr = doWhileLoop->body;
           } else if (path.back().second == &doWhileLoop->body)
           {
             stepOut();
@@ -344,11 +344,11 @@ ASTiterator& ASTiterator::operator++()
           if (firstTime(whileLoop))
           {
             path.push_back({whileLoop, &whileLoop->condition});
-            ptr = whileLoop->condition.get();
+            ptr = whileLoop->condition;
           } else if (path.back().second == &whileLoop->condition)
           {
             path.back().second = &whileLoop->body;
-            ptr = whileLoop->body.get();
+            ptr = whileLoop->body;
           } else if (path.back().second == &whileLoop->body)
           {
             stepOut();
@@ -360,19 +360,19 @@ ASTiterator& ASTiterator::operator++()
           if (firstTime(forLoop))
           {
             path.push_back({forLoop, &forLoop->initialization});
-            ptr = forLoop->initialization.get();
+            ptr = forLoop->initialization;
           } else if (path.back().second == &forLoop->initialization)
           {
             path.back().second = &forLoop->condition;
-            ptr = forLoop->condition.get();
+            ptr = forLoop->condition;
           } else if (path.back().second == &forLoop->condition)
           {
             path.back().second = &forLoop->update;
-            ptr = forLoop->update.get();
+            ptr = forLoop->update;
           } else if (path.back().second == &forLoop->update)
           {
             path.back().second = &forLoop->body;
-            ptr = forLoop->body.get();
+            ptr = forLoop->body;
           } else if (path.back().second == &forLoop->body)
           {
             stepOut();
@@ -387,11 +387,11 @@ ASTiterator& ASTiterator::operator++()
       if (firstTime(program) && !program->nodes.empty())
       {
         path.push_back({program, &(program->nodes[0])});
-        ptr = program->nodes[0].get();
+        ptr = program->nodes[0];
         break;
       }
 
-      for (std::vector<std::unique_ptr<ASTnode>>::iterator node = program->nodes.begin(); node != program->nodes.end(); node++)
+      for (std::vector<ASTnode*>::iterator node = program->nodes.begin(); node != program->nodes.end(); node++)
       {
         if (&(*node) == path.back().second)
         {
@@ -401,7 +401,7 @@ ASTiterator& ASTiterator::operator++()
           } else
           {
             path.back().second = &(*(node+1));
-            ptr = (node+1)->get();
+            ptr = *(node+1);
           }
           break;
         }
@@ -420,7 +420,7 @@ ASTiterator& ASTiterator::operator++()
           if (firstTime(pointer))
           {
             path.push_back({pointer, &pointer->dataType});
-            ptr = pointer->dataType.get();
+            ptr = pointer->dataType;
           } else
           {
             stepOut();
@@ -432,7 +432,7 @@ ASTiterator& ASTiterator::operator++()
           if (firstTime(function))
           {
             path.push_back({function, &function->returnType});
-            ptr = function->returnType.get();
+            ptr = function->returnType;
           } else if (path.back().second == &function->returnType)
           {
             if (function->parameters.empty())
@@ -449,7 +449,7 @@ ASTiterator& ASTiterator::operator++()
             } else
             {
               path.back().second = &function->parameters[0];
-              ptr = function->parameters[0].get();
+              ptr = function->parameters[0];
             }
           //} else if (path.back().second == &functionDeclaration->body)
           } else if (path.back().second == &function->parameters.back())
@@ -458,7 +458,7 @@ ASTiterator& ASTiterator::operator++()
             goto topOfConditionals;
           } else
           {
-            for (std::vector<std::unique_ptr<Declaration>>::iterator node = function->parameters.begin(); node != function->parameters.end(); node++)
+            for (std::vector<Declaration*>::iterator node = function->parameters.begin(); node != function->parameters.end(); node++)
             {
               if (path.back().second == &(*node))
               {
@@ -476,7 +476,7 @@ ASTiterator& ASTiterator::operator++()
                 } else
                 {
                   path.back().second = &(*(node+1));
-                  ptr = (node+1)->get();
+                  ptr = *(node+1);
                 }
                 break;
               }
@@ -488,11 +488,11 @@ ASTiterator& ASTiterator::operator++()
           if (firstTime(array))
           {
             path.push_back({array, &array->dataType});
-            ptr = array->dataType.get();
+            ptr = array->dataType;
           } else if (path.back().second == &array->dataType)
           {
             path.back().second = &array->size;
-            ptr = array->size.get();
+            ptr = array->size;
           } else if (path.back().second == &array->size)
           {
             stepOut();
@@ -506,7 +506,7 @@ ASTiterator& ASTiterator::operator++()
             if (!structure->members.empty())
             {
               path.push_back({structure, &structure->members[0]});
-              ptr = structure->members[0].first.get();
+              ptr = structure->members[0].first;
             } else
             {
               ptr = path.back().first;
@@ -514,12 +514,12 @@ ASTiterator& ASTiterator::operator++()
             }
           } else if (path.back().second != &structure->members.back())
           {
-            for (std::vector<std::pair<std::unique_ptr<Declaration>, uint8_t>>::iterator node = structure->members.begin(); node != structure->members.end(); node++)
+            for (std::vector<std::pair<Declaration*, uint8_t>>::iterator node = structure->members.begin(); node != structure->members.end(); node++)
             {
               if (path.back().second == &(*node))
               {
                 path.back().second = &(*(node+1));
-                ptr = (node+1)->first.get();
+                ptr = (node+1)->first;
                 break;
               }
             }

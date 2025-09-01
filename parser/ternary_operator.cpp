@@ -12,23 +12,24 @@ TernaryOperator::TernaryOperator()
 
 Expression* TernaryOperator::parse(CommonParseData& data, Expression* condition)
 {
-  Expression* ternary = new TernaryOperator;
+  Expression* ternary;
+  ternary = data.program->arenaAlloc((TernaryOperator*)ternary);
 
-  ((TernaryOperator*)ternary)->condition = std::unique_ptr<Expression>(condition);
+  ((TernaryOperator*)ternary)->condition = condition;
 
   data.code.pop_front();
 
-  ((TernaryOperator*)ternary)->trueOperand = std::unique_ptr<Expression>(Expression::parse(data));
+  ((TernaryOperator*)ternary)->trueOperand = Expression::parse(data);
 
   ParseError::expect(data.code.front().data, ":");
 
   data.code.pop_front();
 
-  ((TernaryOperator*)ternary)->falseOperand = std::unique_ptr<Expression>(Expression::parse(data, false));
+  ((TernaryOperator*)ternary)->falseOperand = Expression::parse(data, false);
 
   if (
     ((TernaryOperator*)ternary)->falseOperand->expressionType == Expression::ExpressionType::BinaryOperator &&
-    ((BinaryOperator*)((TernaryOperator*)ternary)->falseOperand.get())->binaryType == BinaryOperator::BinaryType::VariableAssignment)
+    ((BinaryOperator*)((TernaryOperator*)ternary)->falseOperand)->binaryType == BinaryOperator::BinaryType::VariableAssignment)
   {
     std::cout << "Parse error: cannot use ternary operator as lvalue\n";
     throw ParseError();
@@ -37,12 +38,11 @@ Expression* TernaryOperator::parse(CommonParseData& data, Expression* condition)
   // this takes care of left-associativity and operator precedence
   if (((TernaryOperator*)ternary)->condition->expressionType == Expression::ExpressionType::BinaryOperator)
   {
-    BinaryOperator* operand = (BinaryOperator*)((TernaryOperator*)ternary)->condition.get();
+    BinaryOperator* operand = (BinaryOperator*)((TernaryOperator*)ternary)->condition;
     if (operand->binaryType == BinaryOperator::BinaryType::VariableAssignment)
     {
-      ((TernaryOperator*)ternary)->condition.release();
-      ((TernaryOperator*)ternary)->condition = std::unique_ptr<Expression>(operand->rightOperand.release());
-      operand->rightOperand = std::unique_ptr<Expression>(ternary);
+      ((TernaryOperator*)ternary)->condition = operand->rightOperand;
+      operand->rightOperand = ternary;
       ternary = operand;
     }/* else if (BinaryOperator::precedence[(uint8_t)operand->binaryType] == BinaryOperator::precedence[(uint8_t)binary->binaryType] && binary->binaryType != BinaryOperator::BinaryType::VariableAssignment)
     {
@@ -64,8 +64,8 @@ Expression* TernaryOperator::parse(CommonParseData& data, Expression* condition)
         }
       }
       binary->rightOperand.release();
-      binary->rightOperand = std::unique_ptr<Expression>(bottomOperand->leftOperand.release());
-      bottomOperand->leftOperand = std::unique_ptr<Expression>(binary);
+      binary->rightOperand = bottomOperand->leftOperand;
+      bottomOperand->leftOperand = binary;
       binary = operand;
     }*/
   }

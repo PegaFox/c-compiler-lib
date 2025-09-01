@@ -9,12 +9,13 @@ Return::Return()
 
 Return* Return::parse(CommonParseData& data)
 {
-  Return* returnVal = new Return;
+  Return* returnVal;
+  returnVal = data.program->arenaAlloc(returnVal);
 
   ParseError::expect(data.code.front().data, "return");
   data.code.pop_front();
 
-  returnVal->data = std::unique_ptr<Expression>(Expression::parse(data));
+  returnVal->data = Expression::parse(data);
 
   ParseError::expect(data.code.front().data, ";");
   data.code.pop_front();

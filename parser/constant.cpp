@@ -7,7 +7,8 @@ Constant::Constant()
 
 Constant* Constant::parse(CommonParseData& data)
 {
-  Constant* constant = new Constant;
+  Constant* constant;
+  constant = data.program->arenaAlloc(constant);
 
   if (data.program->enums.contains(data.code.front().data))
   {
@@ -20,7 +21,7 @@ Constant* Constant::parse(CommonParseData& data)
     data.code.pop_front();
   } else if (data.code.front().data.front() == '\'' && data.code.front().data.back() == '\'')
   { // char constant
-    constant->dataType = PrimitiveType{false, true, data.typeSizes.charSize};
+    constant->dataType = PrimitiveType{data.typeSizes.charSize, data.typeSizes.charSize, false, true};
     constant->value[0] = data.code.front().data[1];
     data.code.pop_front();
   } else if (data.code.front().data.front() == '\"' && data.code.front().data.back() == '\"')
@@ -35,21 +36,21 @@ Constant* Constant::parse(CommonParseData& data)
         float constVal = std::stof(data.code.front().data);
         data.code.pop_front();
 
-        constant->dataType = PrimitiveType{true, true, data.typeSizes.floatSize};
+        constant->dataType = PrimitiveType{data.typeSizes.floatSize, data.typeSizes.floatSize, true, true};
         std::copy((uint8_t*)(&constVal), (uint8_t*)(&constVal)+constant->dataType.size, constant->value);
       } else if (data.code.front().data.back() == 'l' || data.code.front().data.back() == 'L')
       { // long double
         long double constVal = std::stold(data.code.front().data);
         data.code.pop_front();
 
-        constant->dataType = PrimitiveType{true, true, data.typeSizes.longDoubleSize};
+        constant->dataType = PrimitiveType{data.typeSizes.longDoubleSize, data.typeSizes.longDoubleSize, true, true};
         std::copy((uint8_t*)(&constVal), (uint8_t*)(&constVal)+constant->dataType.size, constant->value);
       } else
       { // double
         double constVal = std::stod(data.code.front().data);
         data.code.pop_front();
 
-        constant->dataType = PrimitiveType{true, true, data.typeSizes.doubleSize};
+        constant->dataType = PrimitiveType{data.typeSizes.doubleSize, data.typeSizes.doubleSize, true, true};
         std::copy((uint8_t*)(&constVal), (uint8_t*)(&constVal)+constant->dataType.size, constant->value);
       }
     } else if (data.code.front().data.back() == 'L')
@@ -68,19 +69,19 @@ Constant* Constant::parse(CommonParseData& data)
 
       if (constVal == (constVal & 0xFF))
       {
-        constant->dataType = PrimitiveType{false, false, data.typeSizes.charSize};
+        constant->dataType = PrimitiveType{data.typeSizes.charSize, data.typeSizes.charSize};
         std::copy((uint8_t*)(&constVal), (uint8_t*)(&constVal)+constant->dataType.size, constant->value);
       } else if (constVal == (constVal & 0xFFFF))
       {
-        constant->dataType = PrimitiveType{false, false, data.typeSizes.shortSize};
+        constant->dataType = PrimitiveType{data.typeSizes.shortSize, data.typeSizes.shortSize};
         std::copy((uint8_t*)(&constVal), (uint8_t*)(&constVal)+constant->dataType.size, constant->value);
       } else if (constVal == (constVal & 0xFFFFFFFF))
       {
-        constant->dataType = PrimitiveType{false, false, data.typeSizes.longSize};
+        constant->dataType = PrimitiveType{data.typeSizes.longSize, data.typeSizes.longSize};
         std::copy((uint8_t*)(&constVal), (uint8_t*)(&constVal)+constant->dataType.size, constant->value);
       } else if (constVal == (constVal & 0xFFFFFFFFFFFFFFFF))
       {
-        constant->dataType = PrimitiveType{false, false, data.typeSizes.longLongSize};
+        constant->dataType = PrimitiveType{data.typeSizes.longLongSize, data.typeSizes.longLongSize};
         std::copy((uint8_t*)(&constVal), (uint8_t*)(&constVal)+constant->dataType.size, constant->value);
       }
     } else
@@ -92,31 +93,31 @@ Constant* Constant::parse(CommonParseData& data)
       {
         if (-constVal == -(constVal & 0xFF))
         {
-          constant->dataType = PrimitiveType{false, true, data.typeSizes.charSize};
+          constant->dataType = PrimitiveType{data.typeSizes.charSize, data.typeSizes.charSize, false, true};
         } else if (-constVal == -(constVal & 0xFFFF))
         {
-          constant->dataType = PrimitiveType{false, true, data.typeSizes.shortSize};
+          constant->dataType = PrimitiveType{data.typeSizes.shortSize, data.typeSizes.shortSize, false, true};
         } else if (-constVal == -(constVal & 0xFFFFFFFF))
         {
-          constant->dataType = PrimitiveType{false, true, data.typeSizes.longSize};
+          constant->dataType = PrimitiveType{data.typeSizes.longSize, data.typeSizes.longSize, false, true};
         } else if (-constVal == -(constVal & 0xFFFFFFFFFFFFFFFF))
         {
-          constant->dataType = PrimitiveType{false, true, data.typeSizes.longLongSize};
+          constant->dataType = PrimitiveType{data.typeSizes.longLongSize, data.typeSizes.longLongSize, false, true};
         }
       } else
       {
         if (constVal == (constVal & 0xFF))
         {
-          constant->dataType = PrimitiveType{false, false, data.typeSizes.charSize};
+          constant->dataType = PrimitiveType{data.typeSizes.charSize, data.typeSizes.charSize};
         } else if (constVal == (constVal & 0xFFFF))
         {
-          constant->dataType = PrimitiveType{false, false, data.typeSizes.shortSize};
+          constant->dataType = PrimitiveType{data.typeSizes.shortSize, data.typeSizes.shortSize};
         } else if (constVal == (constVal & 0xFFFFFFFF))
         {
-          constant->dataType = PrimitiveType{false, false, data.typeSizes.longSize};
+          constant->dataType = PrimitiveType{data.typeSizes.longSize, data.typeSizes.longSize};
         } else if (constVal == (constVal & 0xFFFFFFFFFFFFFFFF))
         {
-          constant->dataType = PrimitiveType{false, false, data.typeSizes.longLongSize};
+          constant->dataType = PrimitiveType{data.typeSizes.longLongSize, data.typeSizes.longLongSize};
         }
       }
 

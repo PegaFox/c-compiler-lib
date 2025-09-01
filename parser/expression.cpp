@@ -28,9 +28,9 @@ Expression* Expression::parse(CommonParseData& data, bool allowNullExpression)
   {
     data.code.pop_front();
 
-    expression = new SubExpression;
+    expression = data.program->arenaAlloc((SubExpression*)expression);
     
-    ((SubExpression*)expression)->expression = std::unique_ptr<Expression>(Expression::parse(data, false));
+    ((SubExpression*)expression)->expression = Expression::parse(data, false);
 
     ParseError::expect(data.code.front().data, ")");
     data.code.pop_front();
@@ -63,7 +63,8 @@ Expression* Expression::parse(CommonParseData& data, bool allowNullExpression)
     expression = PreUnaryOperator::parse(data);
   } else if (allowNullExpression/* && (data.code.front().data == ")" || data.code.front().data == ";")*/)
   {
-    expression = new Expression;
+    expression = data.program->arenaAlloc(expression);
+
     expression->expressionType = Expression::ExpressionType::Null;
   } else
   {

@@ -21,7 +21,7 @@ struct PreUnaryOperator: public Expression
     Sizeof
   } preUnaryType;
 
-  std::unique_ptr<Expression> operand;
+  Expression* operand = nullptr;
 
   PreUnaryOperator();
   

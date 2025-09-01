@@ -11,7 +11,8 @@ CompoundStatement::CompoundStatement()
 
 CompoundStatement* CompoundStatement::parse(CommonParseData& data)
 {
-  CompoundStatement* compoundStatement = new CompoundStatement;
+  CompoundStatement* compoundStatement;
+  compoundStatement = data.program->arenaAlloc(compoundStatement);
 
   ParseError::expect(data.code.front().data, "{");
   data.code.pop_front();

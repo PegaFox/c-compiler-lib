@@ -8,8 +8,8 @@
 
 struct Array: public DataType
 {
-  std::unique_ptr<DataType> dataType;
-  std::unique_ptr<Expression> size;
+  DataType* dataType = nullptr;
+  Expression* size = nullptr;
 
   Array();
 

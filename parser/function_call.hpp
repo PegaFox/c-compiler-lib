@@ -8,9 +8,9 @@
 
 struct FunctionCall: public Expression
 {
-  std::string identifier;
+  std::string_view identifier;
 
-  std::vector<std::unique_ptr<Expression>> arguments;
+  std::vector<Expression*> arguments;
 
   FunctionCall();
 

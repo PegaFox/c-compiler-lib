@@ -8,7 +8,7 @@
 
 struct CompoundStatement: public Statement
 {
-  std::vector<std::unique_ptr<Statement>> body;
+  std::vector<Statement*> body;
 
   CompoundStatement();
 

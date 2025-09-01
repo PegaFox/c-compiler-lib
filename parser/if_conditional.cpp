@@ -9,7 +9,8 @@ IfConditional::IfConditional()
 
 IfConditional* IfConditional::parse(CommonParseData& data)
 {
-  IfConditional* ifConditional = new IfConditional;
+  IfConditional* ifConditional;
+  ifConditional = data.program->arenaAlloc(ifConditional);
 
   ParseError::expect(data.code.front().data, "if");
   data.code.pop_front();
@@ -17,17 +18,17 @@ IfConditional* IfConditional::parse(CommonParseData& data)
   ParseError::expect(data.code.front().data, "(");
   data.code.pop_front();
 
-  ifConditional->condition = std::unique_ptr<Expression>(Expression::parse(data, false));
+  ifConditional->condition = Expression::parse(data, false);
 
   ParseError::expect(data.code.front().data, ")");
   data.code.pop_front();
 
-  ifConditional->body = std::unique_ptr<Statement>(Statement::parse(data));
+  ifConditional->body = Statement::parse(data);
 
   if (data.code.front().data == "else")
   {
     data.code.pop_front();
-    ifConditional->elseStatement = std::unique_ptr<Statement>(Statement::parse(data));
+    ifConditional->elseStatement = Statement::parse(data);
   }
 
   return ifConditional;

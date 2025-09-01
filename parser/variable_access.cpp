@@ -7,9 +7,10 @@ VariableAccess::VariableAccess()
 
 VariableAccess* VariableAccess::parse(CommonParseData& data)
 {
-  VariableAccess* variableAccess = new VariableAccess;
+  VariableAccess* variableAccess;
+  variableAccess = data.program->arenaAlloc(variableAccess);
 
-  variableAccess->identifier = data.code.front().data;
+  variableAccess->identifier = data.program->arenaAlloc(data.code.front().data);
   data.code.pop_front();
 
   return variableAccess;

@@ -14,7 +14,7 @@ struct PostUnaryOperator: public Expression
     Decrement
   } postUnaryType;
 
-  std::unique_ptr<Expression> operand;
+  Expression* operand = nullptr;
 
   PostUnaryOperator();
 

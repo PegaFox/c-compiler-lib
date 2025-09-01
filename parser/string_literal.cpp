@@ -7,10 +7,11 @@ StringLiteral::StringLiteral()
 
 StringLiteral* StringLiteral::parse(CommonParseData& data)
 {
-  StringLiteral* stringLiteral = new StringLiteral;
+  StringLiteral* stringLiteral;
+  stringLiteral = data.program->arenaAlloc(stringLiteral);
 
   data.code.front().data.pop_back();
-  stringLiteral->value = data.code.front().data.substr(1);
+  stringLiteral->value = data.program->arenaAlloc(data.code.front().data.substr(1));
 
   data.code.pop_front();
 

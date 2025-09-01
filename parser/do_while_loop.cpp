@@ -10,12 +10,13 @@ DoWhileLoop::DoWhileLoop()
 
 DoWhileLoop* DoWhileLoop::parse(CommonParseData& data)
 {
-  DoWhileLoop* doWhileLoop = new DoWhileLoop;
+  DoWhileLoop* doWhileLoop;
+  doWhileLoop = data.program->arenaAlloc(doWhileLoop);
 
   ParseError::expect(data.code.front().data, "do");
   data.code.pop_front();
 
-  doWhileLoop->body = std::unique_ptr<Statement>(Statement::parse(data));
+  doWhileLoop->body = Statement::parse(data);
 
   ParseError::expect(data.code.front().data, "while");
   data.code.pop_front();
@@ -23,7 +24,7 @@ DoWhileLoop* DoWhileLoop::parse(CommonParseData& data)
   ParseError::expect(data.code.front().data, "(");
   data.code.pop_front();
 
-  doWhileLoop->condition = std::unique_ptr<Expression>(Expression::parse(data, false));
+  doWhileLoop->condition = Expression::parse(data, false);
 
   ParseError::expect(data.code.front().data, ")");
   data.code.pop_front();

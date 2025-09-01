@@ -7,14 +7,15 @@ TypeCast::TypeCast()
 
 TypeCast* TypeCast::parse(CommonParseData& data)
 {
-  TypeCast* typeCast = new TypeCast;
+  TypeCast* typeCast;
+  typeCast = data.program->arenaAlloc(typeCast);
 
   if (data.code.front().data == "(")
   {
     data.code.pop_front();
   }
 
-  typeCast->dataType = std::unique_ptr<DataType>(DataType::parse(data));
+  typeCast->dataType = DataType::parse(data);
 
   if (data.code.front().data == ")")
   {

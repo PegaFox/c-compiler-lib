@@ -5,7 +5,9 @@ PrimitiveType::PrimitiveType()
   generalType = GeneralType::PrimitiveType;
 }
 
-PrimitiveType::PrimitiveType(bool isFloating, bool isSigned, uint8_t size): isFloating(isFloating), isSigned(isSigned), size(size)
+PrimitiveType::PrimitiveType(uint16_t size, uint8_t alignment, bool isFloating, bool isSigned, bool isVolatile): size(size), alignment(alignment), isFloating(isFloating), isSigned(isSigned)
 {
   generalType = GeneralType::PrimitiveType;
+
+  this->isVolatile = isVolatile;
 }

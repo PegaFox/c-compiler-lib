@@ -9,7 +9,8 @@ Goto::Goto()
 
 Goto* Goto::parse(CommonParseData& data)
 {
-  Goto* gotoStatement = new Goto;
+  Goto* gotoStatement;
+  gotoStatement = data.program->arenaAlloc(gotoStatement);
 
   ParseError::expect(data.code.front().data, "goto");
   data.code.pop_front();

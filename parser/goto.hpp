@@ -7,7 +7,7 @@
 
 struct Goto: public Statement
 {
-  std::string label;
+  std::string_view label;
 
   Goto();
 

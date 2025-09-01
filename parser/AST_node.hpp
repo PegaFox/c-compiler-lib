@@ -1,6 +1,7 @@
 #ifndef PF_PARSER_AST_NODE_HPP
 #define PF_PARSER_AST_NODE_HPP
 
+#include <memory>
 #include "../compiler.hpp"
 #include "../lexer.hpp"
 

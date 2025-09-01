@@ -10,7 +10,8 @@ ForLoop::ForLoop()
 
 ForLoop* ForLoop::parse(CommonParseData& data)
 {
-  ForLoop* forLoop = new ForLoop;
+  ForLoop* forLoop;
+  forLoop = data.program->arenaAlloc(forLoop);
 
   ParseError::expect(data.code.front().data, "for");
   data.code.pop_front();
@@ -22,26 +23,26 @@ ForLoop* ForLoop::parse(CommonParseData& data)
   {
     if (data.code.front().type == Token::Keyword || data.program->typedefs.contains(data.code.front().data))
     {
-      forLoop->initialization = std::unique_ptr<Declaration>(Declaration::parse(data));
+      forLoop->initialization = Declaration::parse(data);
     } else
     {
-      forLoop->initialization = std::unique_ptr<Expression>(Expression::parse(data));
+      forLoop->initialization = Expression::parse(data);
     }
   }
   data.code.pop_front();
   
 
-  forLoop->condition = std::unique_ptr<Expression>(Expression::parse(data));
+  forLoop->condition = Expression::parse(data);
 
   ParseError::expect(data.code.front().data, ";");
   data.code.pop_front();
 
-  forLoop->update = std::unique_ptr<Expression>(Expression::parse(data));
+  forLoop->update = Expression::parse(data);
 
   ParseError::expect(data.code.front().data, ")");
   data.code.pop_front();
 
-  forLoop->body = std::unique_ptr<Statement>(Statement::parse(data));
+  forLoop->body = Statement::parse(data);
 
   return forLoop;
 }

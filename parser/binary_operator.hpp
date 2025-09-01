@@ -80,9 +80,9 @@ struct BinaryOperator: public Expression
     9 // LesserOrEqual
   };
 
-  std::unique_ptr<Expression> leftOperand;
+  Expression* leftOperand = nullptr;
 
-  std::unique_ptr<Expression> rightOperand;
+  Expression* rightOperand = nullptr;
 
   BinaryOperator();
 

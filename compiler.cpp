@@ -159,12 +159,11 @@ void Compiler::optimizeAST(Program& AST)
         node.ptr = node.path.back().first;
         changed = true;
 
-        SubExpression* subExpression = (SubExpression*)((std::unique_ptr<Expression>*)node.path.back().second)->release();
+        SubExpression* subExpression = (SubExpression*)(*(Expression**)node.path.back().second);
 
-        Expression* expression = subExpression->expression.release();
+        Expression* expression = subExpression->expression;
 
-        delete subExpression;
-        *((std::unique_ptr<Expression>*)node.path.back().second) = std::unique_ptr<Expression>(expression);
+        *((Expression**)node.path.back().second) = expression;
       }
       i++;
     }
@@ -210,30 +209,28 @@ std::string Compiler::printIRoperation(const Operation& irOperation)
 {
   std::stringstream opString;
 
+  if (irOperation.type.isVolatile)
+  {
+    opString << "volatile ";
+  }
+
+  if (irOperation.type.isConst)
+  {
+    opString << "const ";
+  }
+
   if (irOperation.type.isFloating)
   {
     opString << 'f';
   } else if (irOperation.type.isSigned)
   {
     opString << 'i';
-  } else if (!irOperation.type.identifier.empty())
-  {
-    opString << "struct " << irOperation.type.identifier << ':';
   } else
   {
     opString << 'u';
   }
 
-  if (irOperation.type.arrayLength > 0)
-  {
-    opString << irOperation.type.size << ':' << (int)irOperation.type.alignment << std::string(irOperation.type.pointerDepth-1, '*');
-    opString << '[' << irOperation.type.arrayLength << ']';
-  } else
-  {
-    opString << irOperation.type.size << ':' << (int)irOperation.type.alignment << std::string(irOperation.type.pointerDepth, '*');
-  }
-
-  opString << ' ';
+  opString << irOperation.type.size << ':' << (int)irOperation.type.alignment << ' ';
 
   switch (irOperation.code)
   {

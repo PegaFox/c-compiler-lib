@@ -7,7 +7,7 @@
 
 struct Return: public Statement
 {
-  std::unique_ptr<Expression> data;
+  Expression* data = nullptr;
 
   Return(); 
 

@@ -1,6 +1,7 @@
 #ifndef PF_GENERATE_IR_HPP
 #define PF_GENERATE_IR_HPP
 
+#include <array>
 #include <map>
 
 #include "parser/data_type.hpp"
@@ -32,23 +33,15 @@
 
 struct Operation
 {
-  struct DataType
+  /*struct DataType
   {
     uint16_t size = 0;
     uint8_t alignment = 0;
-    uint8_t pointerDepth = 0;
 
     bool isSigned = false;
     bool isFloating = false;
     bool isVolatile = false;
-
-    uint16_t arrayLength = 0;
-
-    // Identifier for structs and the like
-    std::string identifier = "";
-
-    uint16_t diskSize(uint8_t pointerSize) const;
-  } type;
+  }*/ PrimitiveType type;
 
   enum Opcode
   {
@@ -93,7 +86,7 @@ struct IRprogram
   struct Function
   {
     // value.first is the parameter index, value.second is the parameter type
-    std::vector<std::pair<std::string, Operation::DataType>> parameters;
+    std::vector<std::pair<std::string, PrimitiveType>> parameters;
     std::vector<Operation> body;
   };
 
@@ -128,15 +121,29 @@ class GenerateIR
       Compiler::TypeSizes typeSizes;
     };
 
-    std::map<std::string, const Declaration*> declarations;
+    std::pair<std::unique_ptr<uint8_t[]>, std::size_t> dynamicData;
 
-    std::map<std::string, std::pair<Operation::DataType, std::map<std::string, std::pair<Operation::DataType, uint8_t>>>> memberOffsets;
+    //std::map<std::string, const Declaration*> declarations;
+    std::map<std::string, DataType*> declarations;
+
+    std::map<std::string, std::pair<DataType*, std::map<std::string, std::pair<PrimitiveType, uint8_t>>>> memberOffsets;
 
     std::vector<const CompoundStatement*> scopes;
 
-    Operation::DataType ASTTypeToIRType(CommonIRData& data, const DataType* dataType);
+    template<typename ObjType>
+    ObjType* arenaAlloc(ObjType* object)
+    {
+      object = (ObjType*)&dynamicData.first[dynamicData.second];
+      dynamicData.second += sizeof(ObjType);
 
-    std::map<std::string, const Declaration*>::iterator getIdentifier(const std::string& identifier);
+      *object = ObjType();
+
+      return object;
+    }
+
+    PrimitiveType ASTTypeToIRType(CommonIRData& data, const DataType* dataType);
+
+    std::map<std::string, DataType*>::iterator getIdentifier(const std::string& identifier);
 
     //void generateFunctionDeclaration(CommonIRData& data, const FunctionDeclaration* functionDeclaration);
 
@@ -144,9 +151,9 @@ class GenerateIR
 
     void generateCompoundStatement(CommonIRData& data, const CompoundStatement* compoundStatement);
 
-    std::pair<std::string, Operation::DataType> generateExpression(CommonIRData& data, const Expression* expression);
+    std::pair<std::string, PrimitiveType> generateExpression(CommonIRData& data, const Expression* expression);
 
-    std::pair<std::string, Operation::DataType> generateConstant(CommonIRData& data, const Constant* constant);
+    std::pair<std::string, PrimitiveType> generateConstant(CommonIRData& data, Constant* constant);
 
     void generateReturn(CommonIRData& data, const Return* returnVal);
 
@@ -174,19 +181,19 @@ class GenerateIR
 
     void generateForLoop(CommonIRData& data, const ForLoop* forLoop);
 
-    std::pair<std::string, Operation::DataType> generateVariableAccess(CommonIRData& data, const VariableAccess* variableAccess);
+    std::pair<std::string, PrimitiveType> generateVariableAccess(CommonIRData& data, const VariableAccess* variableAccess);
 
-    std::pair<std::string, Operation::DataType> generateStringLiteral(CommonIRData& data, const StringLiteral* stringLiteral);
+    std::pair<std::string, PrimitiveType> generateStringLiteral(CommonIRData& data, const StringLiteral* stringLiteral);
 
-    std::pair<std::string, Operation::DataType> generateFunctionCall(CommonIRData& data, const FunctionCall* functionCall);
+    std::pair<std::string, PrimitiveType> generateFunctionCall(CommonIRData& data, const FunctionCall* functionCall);
 
-    std::pair<std::string, Operation::DataType> generatePreUnaryOperator(CommonIRData& data, const PreUnaryOperator* preUnary);
+    std::pair<std::string, PrimitiveType> generatePreUnaryOperator(CommonIRData& data, const PreUnaryOperator* preUnary);
 
-    std::pair<std::string, Operation::DataType> generatePostUnaryOperator(CommonIRData& data, const PostUnaryOperator* postUnary);
+    std::pair<std::string, PrimitiveType> generatePostUnaryOperator(CommonIRData& data, const PostUnaryOperator* postUnary);
 
-    std::pair<std::string, Operation::DataType> generateBinaryOperator(CommonIRData& data, const BinaryOperator* binary);
+    std::pair<std::string, PrimitiveType> generateBinaryOperator(CommonIRData& data, const BinaryOperator* binary);
 
-    std::pair<std::string, Operation::DataType> generateTernaryOperator(CommonIRData& data, const TernaryOperator* ternary);
+    std::pair<std::string, PrimitiveType> generateTernaryOperator(CommonIRData& data, const TernaryOperator* ternary);
 
     bool resolveConstantOperations(IRprogram& irProgram);
 

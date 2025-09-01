@@ -7,7 +7,7 @@
 
 struct Label: public Statement
 {
-  std::string name;
+  std::string_view name;
 
   Label();
 

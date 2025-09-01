@@ -9,7 +9,8 @@ Break::Break()
 
 Break* Break::parse(CommonParseData& data)
 {
-  Break* breakStatement = new Break;
+  Break* breakStatement;
+  breakStatement = data.program->arenaAlloc(breakStatement);
 
   ParseError::expect(data.code.front().data, "break");
   data.code.pop_front();

@@ -7,7 +7,7 @@
 
 struct Pointer: public DataType
 {
-  std::unique_ptr<DataType> dataType;
+  DataType* dataType = nullptr;
 
   Pointer();
 

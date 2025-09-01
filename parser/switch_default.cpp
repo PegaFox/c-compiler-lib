@@ -9,7 +9,8 @@ SwitchDefault::SwitchDefault()
 
 SwitchDefault* SwitchDefault::parse(CommonParseData& data)
 {
-  SwitchDefault* switchDefault = new SwitchDefault;
+  SwitchDefault* switchDefault;
+  switchDefault = data.program->arenaAlloc(switchDefault);
 
   ParseError::expect(data.code.front().data, "default");
   data.code.pop_front();

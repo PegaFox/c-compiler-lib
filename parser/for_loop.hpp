@@ -7,13 +7,13 @@
 
 struct ForLoop: public Statement
 {
-  std::unique_ptr<Statement> initialization;
+  Statement* initialization = nullptr;
 
-  std::unique_ptr<Expression> condition;
+  Expression* condition = nullptr;
 
-  std::unique_ptr<Expression> update;
+  Expression* update = nullptr;
 
-  std::unique_ptr<Statement> body;
+  Statement* body = nullptr;
 
   ForLoop();
 

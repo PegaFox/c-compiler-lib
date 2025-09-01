@@ -5,9 +5,9 @@
 
 struct Function: public DataType
 {
-  std::unique_ptr<DataType> returnType;
+  DataType* returnType = nullptr;
 
-  std::vector<std::unique_ptr<Declaration>> parameters;
+  std::vector<Declaration*> parameters;
 
   Function();
 

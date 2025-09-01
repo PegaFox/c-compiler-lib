@@ -7,7 +7,7 @@
 
 struct StringLiteral: public Expression
 {
-  std::string value;
+  std::string_view value;
 
   StringLiteral();
 

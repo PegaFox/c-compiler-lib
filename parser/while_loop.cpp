@@ -9,7 +9,8 @@ WhileLoop::WhileLoop()
 
 WhileLoop* WhileLoop::parse(CommonParseData& data)
 {
-  WhileLoop* whileLoop = new WhileLoop;
+  WhileLoop* whileLoop;
+  whileLoop = data.program->arenaAlloc(whileLoop);
 
   ParseError::expect(data.code.front().data, "while");
   data.code.pop_front();
@@ -17,12 +18,12 @@ WhileLoop* WhileLoop::parse(CommonParseData& data)
   ParseError::expect(data.code.front().data, "(");
   data.code.pop_front();
 
-  whileLoop->condition = std::unique_ptr<Expression>(Expression::parse(data, false));
+  whileLoop->condition = Expression::parse(data, false);
 
   ParseError::expect(data.code.front().data, ")");
   data.code.pop_front();
 
-  whileLoop->body = std::unique_ptr<Statement>(Statement::parse(data));
+  whileLoop->body = Statement::parse(data);
 
   return whileLoop;
 }

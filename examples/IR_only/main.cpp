@@ -9,6 +9,7 @@
 */
 
 #include <C_compiler.hpp>
+#include <parser/pointer.hpp>
 
 int main(int argc, char* argv[])
 {

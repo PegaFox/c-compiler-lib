@@ -17,9 +17,28 @@ Program::Program(const std::list<Token>& code, const Compiler::TypeSizes& typeSi
   parse(code, typeSizes);
 }
 
+void* Program::arenaAlloc(std::size_t size)
+{
+  void* result = &dynamicData.first[dynamicData.second];
+
+  dynamicData.second += size;
+
+  return result;
+}
+
+std::string_view Program::arenaAlloc(const std::string& sourceString)
+{
+  char* location = (char*)arenaAlloc(sourceString.size());
+  sourceString.copy(location, -1);
+
+  return std::string_view(location, sourceString.size());
+}
+
 void Program::parse(std::list<Token> code, const Compiler::TypeSizes& typeSizes)
 {
   CommonParseData data{code, this, typeSizes};
+
+  dynamicData.first.reset(new uint8_t[code.size()*100]);
 
   while (!data.code.empty()) {
     for (std::list<Token>::iterator i = data.code.begin(); i != data.code.end(); i++)

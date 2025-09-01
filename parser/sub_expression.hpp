@@ -7,7 +7,7 @@
 
 struct SubExpression: public Expression
 {
-  std::unique_ptr<Expression> expression;
+  Expression* expression = nullptr;
 
   SubExpression();
 };

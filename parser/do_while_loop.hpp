@@ -7,9 +7,9 @@
 
 struct DoWhileLoop: public Statement
 {
-  std::unique_ptr<Expression> condition;
+  Expression* condition = nullptr;
 
-  std::unique_ptr<Statement> body;
+  Statement* body = nullptr;
 
   DoWhileLoop();
 

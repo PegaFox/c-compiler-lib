@@ -9,7 +9,8 @@ Label::Label()
 
 Label* Label::parse(CommonParseData& data)
 {
-  Label* label = new Label;
+  Label* label;
+  label = data.program->arenaAlloc(label);
 
   ParseError::expect(data.code.front(), Token::Identifier);
   label->name = data.code.front().data;

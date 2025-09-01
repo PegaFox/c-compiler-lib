@@ -1,10 +1,6 @@
-void getLabel(const char* label)
-{
-  return;
-}
+const char* welcomeString = "Hello, World!\n";
 
 int main()
 {
-  getLabel("Hello, World!\n");
-  return 0;
+  char helloString[] = "Hello, World!\n";
 }

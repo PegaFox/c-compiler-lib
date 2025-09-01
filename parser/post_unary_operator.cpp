@@ -7,7 +7,8 @@ PostUnaryOperator::PostUnaryOperator()
 
 PostUnaryOperator* PostUnaryOperator::parse(CommonParseData& data, Expression* operand)
 {
-  PostUnaryOperator* postUnary = new PostUnaryOperator;
+  PostUnaryOperator* postUnary;
+  postUnary = data.program->arenaAlloc(postUnary);
 
   if (data.code.front().data == "++")
   {
@@ -19,7 +20,7 @@ PostUnaryOperator* PostUnaryOperator::parse(CommonParseData& data, Expression* o
 
   data.code.pop_front();
 
-  postUnary->operand = std::unique_ptr<Expression>(operand);
+  postUnary->operand = operand;
 
   return postUnary;
 }

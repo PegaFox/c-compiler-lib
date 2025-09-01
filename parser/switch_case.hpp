@@ -7,7 +7,7 @@
 
 struct SwitchCase: public Statement
 {
-  std::unique_ptr<Expression> requirement;
+  Expression* requirement = nullptr;
 
   SwitchCase();
 

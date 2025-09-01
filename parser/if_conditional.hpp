@@ -7,12 +7,12 @@
 
 struct IfConditional: public Statement
 {
-  std::unique_ptr<Expression> condition;
+  Expression* condition = nullptr;
 
-  std::unique_ptr<Statement> body;
+  Statement* body = nullptr;
 
   // associated else statement
-  std::unique_ptr<Statement> elseStatement;
+  Statement* elseStatement = nullptr;
 
   IfConditional();
 

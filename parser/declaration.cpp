@@ -11,7 +11,8 @@ Declaration::Declaration()
 
 Declaration* Declaration::parse(CommonParseData& data, Linkage defaultLinkage)
 {
-  Declaration* declaration = new Declaration;
+  Declaration* declaration;
+  declaration = data.program->arenaAlloc(declaration);
 
   std::vector<Token> buffer;
   bool namedType = false;
@@ -60,23 +61,23 @@ Declaration* Declaration::parse(CommonParseData& data, Linkage defaultLinkage)
     }
   }
 
-  declaration->dataType = std::unique_ptr<DataType>(DataType::parse(data));
+  declaration->dataType = DataType::parse(data);
 
   if (data.code.front().type == Token::Identifier)
   {
-    declaration->identifier = data.code.front().data;
+    declaration->identifier = data.program->arenaAlloc(data.code.front().data);
     data.code.pop_front();
 
     if (data.code.front().data == "=")
     {
       data.code.pop_front();
-      declaration->value = std::unique_ptr<Statement>(Expression::parse(data, false));
+      declaration->value = Expression::parse(data, false);
     } else if (data.code.front().data == "{")
     {
-      declaration->value = std::unique_ptr<Statement>(CompoundStatement::parse(data));
+      declaration->value = CompoundStatement::parse(data);
     } else if (declaration->isTypedef)
     {
-      data.program->typedefs[declaration->identifier] = std::unique_ptr<DataType>(declaration->dataType.get());
+      data.program->typedefs[std::string(declaration->identifier)] = declaration->dataType;
     }
 
     // Need to check if code is empty to avoid a segfault after the final function

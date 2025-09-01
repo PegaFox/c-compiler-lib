@@ -7,11 +7,11 @@
 
 struct TernaryOperator: public Expression
 {
-  std::unique_ptr<Expression> condition;
+  Expression* condition = nullptr;
 
-  std::unique_ptr<Expression> trueOperand;
+  Expression* trueOperand = nullptr;
 
-  std::unique_ptr<Expression> falseOperand;
+  Expression* falseOperand = nullptr;
 
   TernaryOperator();
 

@@ -7,9 +7,9 @@
 
 struct SwitchConditional: public Statement
 {
-  std::unique_ptr<Expression> value;
+  Expression* value = nullptr;
 
-  std::unique_ptr<Statement> body;
+  Statement* body = nullptr;
 
   SwitchConditional();
 

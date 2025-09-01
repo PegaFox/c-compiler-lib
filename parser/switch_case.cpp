@@ -9,12 +9,13 @@ SwitchCase::SwitchCase()
 
 SwitchCase* SwitchCase::parse(CommonParseData& data)
 {
-  SwitchCase* switchCase = new SwitchCase;
+  SwitchCase* switchCase;
+  switchCase = data.program->arenaAlloc(switchCase);
 
   ParseError::expect(data.code.front().data, "case");
   data.code.pop_front();
 
-  switchCase->requirement = std::unique_ptr<Expression>(Expression::parse(data, false));
+  switchCase->requirement = Expression::parse(data, false);
 
   ParseError::expect(data.code.front().data, ":");
   data.code.pop_front();

@@ -10,9 +10,10 @@ BinaryOperator::BinaryOperator()
 
 Expression* BinaryOperator::parse(CommonParseData& data, Expression* leftOperand)
 {
-  Expression* binary = new BinaryOperator;
+  Expression* binary;
+  binary = data.program->arenaAlloc((BinaryOperator*)binary);
 
-  ((BinaryOperator*)binary)->leftOperand = std::unique_ptr<Expression>(leftOperand);
+  ((BinaryOperator*)binary)->leftOperand = leftOperand;
 
   if (data.code.front().data == "+")
   {
@@ -114,7 +115,7 @@ Expression* BinaryOperator::parse(CommonParseData& data, Expression* leftOperand
 
   data.code.pop_front();
 
-  ((BinaryOperator*)binary)->rightOperand = std::unique_ptr<Expression>(Expression::parse(data, false));
+  ((BinaryOperator*)binary)->rightOperand = Expression::parse(data, false);
 
   if (((BinaryOperator*)binary)->binaryType == BinaryType::Subscript)
   {
@@ -128,49 +129,48 @@ Expression* BinaryOperator::parse(CommonParseData& data, Expression* leftOperand
   // this takes care of left-associativity and operator precedence
   if (((BinaryOperator*)binary)->rightOperand->expressionType == ExpressionType::BinaryOperator)
   {
-    BinaryOperator* operand = (BinaryOperator*)((BinaryOperator*)binary)->rightOperand.get();
+    BinaryOperator* operand = (BinaryOperator*)((BinaryOperator*)binary)->rightOperand;
     if (precedence[(uint8_t)operand->binaryType] < precedence[(uint8_t)((BinaryOperator*)binary)->binaryType])
     {
       BinaryOperator* bottomOperand = operand;
-      while (bottomOperand->leftOperand->expressionType == ExpressionType::BinaryOperator && precedence[(uint8_t)((BinaryOperator*)bottomOperand->leftOperand.get())->binaryType] < precedence[(uint8_t)((BinaryOperator*)binary)->binaryType])
+      while (bottomOperand->leftOperand->expressionType == ExpressionType::BinaryOperator && precedence[(uint8_t)((BinaryOperator*)bottomOperand->leftOperand)->binaryType] < precedence[(uint8_t)((BinaryOperator*)binary)->binaryType])
       {
-        bottomOperand = (BinaryOperator*)bottomOperand->leftOperand.get();
+        bottomOperand = (BinaryOperator*)bottomOperand->leftOperand;
       }
 
-      Expression* temp = ((BinaryOperator*)binary)->rightOperand.release();
-      ((BinaryOperator*)binary)->rightOperand = std::unique_ptr<Expression>(bottomOperand->leftOperand.release());
-      bottomOperand->leftOperand = std::unique_ptr<Expression>(binary);
+      Expression* temp = ((BinaryOperator*)binary)->rightOperand;
+      ((BinaryOperator*)binary)->rightOperand = bottomOperand->leftOperand;
+      bottomOperand->leftOperand = binary;
       binary = temp;
     } else if (precedence[(uint8_t)operand->binaryType] == precedence[(uint8_t)((BinaryOperator*)binary)->binaryType] && ((BinaryOperator*)binary)->binaryType != BinaryType::VariableAssignment)
     {
       BinaryOperator* bottomOperand = operand;
       while (
         bottomOperand->rightOperand->expressionType == ExpressionType::BinaryOperator &&
-        precedence[(uint8_t)((BinaryOperator*)bottomOperand->rightOperand.get())->binaryType] ==
+        precedence[(uint8_t)((BinaryOperator*)bottomOperand->rightOperand)->binaryType] ==
         precedence[(uint8_t)((BinaryOperator*)binary)->binaryType] ||
         bottomOperand->leftOperand->expressionType == ExpressionType::BinaryOperator &&
-        precedence[(uint8_t)((BinaryOperator*)bottomOperand->leftOperand.get())->binaryType] ==
+        precedence[(uint8_t)((BinaryOperator*)bottomOperand->leftOperand)->binaryType] ==
         precedence[(uint8_t)((BinaryOperator*)binary)->binaryType])
       {
         if (bottomOperand->rightOperand->expressionType == ExpressionType::BinaryOperator)
         {
-          bottomOperand = (BinaryOperator*)bottomOperand->rightOperand.get();
+          bottomOperand = (BinaryOperator*)bottomOperand->rightOperand;
         } else
         {
-          bottomOperand = (BinaryOperator*)bottomOperand->leftOperand.get();
+          bottomOperand = (BinaryOperator*)bottomOperand->leftOperand;
         }
       }
-      ((BinaryOperator*)binary)->rightOperand.release();
-      ((BinaryOperator*)binary)->rightOperand = std::unique_ptr<Expression>(bottomOperand->leftOperand.release());
-      bottomOperand->leftOperand = std::unique_ptr<Expression>(binary);
+
+      ((BinaryOperator*)binary)->rightOperand = bottomOperand->leftOperand;
+      bottomOperand->leftOperand = binary;
       binary = operand;
     }
   } else if ((((BinaryOperator*)binary)->binaryType < BinaryType::VariableAssignment || ((BinaryOperator*)binary)->binaryType > BinaryType::BitwiseXOREqual) && ((BinaryOperator*)binary)->rightOperand->expressionType == ExpressionType::TernaryOperator)
   {
-    TernaryOperator* operand = (TernaryOperator*)((BinaryOperator*)binary)->rightOperand.get();
-    ((BinaryOperator*)binary)->rightOperand.release();
-    ((BinaryOperator*)binary)->rightOperand = std::unique_ptr<Expression>(operand->condition.release());
-    operand->condition = std::unique_ptr<Expression>(binary);
+    TernaryOperator* operand = (TernaryOperator*)((BinaryOperator*)binary)->rightOperand;
+    ((BinaryOperator*)binary)->rightOperand = operand->condition;
+    operand->condition = binary;
     binary = operand;
   }
 

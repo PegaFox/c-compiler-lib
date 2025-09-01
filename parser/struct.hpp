@@ -7,9 +7,9 @@
 
 struct Struct: public DataType
 {
-  std::string identifier;
+  std::string_view identifier;
 
-  std::vector<std::pair<std::unique_ptr<Declaration>, uint8_t>> members;
+  std::vector<std::pair<Declaration*, uint8_t>> members;
 
   Struct();
 };

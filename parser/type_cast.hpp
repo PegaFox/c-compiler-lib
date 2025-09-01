@@ -6,7 +6,7 @@
 
 struct TypeCast: public PreUnaryOperator
 {
-  std::unique_ptr<DataType> dataType;
+  DataType* dataType = nullptr;
 
   TypeCast();
 

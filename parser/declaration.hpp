@@ -18,11 +18,11 @@ struct Declaration: public Statement
   bool isTypedef = false;
   bool isInline = false;
 
-  std::unique_ptr<DataType> dataType;
+  DataType* dataType = nullptr;
 
-  std::string identifier;
+  std::string_view identifier;
 
-  std::unique_ptr<Statement> value;
+  Statement* value = nullptr;
 
   Declaration();
 

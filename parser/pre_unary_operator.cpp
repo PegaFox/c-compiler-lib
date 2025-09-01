@@ -17,7 +17,7 @@ Expression* PreUnaryOperator::parse(CommonParseData& data)
     preUnary = TypeCast::parse(data);
   } else
   {
-    preUnary = new PreUnaryOperator;
+    preUnary = data.program->arenaAlloc((PreUnaryOperator*)preUnary);
 
     if (data.code.front().data == "&")
     {
@@ -75,22 +75,22 @@ Expression* PreUnaryOperator::parse(CommonParseData& data)
     }
   }
 
-  ((PreUnaryOperator*)preUnary)->operand = std::unique_ptr<Expression>(Expression::parse(data, true));
+  ((PreUnaryOperator*)preUnary)->operand = Expression::parse(data, true);
 
   if (((PreUnaryOperator*)preUnary)->operand->expressionType == Expression::ExpressionType::BinaryOperator)
   {
-    BinaryOperator* bottomOperand = (BinaryOperator*)((PreUnaryOperator*)preUnary)->operand.get();
+    BinaryOperator* bottomOperand = (BinaryOperator*)((PreUnaryOperator*)preUnary)->operand;
     if (BinaryOperator::precedence[(int)bottomOperand->binaryType] <= BinaryOperator::precedence[(int)BinaryOperator::BinaryType::Multiply])
     {
       while (
         BinaryOperator::precedence[(int)bottomOperand->binaryType] <= BinaryOperator::precedence[(int)BinaryOperator::BinaryType::Multiply] &&
         bottomOperand->leftOperand->expressionType == ExpressionType::BinaryOperator)
       {
-        bottomOperand = (BinaryOperator*)bottomOperand->leftOperand.get();
+        bottomOperand = (BinaryOperator*)bottomOperand->leftOperand;
       }
-      Expression* operand = ((PreUnaryOperator*)preUnary)->operand.release();
-      ((PreUnaryOperator*)preUnary)->operand = std::unique_ptr<Expression>(bottomOperand->leftOperand.release());
-      bottomOperand->leftOperand = std::unique_ptr<Expression>(preUnary);
+      Expression* operand = ((PreUnaryOperator*)preUnary)->operand;
+      ((PreUnaryOperator*)preUnary)->operand = bottomOperand->leftOperand;
+      bottomOperand->leftOperand = preUnary;
       preUnary = operand;
     }
   }

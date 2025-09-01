@@ -13,318 +13,6 @@ DataType::DataType()
   nodeType = NodeType::DataType;
 }
 
-/*DataType* DataType::parse(CommonParseData& data)
-{
-  DataType* dataType = nullptr;
-
-  if (data.program->typedefs.contains(data.code.front().data))
-  {
-    dataType = data.program->typedefs[data.code.front().data].get();
-    data.code.pop_front();
-    return dataType;
-  }
-
-  // scan ahead to check if the datatype is primitive or a struct
-  for (std::list<Token>::iterator i = data.code.begin(); i != data.code.end(); i++)
-  {
-    if (i->type == Token::Keyword)
-    {
-      if (i->data == "struct")
-      {
-        dataType = new Struct;
-      }
-    } else if (i->data == "(")
-    {
-      dataType = new Function;
-    } else
-    {
-      break;
-    }
-  }
-
-  if (dataType == nullptr)
-  {
-    dataType = new PrimitiveType;
-  }
-
-  if (dataType->generalType == DataType::GeneralType::Struct && data.code.front().data == "struct")
-  {
-    Struct* structure = (Struct*)dataType;
-    data.code.pop_front();
-
-    ParseError::expect(data.code.front(), Token::Identifier);
-    structure->identifier = data.code.front().data;
-    data.code.pop_front();
-
-    if (data.code.front().data == "{")
-    {
-      data.code.pop_front();
-      while (data.code.front().data != "}")
-      {
-        structure->members.emplace_back(Declaration::parse(data), -1);
-
-        if (data.code.front().data == ":")
-        {
-          data.code.pop_front();
-
-          ParseError::expect(data.code.front(), Token::Constant);
-          structure->members.back().second = std::stoi(data.code.front().data);
-          data.code.pop_front();
-        }
-
-        ParseError::expect(data.code.front().data, ";");
-        data.code.pop_front();
-      }
-      data.code.pop_front();
-    }
-
-  } else if (dataType->generalType == DataType::GeneralType::Function)
-  {
-    Function* function = (Function*)dataType;
-
-    CommonParseData buffer;
-    buffer.program = data.program;
-    buffer.typeSizes = data.typeSizes;
-    // we only use the section of the code with the return type so it doesn't recursively create functions
-    while (data.code.front().data != "(")
-    {
-      buffer.code.push_back(data.code.front());
-      data.code.pop_front();
-    }
-    // need to add a dummy token to the end to avoid segfault when checking first element of list
-    buffer.code.push_back(Token{Token::Other, ";"});
-
-    function->returnType = std::unique_ptr<DataType>(DataType::parse(buffer));
-
-    buffer.code.pop_back();
-    while (!buffer.code.empty())
-    {
-      data.code.push_front(buffer.code.back());
-      buffer.code.pop_back();
-    }
-
-    if (data.code.front().data == "(")
-    {
-      data.code.pop_front();
-    }
-    
-    while (data.code.front().data != "(")
-    {
-      // this effectively removes the closing parentheses for function pointers
-      if (data.code.front().data != ")")
-      {
-        buffer.code.push_front(data.code.front());
-      }
-
-      data.code.pop_front();
-    }
-    data.code.pop_front();
-
-    if (data.code.front().data == "void")
-    {
-      data.code.pop_front();
-    }
-    
-    while (data.code.front().data != ")")
-    {
-      if (data.code.front().data == ",")
-      {
-        data.code.pop_front();
-      }
-
-      function->parameters.emplace_back(std::unique_ptr<Declaration>(Declaration::parse(data)));
-    }
-    data.code.pop_front();
-
-    while (!buffer.code.empty())
-    {
-      data.code.push_front(buffer.code.front());
-      buffer.code.pop_front();
-    }
-  } else if (data.code.front().data == "enum")
-  {
-    data.code.pop_front();
-
-    ParseError::expect(data.code.front(), Token::Identifier);
-    if (!data.program->enumTypes.contains(data.code.front().data))
-    {
-      std::cout << "Parse error: \"" << data.code.front().data << "\" is not a valid enum type\n";
-      throw ParseError();
-    }
-    data.code.pop_front();
-
-    *((PrimitiveType*)dataType) = PrimitiveType{false, true, data.typeSizes.intSize};
-
-  } else if (dataType->generalType == DataType::GeneralType::PrimitiveType)
-  {
-    PrimitiveType* primitiveType = (PrimitiveType*)dataType;
-    
-    switch (ParseError::expect(data.code.front().data, {"void", "signed", "unsigned", "short", "long", "char", "int", "float", "double"})) {
-      case 0:
-        primitiveType->size = 0;
-        data.code.pop_front();
-        break;
-      case 1:
-        data.code.pop_front();
-
-        if (data.code.front().data == "short")
-        {
-          *((PrimitiveType*)dataType) = PrimitiveType{false, true, data.typeSizes.shortSize};
-          data.code.pop_front();
-          if (data.code.front().data == "int")
-          {
-            data.code.pop_front();
-          }
-        } else if (data.code.front().data == "long")
-        {
-          data.code.pop_front();
-          if (data.code.front().data == "long")
-          {
-            *((PrimitiveType*)dataType) = PrimitiveType{false, true, data.typeSizes.longLongSize};
-            data.code.pop_front();
-          } else
-          {
-            *((PrimitiveType*)dataType) = PrimitiveType{false, true, data.typeSizes.longSize};
-          }
-          if (data.code.front().data == "int")
-          {
-            data.code.pop_front();
-          }
-        } else if (data.code.front().data == "char")
-        {
-          *((PrimitiveType*)dataType) = PrimitiveType{false, true, data.typeSizes.charSize};
-          data.code.pop_front();
-        } else
-        {
-          *((PrimitiveType*)dataType) = PrimitiveType{false, true, data.typeSizes.intSize};
-
-          if (data.code.front().data == "int")
-          {
-            data.code.pop_front();
-          }
-        }
-        break;
-      case 2:
-        data.code.pop_front();
-
-        if (data.code.front().data == "short")
-        {
-          *((PrimitiveType*)dataType) = PrimitiveType{false, false, data.typeSizes.shortSize};
-          data.code.pop_front();
-          if (data.code.front().data == "int")
-          {
-            data.code.pop_front();
-          }
-        } else if (data.code.front().data == "long")
-        {
-          data.code.pop_front();
-          if (data.code.front().data == "long")
-          {
-            *((PrimitiveType*)dataType) = PrimitiveType{false, false, data.typeSizes.longLongSize};
-            data.code.pop_front();
-          } else
-          {
-            *((PrimitiveType*)dataType) = PrimitiveType{false, false, data.typeSizes.longSize};
-          }
-          if (data.code.front().data == "int")
-          {
-            data.code.pop_front();
-          }
-        } else if (data.code.front().data == "char")
-        {
-          *((PrimitiveType*)dataType) = PrimitiveType{false, false, data.typeSizes.charSize};
-          data.code.pop_front();
-        } else
-        {
-          *((PrimitiveType*)dataType) = PrimitiveType{false, false, data.typeSizes.intSize};
-
-          if (data.code.front().data == "int")
-          {
-            data.code.pop_front();
-          }
-        }
-        break;
-      case 3:
-        *((PrimitiveType*)dataType) = PrimitiveType{false, true, data.typeSizes.shortSize};
-        data.code.pop_front();
-        if (data.code.front().data == "int")
-        {
-          data.code.pop_front();
-        }
-        break;
-      case 4:
-        data.code.pop_front();
-        if (data.code.front().data == "long")
-        {
-          *((PrimitiveType*)dataType) = PrimitiveType{false, true, data.typeSizes.longLongSize};
-          data.code.pop_front();
-        } else
-        {
-          *((PrimitiveType*)dataType) = PrimitiveType{false, true, data.typeSizes.longSize};
-        }
-        if (data.code.front().data == "int")
-        {
-          data.code.pop_front();
-        }
-        break;
-      case 5:
-        *((PrimitiveType*)dataType) = PrimitiveType{false, true, data.typeSizes.charSize};
-        data.code.pop_front();
-        break;
-      case 6:
-        *((PrimitiveType*)dataType) = PrimitiveType{false, true, data.typeSizes.intSize};
-        data.code.pop_front();
-        break;
-      case 7:
-        *((PrimitiveType*)dataType) = PrimitiveType{true, true, data.typeSizes.floatSize};
-        data.code.pop_front();
-        break;
-      case 8:
-        *((PrimitiveType*)dataType) = PrimitiveType{true, true, data.typeSizes.doubleSize};
-        data.code.pop_front();
-        break;
-      default:
-
-        break;
-    }
-  }
-
-  while (data.code.front().data == "*")
-  {
-    Pointer* pointer = new Pointer;
-    pointer->dataType = std::unique_ptr<DataType>(dataType);
-    dataType = pointer;
-    data.code.pop_front();
-  }
-
-  Token variableIdentifier;
-  if ((data.code.front().type == Token::Identifier && (++data.code.begin())->data == "["))
-  {
-    variableIdentifier = data.code.front();
-    data.code.pop_front();
-  }
-
-  while (data.code.front().data == "[")
-  {
-    Array* array = new Array;
-    array->dataType = std::unique_ptr<DataType>(dataType);
-    dataType = array;
-
-    data.code.pop_front();
-    array->size = std::unique_ptr<Expression>(Expression::parse(data));
-
-    ParseError::expect(data.code.front().data, "]");
-    data.code.pop_front();
-  }
-
-  if (variableIdentifier.type == Token::Identifier)
-  {
-    data.code.push_front(variableIdentifier);
-  }
-
-  return dataType;
-}*/
-
 DataType* DataType::parse(CommonParseData& data, std::list<Token>::iterator origin)
 {
   DataType* dataType = nullptr;
@@ -395,7 +83,8 @@ DataType* DataType::parse(CommonParseData& data, std::list<Token>::iterator orig
   {
     data.code.erase(next++);
 
-    dataType = new Array;
+    dataType = data.program->arenaAlloc((Array*)dataType);
+
     Array* array = (Array*)dataType;
     
     CommonParseData buffer;
@@ -415,14 +104,15 @@ DataType* DataType::parse(CommonParseData& data, std::list<Token>::iterator orig
       data.code.erase(next++);
     }
 
-    array->size = std::unique_ptr<Expression>(Expression::parse(buffer, true));
+    array->size = Expression::parse(buffer, true);
 
-    array->dataType = std::unique_ptr<DataType>(DataType::parse(data, origin));
+    array->dataType = DataType::parse(data, origin);
   } else if (next->data == "(")
   {
     data.code.erase(next++);
 
-    dataType = new Function;
+    dataType = data.program->arenaAlloc((Function*)dataType);
+
     Function* function = (Function*)dataType;
     
     CommonParseData buffer;
@@ -452,7 +142,7 @@ DataType* DataType::parse(CommonParseData& data, std::list<Token>::iterator orig
       function->parameters.emplace_back(Declaration::parse(buffer));
     }
 
-    function->returnType = std::unique_ptr<DataType>(DataType::parse(data, origin));
+    function->returnType = DataType::parse(data, origin);
   } else
   {
     bool isVolatile = false;
@@ -475,17 +165,18 @@ DataType* DataType::parse(CommonParseData& data, std::list<Token>::iterator orig
       origin->data == "float" ||
       origin->data == "double"))
     {
-      dataType = new PrimitiveType;
+      dataType = data.program->arenaAlloc((PrimitiveType*)dataType);
+
       PrimitiveType* primitiveType = (PrimitiveType*)dataType;
 
       if (origin->data == "void")
       {
         data.code.erase(origin--);
-        *((PrimitiveType*)dataType) = PrimitiveType{false, false, 0};
+        *((PrimitiveType*)dataType) = PrimitiveType{0, 0};
       } else if (origin->data == "float")
       {
         data.code.erase(origin--);
-        *((PrimitiveType*)dataType) = PrimitiveType{true, true, data.typeSizes.floatSize};
+        *((PrimitiveType*)dataType) = PrimitiveType{data.typeSizes.floatSize, data.typeSizes.floatSize, true, true};
       } else if (origin->data == "double")
       {
         data.code.erase(origin--);
@@ -496,9 +187,11 @@ DataType* DataType::parse(CommonParseData& data, std::list<Token>::iterator orig
         {
           data.code.erase(origin--);
           ((PrimitiveType*)dataType)->size = data.typeSizes.longDoubleSize;
+          ((PrimitiveType*)dataType)->alignment = data.typeSizes.longDoubleSize;
         } else
         {
           ((PrimitiveType*)dataType)->size = data.typeSizes.doubleSize;
+          ((PrimitiveType*)dataType)->alignment = data.typeSizes.doubleSize;
         }
       } else
       {
@@ -511,10 +204,12 @@ DataType* DataType::parse(CommonParseData& data, std::list<Token>::iterator orig
         {
           data.code.erase(origin--);
           ((PrimitiveType*)dataType)->size = data.typeSizes.charSize;
+          ((PrimitiveType*)dataType)->alignment = data.typeSizes.charSize;
         } else if (origin->data == "short")
         {
           data.code.erase(origin--);
           ((PrimitiveType*)dataType)->size = data.typeSizes.shortSize;
+          ((PrimitiveType*)dataType)->alignment = data.typeSizes.shortSize;
         } else if (origin->data == "long")
         {
           data.code.erase(origin--);
@@ -522,13 +217,16 @@ DataType* DataType::parse(CommonParseData& data, std::list<Token>::iterator orig
           {
             data.code.erase(origin--);
             ((PrimitiveType*)dataType)->size = data.typeSizes.longLongSize;
+            ((PrimitiveType*)dataType)->alignment = data.typeSizes.longLongSize;
           } else
           {
             ((PrimitiveType*)dataType)->size = data.typeSizes.longSize;
+            ((PrimitiveType*)dataType)->alignment = data.typeSizes.longSize;
           }
         } else
         {
           ((PrimitiveType*)dataType)->size = data.typeSizes.intSize;
+          ((PrimitiveType*)dataType)->alignment = data.typeSizes.intSize;
         }
       }
 
@@ -559,7 +257,7 @@ DataType* DataType::parse(CommonParseData& data, std::list<Token>::iterator orig
     {
       if (data.program->typedefs.contains(origin->data))
       {
-        dataType = data.program->typedefs[origin->data].get();
+        dataType = data.program->typedefs[origin->data];
         data.code.erase(origin--);
       } else
       {
@@ -571,19 +269,21 @@ DataType* DataType::parse(CommonParseData& data, std::list<Token>::iterator orig
         {
           data.code.erase(origin--);
 
-          dataType = new Struct;
+          dataType = data.program->arenaAlloc((Struct*)dataType);
+
           Struct* structure = (Struct*)dataType;
 
-          structure->identifier = typeIdentifier;
+          structure->identifier = data.program->arenaAlloc(typeIdentifier);
 
         } else if (origin->data == "enum")
         {
           data.code.erase(origin--);
 
-          dataType = new PrimitiveType;
+          dataType = data.program->arenaAlloc((PrimitiveType*)dataType);
+
           PrimitiveType* primitiveType = (PrimitiveType*)dataType;
 
-          *primitiveType = PrimitiveType{false, true, data.typeSizes.intSize};
+          *primitiveType = PrimitiveType{data.typeSizes.intSize, data.typeSizes.intSize, false, true};
         }
       }
     } else if (origin->data == "}")
@@ -647,9 +347,9 @@ DataType* DataType::parse(CommonParseData& data, std::list<Token>::iterator orig
     {
       data.code.erase(origin--);
 
-      dataType = new Pointer;
+      dataType = data.program->arenaAlloc((Pointer*)dataType);
 
-      ((Pointer*)dataType)->dataType = std::unique_ptr<DataType>(parse(data, origin));
+      ((Pointer*)dataType)->dataType = parse(data, origin);
     } else if (origin->data == "(")
     {
       data.code.erase(next++);

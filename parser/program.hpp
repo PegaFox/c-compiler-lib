@@ -3,6 +3,7 @@ class Program;
 #ifndef PF_PARSER_PROGRAM_HPP
 #define PF_PARSER_PROGRAM_HPP
 
+#include <iostream>
 #include <vector>
 #include <map>
 #include <set>
@@ -32,19 +33,34 @@ class Program: public ASTnode
     friend Declaration;
     friend ForLoop;
 
-    std::vector<std::unique_ptr<ASTnode>> nodes;
+    std::vector<ASTnode*> nodes;
 
     Program();
 
     Program(const std::list<Token>& code, const Compiler::TypeSizes& typeSizes);
 
+    void* arenaAlloc(std::size_t size);
+
+    template<typename ObjType>
+    ObjType* arenaAlloc(ObjType* object)
+    {
+      object = new((ObjType*)&dynamicData.first[dynamicData.second]) ObjType();
+      dynamicData.second += sizeof(ObjType);
+
+      return object;
+    }
+
+    std::string_view arenaAlloc(const std::string& sourceString);
+
     void parse(std::list<Token> code, const Compiler::TypeSizes& typeSizes);
 
   private:
+    std::pair<std::unique_ptr<uint8_t[]>, std::size_t> dynamicData;
+
     std::map<std::string, ENUM_TYPE> enums;
     std::set<std::string> enumTypes;
 
-    std::map<std::string, std::unique_ptr<DataType>> typedefs;
+    std::map<std::string, DataType*> typedefs;
 
     void parseEnum(CommonParseData& data);
 };

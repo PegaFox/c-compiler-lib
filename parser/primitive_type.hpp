@@ -25,11 +25,12 @@ struct PrimitiveType: public DataType
 
   bool isFloating = false;
   bool isSigned = false;
-  uint8_t size = 0;
+  uint16_t size = 0;
+  uint8_t alignment = 0;
 
   PrimitiveType();
 
-  PrimitiveType(bool isFloating, bool isSigned, uint8_t size);
+  PrimitiveType(uint16_t size, uint8_t alignment, bool isFloating = false, bool isSigned = false, bool isVolatile = false);
 
   static PrimitiveType* parse(std::list<Token>& code);
 };
