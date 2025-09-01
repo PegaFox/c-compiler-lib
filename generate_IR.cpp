@@ -92,7 +92,7 @@ PrimitiveType GenerateIR::ASTTypeToIRType(CommonIRData& data, const DataType* da
     case DataType::GeneralType::PrimitiveType: {
       PrimitiveType* primitiveType = (PrimitiveType*)dataType;
 
-      return {primitiveType->size, primitiveType->alignment, primitiveType->isSigned, primitiveType->isFloating, dataType->isConst, dataType->isVolatile};
+      return {primitiveType->size, primitiveType->alignment, primitiveType->isFloating, primitiveType->isSigned, dataType->isConst, dataType->isVolatile};
     } case DataType::GeneralType::Pointer: {
       Pointer* pointer = (Pointer*)dataType;
       
@@ -1473,7 +1473,18 @@ bool GenerateIR::trimInaccessibleCode(IRprogram& irProgram)
   bool changed = false;
   bool accessible = true;
 
-  std::map<std::string, uint8_t> identifiers;
+  struct IdentifierUsage
+  {
+    bool declared: 1;
+    bool used: 1;
+
+    IdentifierUsage()
+    {
+      declared = false;
+      used = false;
+    }
+  };
+  std::map<std::string, IdentifierUsage> identifiers;
 
   for (std::vector<IRprogram::Function>::iterator f = irProgram.program.begin(); f != irProgram.program.end(); f++)
   {
@@ -1482,7 +1493,7 @@ bool GenerateIR::trimInaccessibleCode(IRprogram& irProgram)
     {
       if (i->code == Operation::Label)
       {
-        identifiers[i->operands[0]] |= 2;
+        identifiers[i->operands[0]].declared = true;
         accessible = true;
       }
 
@@ -1500,7 +1511,7 @@ bool GenerateIR::trimInaccessibleCode(IRprogram& irProgram)
 
       if (i->code == Operation::Jump || i->code == Operation::JumpIfZero || i->code == Operation::JumpIfNotZero || i->code == Operation::Call)
       {
-        identifiers[i->operands[0]] |= 1;
+        identifiers[i->operands[0]].used = true;
       }
 
       if (i->code == Operation::Set || 
@@ -1528,32 +1539,34 @@ bool GenerateIR::trimInaccessibleCode(IRprogram& irProgram)
         i->code == Operation::LogicalNOT || 
         i->code == Operation::BitwiseNOT)
       {
-        if (!i->type.isVolatile)
+        identifiers[i->operands[0]].declared = true;
+
+        if (i->type.isVolatile)
         {
-          identifiers[i->operands[0]] |= 2;
+          identifiers[i->operands[0]].used = true;
         }
         if (!i->operands[1].empty() && i->operands[1].find_first_not_of(".0123456789") != std::string::npos)
         {
-          identifiers[i->operands[1]] |= 1;
+          identifiers[i->operands[1]].used = true;
         }
         if (!i->operands[2].empty() && i->operands[2].find_first_not_of(".0123456789") != std::string::npos)
         {
-          identifiers[i->operands[2]] |= 1;
+          identifiers[i->operands[2]].used = true;
         }
       } else if (i->code != Operation::Label && 
         i->code != Operation::Jump)
       {
         if (!i->operands[0].empty() && i->operands[0].find_first_not_of(".0123456789") != std::string::npos)
         {
-          identifiers[i->operands[0]] |= 1;
+          identifiers[i->operands[0]].used = true;
         }
         if (!i->operands[1].empty() && i->operands[1].find_first_not_of(".0123456789") != std::string::npos)
         {
-          identifiers[i->operands[1]] |= 1;
+          identifiers[i->operands[1]].used = true;
         }
         if (!i->operands[2].empty() && i->operands[2].find_first_not_of(".0123456789") != std::string::npos)
         {
-          identifiers[i->operands[2]] |= 1;
+          identifiers[i->operands[2]].used = true;
         }
       }
       index++;
@@ -1567,14 +1580,14 @@ bool GenerateIR::trimInaccessibleCode(IRprogram& irProgram)
   }
 
   // This marks certain values to be kept
-  while (!identifiers.empty() && (identifiers.begin()->second != 2 || identifiers.begin()->first == "main"))
+  while (!identifiers.empty() && (identifiers.begin()->second.declared == false || identifiers.begin()->second.used == true || identifiers.begin()->first == "main"))
   {
     identifiers.erase(identifiers.begin());
   }
 
-  for (std::map<std::string, uint8_t>::iterator l = identifiers.begin(); l != identifiers.end(); l++)
+  for (std::map<std::string, IdentifierUsage>::iterator l = identifiers.begin(); l != identifiers.end(); l++)
   {
-    if (l->second != 2 || l->first == "main")
+    if (l->second.declared == false || l->second.used == true || l->first == "main")
     {
       identifiers.erase(l--);
     }
@@ -1615,7 +1628,7 @@ bool GenerateIR::trimInaccessibleCode(IRprogram& irProgram)
         i->code == Operation::BitwiseNOT || 
         i->code == Operation::Label)
       {
-        for (std::map<std::string, uint8_t>::iterator l = identifiers.begin(); l != identifiers.end(); l++)
+        for (std::map<std::string, IdentifierUsage>::iterator l = identifiers.begin(); l != identifiers.end(); l++)
         {
           if (i->operands[0] == l->first)
           {
