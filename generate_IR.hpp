@@ -106,7 +106,7 @@ class GenerateIR
 
     };
 
-    IRprogram generateIR(const Program& AST, uint8_t pointerSize);
+    IRprogram generateIR(const Program& AST, const Compiler::TypeSizes& typeSizes);
 
     void optimizeIR(IRprogram& asmCode);
 

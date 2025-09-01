@@ -41,7 +41,7 @@
   return result;
 }*/
 
-IRprogram GenerateIR::generateIR(const Program& AST, uint8_t pointerSize)
+IRprogram GenerateIR::generateIR(const Program& AST, const Compiler::TypeSizes& typeSizes)
 {
   CommonIRData data{
     nullptr,
@@ -52,7 +52,7 @@ IRprogram GenerateIR::generateIR(const Program& AST, uint8_t pointerSize)
         IRprogram::Function{{}, {}}
       }
     },
-    pointerSize
+    typeSizes
   };
   data.instrArray = &data.irProgram.program[0].body;
 

@@ -57,7 +57,7 @@ IRprogram Compiler::compileFromArgs(int argc, char* argv[])
       //PrintAST printer(AST);
 
       GenerateIR irEngine;
-      IRprogram localIR = irEngine.generateIR(AST, typeSizes.pointerSize);
+      IRprogram localIR = irEngine.generateIR(AST, typeSizes);
 
       irCode.program.insert(irCode.program.cend(), localIR.program.cbegin(), localIR.program.cend());
       for (const std::pair<std::string, std::size_t>& var: localIR.staticVariables)
