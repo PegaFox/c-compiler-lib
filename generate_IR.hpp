@@ -47,6 +47,7 @@ struct Operation
   {
     Set,
     GetAddress,
+    // DereferenceRValue data type field is the value pointed to, not just a pointer type
     DereferenceLValue,
     DereferenceRValue,
     SetAddition,

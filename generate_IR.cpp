@@ -92,11 +92,11 @@ PrimitiveType GenerateIR::ASTTypeToIRType(CommonIRData& data, const DataType* da
     case DataType::GeneralType::PrimitiveType: {
       PrimitiveType* primitiveType = (PrimitiveType*)dataType;
 
-      return {primitiveType->size, primitiveType->alignment, primitiveType->isSigned, primitiveType->isFloating, dataType->isVolatile};
+      return {primitiveType->size, primitiveType->alignment, primitiveType->isSigned, primitiveType->isFloating, dataType->isConst, dataType->isVolatile};
     } case DataType::GeneralType::Pointer: {
       Pointer* pointer = (Pointer*)dataType;
       
-      return {data.typeSizes.pointerSize, data.typeSizes.pointerSize, false, false, dataType->isVolatile};
+      return {data.typeSizes.pointerSize, data.typeSizes.pointerSize, false, false, dataType->isConst, dataType->isVolatile};
     } case DataType::GeneralType::Array: {
       Array* array = (Array*)dataType;
 
@@ -113,6 +113,7 @@ PrimitiveType GenerateIR::ASTTypeToIRType(CommonIRData& data, const DataType* da
       Struct* structure = (Struct*)dataType;
       
       PrimitiveType result;
+      result.isConst = dataType->isConst;
       result.isVolatile = dataType->isVolatile;
 
       if (memberOffsets.contains(std::string(structure->identifier)))
@@ -745,7 +746,7 @@ std::pair<std::string, PrimitiveType> GenerateIR::generateStringLiteral(CommonIR
 
   declarations[std::to_string((uintptr_t)stringLiteral) + "_Literal"] = astType;
 
-  return {std::to_string((uintptr_t)stringLiteral) + "_Literal", {uint16_t(stringLiteral->value.size()+1), 1, true, false, false}};
+  return {std::to_string((uintptr_t)stringLiteral) + "_Literal", {uint16_t(stringLiteral->value.size()+1), 1, false, true, true, false}};
 }
 
 std::pair<std::string, PrimitiveType> GenerateIR::generateFunctionCall(CommonIRData& data, const FunctionCall* functionCall)
@@ -812,6 +813,8 @@ std::pair<std::string, PrimitiveType> GenerateIR::generatePreUnaryOperator(Commo
       break;
     case PreUnaryOperator::PreUnaryType::Sizeof:
       declarations[std::to_string((uintptr_t)preUnary) + "_Size"] = (PrimitiveType*)arenaAlloc((PrimitiveType*)declarations[std::to_string((uintptr_t)preUnary) + "_Size"]);
+      ((PrimitiveType*)declarations[std::to_string((uintptr_t)preUnary) + "_Size"])->size = data.typeSizes.pointerSize;
+      ((PrimitiveType*)declarations[std::to_string((uintptr_t)preUnary) + "_Size"])->alignment = data.typeSizes.pointerSize;
 
       data.instrArray->emplace_back(Operation{{data.typeSizes.pointerSize, data.typeSizes.pointerSize}, Operation::Set, {std::to_string((uintptr_t)preUnary) + "_Size", std::to_string(name.second.size)}});
       break;
@@ -993,7 +996,17 @@ std::pair<std::string, PrimitiveType> GenerateIR::generateBinaryOperator(CommonI
       ((PreUnaryOperator*)binary->leftOperand)->preUnaryType == PreUnaryOperator::PreUnaryType::Dereference)
     {
       leftOperandName = generateExpression(data, ((PreUnaryOperator*)binary->leftOperand)->operand);
-      data.instrArray->emplace_back(Operation{leftOperandName.second, Operation::DereferenceLValue, {leftOperandName.first, rightOperandName.first}});
+
+      DataType* resultType;
+      if (declarations[leftOperandName.first]->generalType == DataType::GeneralType::Pointer)
+      {
+        resultType = ((Pointer*)declarations[leftOperandName.first])->dataType;
+      } else if (declarations[leftOperandName.first]->generalType == DataType::GeneralType::Array)
+      {
+        resultType = ((Array*)declarations[leftOperandName.first])->dataType;
+      }
+
+      data.instrArray->emplace_back(Operation{ASTTypeToIRType(data, resultType), Operation::DereferenceLValue, {leftOperandName.first, rightOperandName.first}});
 
     } else if (binary->leftOperand->expressionType == Expression::ExpressionType::BinaryOperator)
     {
@@ -1017,12 +1030,6 @@ std::pair<std::string, PrimitiveType> GenerateIR::generateBinaryOperator(CommonI
       } else if (((BinaryOperator*)binary->leftOperand)->binaryType == BinaryOperator::BinaryType::DereferenceMemberAccess)
       {
         leftOperandName = generateExpression(data, ((BinaryOperator*)binary->leftOperand)->leftOperand);
-
-        if (!declarations.contains(leftOperandName.first))
-        {
-          std::cout << "bruh\n";
-          generateExpression(data, ((BinaryOperator*)binary->leftOperand)->leftOperand);
-        }
 
         VariableAccess* identifier = ((VariableAccess*)((BinaryOperator*)binary->leftOperand)->rightOperand);
 
@@ -1063,6 +1070,7 @@ std::pair<std::string, PrimitiveType> GenerateIR::generateBinaryOperator(CommonI
         data.instrArray->emplace_back(Operation{{data.typeSizes.pointerSize, data.typeSizes.pointerSize}, Operation::SetAddition, {std::to_string((uintptr_t)binary) + "_Pointer", std::to_string((uintptr_t)binary) + "_Casted", std::to_string(memberData.second)}});
 
         leftOperandName = {std::to_string((uintptr_t)binary) + "_Pointer", memberData.first};
+
         data.instrArray->emplace_back(Operation{leftOperandName.second, Operation::DereferenceLValue, {leftOperandName.first, rightOperandName.first}});
       } else
       {
@@ -1149,12 +1157,14 @@ std::pair<std::string, PrimitiveType> GenerateIR::generateBinaryOperator(CommonI
     case BinaryOperator::BinaryType::LogicalOR:
       declarations[std::to_string((uintptr_t)binary) + "_LogicalOred"] = arenaAlloc((PrimitiveType*)declarations[std::to_string((uintptr_t)binary) + "_LogicalOred"]);
       ((PrimitiveType*)declarations[std::to_string((uintptr_t)binary) + "_LogicalOred"])->size = 1;
+      ((PrimitiveType*)declarations[std::to_string((uintptr_t)binary) + "_LogicalOred"])->alignment = 1;
 
       data.instrArray->emplace_back(Operation{{1, 1}, Operation::SetLogicalOR, {std::to_string((uintptr_t)binary) + "_LogicalOred", leftOperandName.first, rightOperandName.first}});
       break;
     case BinaryOperator::BinaryType::LogicalAND:
       declarations[std::to_string((uintptr_t)binary) + "_LogicalAnded"] = arenaAlloc((PrimitiveType*)declarations[std::to_string((uintptr_t)binary) + "_LogicalAnded"]);
       ((PrimitiveType*)declarations[std::to_string((uintptr_t)binary) + "_LogicalAnded"])->size = 1;
+      ((PrimitiveType*)declarations[std::to_string((uintptr_t)binary) + "_LogicalAnded"])->alignment = 1;
 
       data.instrArray->emplace_back(Operation{{1, 1}, Operation::SetLogicalAND, {std::to_string((uintptr_t)binary) + "_LogicalAnded", leftOperandName.first, rightOperandName.first}});
       break;
@@ -1176,36 +1186,42 @@ std::pair<std::string, PrimitiveType> GenerateIR::generateBinaryOperator(CommonI
     case BinaryOperator::BinaryType::Equal:
       declarations[std::to_string((uintptr_t)binary) + "_Equaled"] = arenaAlloc((PrimitiveType*)declarations[std::to_string((uintptr_t)binary) + "_Equaled"]);
       ((PrimitiveType*)declarations[std::to_string((uintptr_t)binary) + "_Equaled"])->size = 1;
+      ((PrimitiveType*)declarations[std::to_string((uintptr_t)binary) + "_Equaled"])->alignment = 1;
 
       data.instrArray->emplace_back(Operation{{1, 1}, Operation::SetEqual, {std::to_string((uintptr_t)binary) + "_Equaled", leftOperandName.first, rightOperandName.first}});
       break;
     case BinaryOperator::BinaryType::NotEqual:
       declarations[std::to_string((uintptr_t)binary) + "_NotEqualed"] = arenaAlloc((PrimitiveType*)declarations[std::to_string((uintptr_t)binary) + "_NotEqualed"]);
       ((PrimitiveType*)declarations[std::to_string((uintptr_t)binary) + "_NotEqualed"])->size = 1;
+      ((PrimitiveType*)declarations[std::to_string((uintptr_t)binary) + "_NotEqualed"])->alignment = 1;
 
       data.instrArray->emplace_back(Operation{{1, 1}, Operation::SetNotEqual, {std::to_string((uintptr_t)binary) + "_NotEqualed", leftOperandName.first, rightOperandName.first}});
       break;
     case BinaryOperator::BinaryType::Greater:
       declarations[std::to_string((uintptr_t)binary) + "_Large"] = arenaAlloc((PrimitiveType*)declarations[std::to_string((uintptr_t)binary) + "_Large"]);
       ((PrimitiveType*)declarations[std::to_string((uintptr_t)binary) + "_Large"])->size = 1;
+      ((PrimitiveType*)declarations[std::to_string((uintptr_t)binary) + "_Large"])->alignment = 1;
 
       data.instrArray->emplace_back(Operation{{1, 1}, Operation::SetGreater, {std::to_string((uintptr_t)binary) + "_Large", leftOperandName.first, rightOperandName.first}});
       break;
     case BinaryOperator::BinaryType::Lesser:
       declarations[std::to_string((uintptr_t)binary) + "_Small"] = arenaAlloc((PrimitiveType*)declarations[std::to_string((uintptr_t)binary) + "_Small"]);
       ((PrimitiveType*)declarations[std::to_string((uintptr_t)binary) + "_Small"])->size = 1;
+      ((PrimitiveType*)declarations[std::to_string((uintptr_t)binary) + "_Small"])->alignment = 1;
 
       data.instrArray->emplace_back(Operation{{1, 1}, Operation::SetLesser, {std::to_string((uintptr_t)binary) + "_Small", leftOperandName.first, rightOperandName.first}});
       break;
     case BinaryOperator::BinaryType::GreaterOrEqual:
       declarations[std::to_string((uintptr_t)binary) + "_Largeish"] = arenaAlloc((PrimitiveType*)declarations[std::to_string((uintptr_t)binary) + "_Largeish"]);
       ((PrimitiveType*)declarations[std::to_string((uintptr_t)binary) + "_Largeish"])->size = 1;
+      ((PrimitiveType*)declarations[std::to_string((uintptr_t)binary) + "_Largeish"])->alignment = 1;
 
       data.instrArray->emplace_back(Operation{{1, 1}, Operation::SetGreaterOrEqual, {std::to_string((uintptr_t)binary) + "_Largeish", leftOperandName.first, rightOperandName.first}});
       break;
     case BinaryOperator::BinaryType::LesserOrEqual:
       declarations[std::to_string((uintptr_t)binary) + "_Smallish"] = arenaAlloc((PrimitiveType*)declarations[std::to_string((uintptr_t)binary) + "_Smallish"]);
       ((PrimitiveType*)declarations[std::to_string((uintptr_t)binary) + "_Smallish"])->size = 1;
+      ((PrimitiveType*)declarations[std::to_string((uintptr_t)binary) + "_Smallish"])->alignment = 1;
 
       data.instrArray->emplace_back(Operation{{1, 1}, Operation::SetLesserOrEqual, {std::to_string((uintptr_t)binary) + "_Smallish", leftOperandName.first, rightOperandName.first}});
       break;

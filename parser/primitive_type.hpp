@@ -30,7 +30,7 @@ struct PrimitiveType: public DataType
 
   PrimitiveType();
 
-  PrimitiveType(uint16_t size, uint8_t alignment, bool isFloating = false, bool isSigned = false, bool isVolatile = false);
+  PrimitiveType(uint16_t size, uint8_t alignment, bool isFloating = false, bool isSigned = false, bool isConst = false, bool isVolatile = false);
 
   static PrimitiveType* parse(std::list<Token>& code);
 };
