@@ -820,7 +820,15 @@ std::pair<std::string, PrimitiveType> GenerateIR::generatePreUnaryOperator(Commo
         addressType->dataType = declarations[name.first];
         declarations[std::to_string((uintptr_t)preUnary) + "_Address"] = addressType;
 
-        data.instrArray->emplace_back(Operation{{data.typeSizes.pointerSize, data.typeSizes.pointerSize}, Operation::GetAddress, {std::to_string((uintptr_t)preUnary) + "_Address", name.first}});
+        if (!data.instrArray->empty() && data.instrArray->back().code == Operation::DereferenceRValue)
+        {
+          data.instrArray->back().code = Operation::Set;
+          data.instrArray->back().type = {data.typeSizes.pointerSize, data.typeSizes.pointerSize};
+          data.instrArray->back().operands[0] = std::to_string((uintptr_t)preUnary) + "_Address";
+        } else
+        {
+          data.instrArray->emplace_back(Operation{{data.typeSizes.pointerSize, data.typeSizes.pointerSize}, Operation::GetAddress, {std::to_string((uintptr_t)preUnary) + "_Address", name.first}});
+        }
       } else
       {
         std::cout << "IR generation error: Getting address of rvalue is illegal\n";
