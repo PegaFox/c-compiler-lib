@@ -195,7 +195,21 @@ std::string Compiler::printIR(const IRprogram& irCode)
 
   for (const IRprogram::Function& function: irCode.program)
   {
-    irString << "\nFunction:\n";
+    irString << "\nFunction(";
+
+    for (std::vector<std::pair<std::string, PrimitiveType>>::const_iterator parameter = function.parameters.cbegin(); parameter != function.parameters.cend(); parameter++)
+    {
+      irString << printIRType(parameter->second) << " " << parameter->first;
+
+      if (++parameter != function.parameters.cend())
+      {
+        irString << ", ";
+      }
+      parameter--;
+    }
+
+    irString << ")\n";
+
     for (const Operation& operation: function.body)
     {
       irString << printIRoperation(operation) << '\n';
@@ -209,29 +223,8 @@ std::string Compiler::printIRoperation(const Operation& irOperation)
 {
   std::stringstream opString;
 
-  if (irOperation.type.isVolatile)
-  {
-    opString << "volatile ";
-  }
-
-  if (irOperation.type.isConst)
-  {
-    opString << "const ";
-  }
-
-  if (irOperation.type.isFloating)
-  {
-    opString << 'f';
-  } else if (irOperation.type.isSigned)
-  {
-    opString << 'i';
-  } else
-  {
-    opString << 'u';
-  }
-
-  opString << irOperation.type.size << ':' << (int)irOperation.type.alignment << ' ';
-
+  opString << printIRType(irOperation.type);
+  
   switch (irOperation.code)
   {
     case Operation::Set:
@@ -333,4 +326,34 @@ std::string Compiler::printIRoperation(const Operation& irOperation)
   }
 
   return opString.str();
+}
+
+std::string Compiler::printIRType(const PrimitiveType& irType)
+{
+  std::stringstream typeString;
+
+  if (irType.isVolatile)
+  {
+    typeString << "volatile ";
+  }
+
+  if (irType.isConst)
+  {
+    typeString << "const ";
+  }
+
+  if (irType.isFloating)
+  {
+    typeString << 'f';
+  } else if (irType.isSigned)
+  {
+    typeString << 'i';
+  } else
+  {
+    typeString << 'u';
+  }
+
+  typeString << irType.size << ':' << (int)irType.alignment << ' ';
+
+  return typeString.str();
 }

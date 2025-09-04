@@ -240,16 +240,15 @@ DataType* DataType::parse(CommonParseData& data, std::list<Token>::iterator orig
         ((PrimitiveType*)dataType)->isSigned = false;
       }
 
-      if (origin->data == "volatile")
+      while (origin->data == "volatile" || origin->data == "const")
       {
-        isVolatile = true;
-
-        data.code.erase(origin--);
-      }
-
-      if (origin->data == "const")
-      {
-        isConst = true;
+        if (origin->data == "const")
+        {
+          isConst = true;
+        } else
+        {
+          isVolatile = true;
+        }
 
         data.code.erase(origin--);
       }

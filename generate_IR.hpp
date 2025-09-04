@@ -152,7 +152,7 @@ class GenerateIR
 
     void generateCompoundStatement(CommonIRData& data, const CompoundStatement* compoundStatement);
 
-    std::pair<std::string, PrimitiveType> generateExpression(CommonIRData& data, const Expression* expression);
+    std::pair<std::string, PrimitiveType> generateExpression(CommonIRData& data, const Expression* expression, bool decayArraysToPointers = true);
 
     std::pair<std::string, PrimitiveType> generateConstant(CommonIRData& data, Constant* constant);
 

@@ -1,7 +1,7 @@
-volatile char* welcomeString = "Hello, World!\n";
+volatile const char* welcomeString = "Hello, World!\n";
 
 int main()
 {
-  *welcomeString = 'b';
+  char access = welcomeString[4];
   char helloString[] = "Hello, World!\n";
 }

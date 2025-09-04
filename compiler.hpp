@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+struct PrimitiveType;
 struct IRprogram;
 struct Operation;
 
@@ -55,6 +56,7 @@ class Compiler
   
     static std::string printIR(const IRprogram& irCode);
     static std::string printIRoperation(const Operation& irOperation);
+    static std::string printIRType(const PrimitiveType& irType);
 };
 
 #endif // PF_COMPILER_HPP

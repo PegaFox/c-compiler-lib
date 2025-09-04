@@ -269,31 +269,58 @@ void GenerateIR::generateCompoundStatement(CommonIRData& data, const CompoundSta
 }
 
 // returns the variable name containing the result of the expression
-std::pair<std::string, PrimitiveType> GenerateIR::generateExpression(CommonIRData& data, const Expression* expression)
+std::pair<std::string, PrimitiveType> GenerateIR::generateExpression(CommonIRData& data, const Expression* expression, bool decayArraysToPointers)
 {
+  std::pair<std::string, PrimitiveType> result;
+
   switch (expression->expressionType)
   {
     case Expression::ExpressionType::Null:
-      return {std::to_string((uintptr_t)expression) + "_NullExpression", {}};   
+      result = {std::to_string((uintptr_t)expression) + "_NullExpression", {}};   
+      break;
     case Expression::ExpressionType::Constant:
-      return generateConstant(data, (Constant*)expression);
+      result = generateConstant(data, (Constant*)expression);
+      break;
     case Expression::ExpressionType::VariableAccess:
-      return generateVariableAccess(data, (VariableAccess*)expression);
+      result = generateVariableAccess(data, (VariableAccess*)expression);
+      break;
     case Expression::ExpressionType::StringLiteral:
-      return generateStringLiteral(data, (StringLiteral*)expression);
+      result = generateStringLiteral(data, (StringLiteral*)expression);
+      break;
     case Expression::ExpressionType::FunctionCall:
-      return generateFunctionCall(data, (FunctionCall*)expression);
+      result = generateFunctionCall(data, (FunctionCall*)expression);
+      break;
     case Expression::ExpressionType::SubExpression:
-      return generateExpression(data, ((SubExpression*)expression)->expression);
+      result = generateExpression(data, ((SubExpression*)expression)->expression);
+      break;
     case Expression::ExpressionType::PreUnaryOperator:
-      return generatePreUnaryOperator(data, (PreUnaryOperator*)expression);
+      result = generatePreUnaryOperator(data, (PreUnaryOperator*)expression);
+      break;
     case Expression::ExpressionType::PostUnaryOperator:
-      return generatePostUnaryOperator(data, (PostUnaryOperator*)expression);
+      result = generatePostUnaryOperator(data, (PostUnaryOperator*)expression);
+      break;
     case Expression::ExpressionType::BinaryOperator:
-      return generateBinaryOperator(data, (BinaryOperator*)expression);
+      result = generateBinaryOperator(data, (BinaryOperator*)expression);
+      break;
     case Expression::ExpressionType::TernaryOperator:
-      return generateTernaryOperator(data, (TernaryOperator*)expression);
+      result = generateTernaryOperator(data, (TernaryOperator*)expression);
+      break;
   }
+
+  // handle array to pointer decay
+  if (decayArraysToPointers && declarations[result.first]->generalType == DataType::GeneralType::Array)
+  {
+    Pointer* addressType;
+    addressType = arenaAlloc(addressType);
+    addressType->dataType = declarations[result.first];
+    declarations[std::to_string((uintptr_t)expression) + "_Decayed"] = addressType;
+
+    data.instrArray->emplace_back(Operation{{data.typeSizes.pointerSize, data.typeSizes.pointerSize}, Operation::GetAddress, {std::to_string((uintptr_t)expression) + "_Decayed", result.first}});
+
+    result = {data.instrArray->back().operands[0], data.instrArray->back().type};
+  }
+
+  return result;
 }
 
 std::pair<std::string, PrimitiveType> GenerateIR::generateConstant(CommonIRData& data, Constant* constant)
@@ -780,7 +807,7 @@ std::pair<std::string, PrimitiveType> GenerateIR::generateFunctionCall(CommonIRD
 
 std::pair<std::string, PrimitiveType> GenerateIR::generatePreUnaryOperator(CommonIRData& data, const PreUnaryOperator* preUnary)
 {
-  std::pair<std::string, PrimitiveType> name = generateExpression(data, preUnary->operand);
+  std::pair<std::string, PrimitiveType> name = generateExpression(data, preUnary->operand, preUnary->preUnaryType != PreUnaryOperator::PreUnaryType::Address && preUnary->preUnaryType != PreUnaryOperator::PreUnaryType::Sizeof);
 
   switch (preUnary->preUnaryType)
   {
