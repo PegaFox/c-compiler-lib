@@ -1498,7 +1498,6 @@ bool GenerateIR::resolveConstantOperations(IRprogram& irProgram)
 bool GenerateIR::trimInaccessibleCode(IRprogram& irProgram)
 {
   bool changed = false;
-  bool accessible = true;
 
   struct IdentifierUsage
   {
@@ -1515,6 +1514,8 @@ bool GenerateIR::trimInaccessibleCode(IRprogram& irProgram)
 
   for (std::vector<IRprogram::Function>::iterator f = irProgram.program.begin(); f != irProgram.program.end(); f++)
   {
+    bool accessible = true;
+
     uint16_t index = 0;
     for (std::vector<Operation>::iterator i = f->body.begin(); i != f->body.end(); i++)
     {
