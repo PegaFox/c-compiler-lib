@@ -1520,7 +1520,7 @@ bool GenerateIR::trimInaccessibleCode(IRprogram& irProgram)
     {
       if (i->code == Operation::Label)
       {
-        identifiers[i->operands[0]].declared = true;
+        //identifiers[i->operands[0]].declared = true;
         accessible = true;
       }
 
