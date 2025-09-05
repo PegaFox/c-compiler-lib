@@ -308,7 +308,7 @@ std::pair<std::string, PrimitiveType> GenerateIR::generateExpression(CommonIRDat
   }
 
   // handle array to pointer decay
-  if (decayArraysToPointers && declarations[result.first]->generalType == DataType::GeneralType::Array)
+  if (decayArraysToPointers && declarations.contains(result.first) && declarations[result.first]->generalType == DataType::GeneralType::Array)
   {
     Pointer* addressType;
     addressType = arenaAlloc(addressType);
