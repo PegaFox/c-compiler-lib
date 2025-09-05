@@ -836,10 +836,21 @@ std::pair<std::string, PrimitiveType> GenerateIR::generatePreUnaryOperator(Commo
       }
       break;
     case PreUnaryOperator::PreUnaryType::Dereference:
-      if (declarations[name.first]->generalType == DataType::GeneralType::Pointer)
+      if (declarations[name.first]->generalType == DataType::GeneralType::Pointer ||
+        declarations[name.first]->generalType == DataType::GeneralType::Array)
       {
-        declarations[std::to_string((uintptr_t)preUnary) + "_Dereference"] = ((Pointer*)declarations[name.first])->dataType;
-        data.instrArray->emplace_back(Operation{name.second, Operation::DereferenceRValue, {std::to_string((uintptr_t)preUnary) + "_Dereference", name.first}});
+        DataType* resultType;
+        if (declarations[name.first]->generalType == DataType::GeneralType::Pointer)
+        {
+          resultType = ((Pointer*)declarations[name.first])->dataType;
+        } else if (declarations[name.first]->generalType == DataType::GeneralType::Array)
+        {
+          resultType = ((Array*)declarations[name.first])->dataType;
+        }
+
+        declarations[std::to_string((uintptr_t)preUnary) + "_Dereference"] = resultType;
+
+        data.instrArray->emplace_back(Operation{ASTTypeToIRType(data, resultType), Operation::DereferenceRValue, {std::to_string((uintptr_t)preUnary) + "_Dereference", name.first}});
       } else
       {
         std::cout << "IR generation error: Cannot dereference non-pointer type\n";
