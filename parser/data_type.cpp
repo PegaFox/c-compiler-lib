@@ -132,14 +132,17 @@ DataType* DataType::parse(CommonParseData& data, std::list<Token>::iterator orig
       data.code.erase(next++);
     }
 
-    while (buffer.code.size() > 1)
+    if (buffer.code.size() > 2)
     {
-      if (buffer.code.front().data == ",")
+      while (buffer.code.size() > 1)
       {
-        buffer.code.pop_front();
-      }
+        if (buffer.code.front().data == ",")
+        {
+          buffer.code.pop_front();
+        }
 
-      function->parameters.emplace_back(Declaration::parse(buffer));
+        function->parameters.emplace_back(Declaration::parse(buffer));
+      }
     }
 
     function->returnType = DataType::parse(data, origin);

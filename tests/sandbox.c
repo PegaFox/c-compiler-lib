@@ -1,7 +1,10 @@
+int output(const char* format, ...)
+{
+  
+  return 0;
+}
 
 int main()
 {
-  int x = 0;
-  int* xp = &x;
-  int* xxp = &*xp;
+
 }
