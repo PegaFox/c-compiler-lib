@@ -276,7 +276,7 @@ void Preprocessor::handlePreprocessingDirectives(std::string& workingDir, std::s
       }
 
       conditionalDirectives.pop_back();
-    } else if (directiveStr.find("if") != directiveStr.npos)
+    } else if (directiveStr.find("if") < 3)
     {
       if (handleConditionalDirective(directiveStr))
       {

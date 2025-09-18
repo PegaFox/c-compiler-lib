@@ -121,7 +121,8 @@ Expression* Expression::parse(CommonParseData& data, bool allowNullExpression)
     data.code.front().data == "--")
   {
     expression = PostUnaryOperator::parse(data, expression);
-  } else if (data.code.front().data == "?")
+  }
+  if (data.code.front().data == "?")
   {
     expression = TernaryOperator::parse(data, expression);
   }

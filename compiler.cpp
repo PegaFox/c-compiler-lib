@@ -112,7 +112,7 @@ int Compiler::handleArgs(int argc, char* argv[])
       optimize = true;
     } else if (argStr.find(".s") != argStr.npos || argStr.find(".c") != argStr.npos || argStr.find(".i") != argStr.npos)
     {
-      inputFilenames.emplace_back("./"+argStr);
+      inputFilenames.emplace_back(/*"./"+*/argStr);
     }/* else if (argStr.find(".h") != argStr.npos) add precompiled headers
     {
       doPreprocess = true;
