@@ -1150,6 +1150,30 @@ std::pair<std::string, PrimitiveType> GenerateIR::generateBinaryOperator(CommonI
         throw IRGenError();
       }
       break;
+    case BinaryOperator::BinaryType::AddEqual:
+    case BinaryOperator::BinaryType::SubtractEqual:
+    case BinaryOperator::BinaryType::MultiplyEqual:
+    case BinaryOperator::BinaryType::DivideEqual:
+    case BinaryOperator::BinaryType::ModuloEqual:
+    case BinaryOperator::BinaryType::LeftShiftEqual:
+    case BinaryOperator::BinaryType::RightShiftEqual:
+    case BinaryOperator::BinaryType::BitwiseOREqual:
+    case BinaryOperator::BinaryType::BitwiseANDEqual:
+    case BinaryOperator::BinaryType::BitwiseXOREqual:
+      if (leftOperandName.first[0] < '0' || leftOperandName.first[0] > '9' || leftOperandName.first.find("_Member") != std::string::npos)
+      {
+        Operation::Opcode operationType = Operation::Opcode((int)Operation::SetAddition + ((int)binary->binaryType - (int)BinaryOperator::BinaryType::AddEqual));
+
+        declarations[std::to_string((uintptr_t)binary) + "_Assigned"] = declarations[rightOperandName.first];
+
+        data.instrArray->emplace_back(Operation{leftOperandName.second, operationType, {leftOperandName.first, leftOperandName.first, rightOperandName.first}});
+        data.instrArray->emplace_back(Operation{rightOperandName.second, Operation::Set, {std::to_string((uintptr_t)binary) + "_Assigned", leftOperandName.first}});
+      } else
+      {
+        std::cout << "IR generation error: Modifying rvalue is illegal\n";
+        throw IRGenError();
+      }
+      break;
     case BinaryOperator::BinaryType::Add:
       declarations[std::to_string((uintptr_t)binary) + "_Added"] = declarations[leftOperandName.first];
 
