@@ -312,7 +312,7 @@ std::pair<std::string, PrimitiveType> GenerateIR::generateExpression(CommonIRDat
   {
     Pointer* addressType;
     addressType = arenaAlloc(addressType);
-    addressType->dataType = declarations[result.first];
+    addressType->dataType = ((Array*)declarations[result.first])->dataType;
     declarations[std::to_string((uintptr_t)expression) + "_Decayed"] = addressType;
 
     data.instrArray->emplace_back(Operation{{data.typeSizes.pointerSize, data.typeSizes.pointerSize}, Operation::GetAddress, {std::to_string((uintptr_t)expression) + "_Decayed", result.first}});
