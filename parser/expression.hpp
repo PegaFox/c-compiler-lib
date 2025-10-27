@@ -4,7 +4,7 @@
 #include "statement.hpp"
 #include "expression-parser/expression.hpp"
 
-namespace OperatorType
+/*namespace OperatorType
 {
   enum T
   {
@@ -66,7 +66,7 @@ namespace OperatorType
 
     TernaryOperator,
   };
-}
+}*/
 
 struct Expression: public Statement
 {
