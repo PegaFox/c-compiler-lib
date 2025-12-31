@@ -21,6 +21,16 @@ struct Constant: public Expression
     const std::map<std::string, ENUM_TYPE>& enums,
     Compiler::TypeSizes typeSizes,
     const std::string& token);
+
+  static PrimitiveType parseDataType(
+    const std::map<std::string, ENUM_TYPE>& enums,
+    Compiler::TypeSizes typeSizes,
+    const std::string& token);
+
+  static std::array<uint8_t, 16> parseValue(
+    const std::map<std::string, ENUM_TYPE>& enums,
+    PrimitiveType dataType,
+    const std::string& token);
 };
 
 #endif // PF_PARSER_CONSTANT_HPP

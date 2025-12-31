@@ -1,5 +1,9 @@
 #include "constant.hpp"
 
+#include <array>
+
+#include "parser/parse_error.hpp"
+
 Constant::Constant()
 {
   expressionType = ExpressionType::Constant;
@@ -27,18 +31,35 @@ Constant Constant::parseFromString(
 {
   Constant constant;
 
+  constant.dataType = parseDataType(enums, typeSizes, token);
+
+  std::array<uint8_t, 16> value = parseValue(enums, constant.dataType, token);
+  std::copy(value.begin(), value.end(), constant.value);
+
+  return constant;
+}
+
+PrimitiveType Constant::parseDataType(
+  const std::map<std::string, ENUM_TYPE>& enums,
+  Compiler::TypeSizes typeSizes,
+  const std::string& token)
+{
   if (enums.contains(token))
   {
-    constant.dataType.isFloating = (ENUM_TYPE(0.5f) == 0.5f);
-    constant.dataType.isSigned = (ENUM_TYPE(-1) < ENUM_TYPE(0));
-    constant.dataType.size = sizeof(ENUM_TYPE);
-
-    long int constVal = enums.contains(token);
-    std::copy((uint8_t*)(&constVal), (uint8_t*)(&constVal)+constant.dataType.size, constant.value);
+    return PrimitiveType{
+      sizeof(ENUM_TYPE),
+      sizeof(ENUM_TYPE),
+      ENUM_TYPE(0.5f) == 0.5f,
+      ENUM_TYPE(-1) < ENUM_TYPE(0)
+    };
   } else if (token.front() == '\'' && token.back() == '\'')
   { // char constant
-    constant.dataType = PrimitiveType{typeSizes.charSize, typeSizes.charSize, false, true};
-    constant.value[0] = token[1];
+    return PrimitiveType{
+      typeSizes.charSize,
+      typeSizes.charSize,
+      false,
+      true
+    };
   } else if (token.front() == '\"' && token.back() == '\"')
   { // str constant
 
@@ -48,22 +69,28 @@ Constant Constant::parseFromString(
     { // float constant
       if (token.back() == 'f' || token.back() == 'F')
       { // float
-        float constVal = std::stof(token);
-
-        constant.dataType = PrimitiveType{typeSizes.floatSize, typeSizes.floatSize, true, true};
-        std::copy((uint8_t*)(&constVal), (uint8_t*)(&constVal)+constant.dataType.size, constant.value);
+        return PrimitiveType{
+          typeSizes.floatSize,
+          typeSizes.floatSize,
+          true,
+          true
+        };
       } else if (token.back() == 'l' || token.back() == 'L')
       { // long double
-        long double constVal = std::stold(token);
-
-        constant.dataType = PrimitiveType{typeSizes.longDoubleSize, typeSizes.longDoubleSize, true, true};
-        std::copy((uint8_t*)(&constVal), (uint8_t*)(&constVal)+constant.dataType.size, constant.value);
+        return PrimitiveType{
+          typeSizes.longDoubleSize,
+          typeSizes.longDoubleSize,
+          true,
+          true
+        };
       } else
       { // double
-        double constVal = std::stod(token);
-
-        constant.dataType = PrimitiveType{typeSizes.doubleSize, typeSizes.doubleSize, true, true};
-        std::copy((uint8_t*)(&constVal), (uint8_t*)(&constVal)+constant.dataType.size, constant.value);
+        return PrimitiveType{
+          typeSizes.doubleSize,
+          typeSizes.doubleSize,
+          true,
+          true
+        };
       }
     } else if (token.back() == 'L')
     { // long int
@@ -80,20 +107,36 @@ Constant Constant::parseFromString(
 
       if (constVal == (constVal & 0xFF))
       {
-        constant.dataType = PrimitiveType{typeSizes.charSize, typeSizes.charSize};
-        std::copy((uint8_t*)(&constVal), (uint8_t*)(&constVal)+constant.dataType.size, constant.value);
+        return PrimitiveType{
+          typeSizes.charSize,
+          typeSizes.charSize,
+          false,
+          false
+        };
       } else if (constVal == (constVal & 0xFFFF))
       {
-        constant.dataType = PrimitiveType{typeSizes.shortSize, typeSizes.shortSize};
-        std::copy((uint8_t*)(&constVal), (uint8_t*)(&constVal)+constant.dataType.size, constant.value);
+        return PrimitiveType{
+          typeSizes.shortSize,
+          typeSizes.shortSize,
+          false,
+          false
+        };
       } else if (constVal == (constVal & 0xFFFFFFFF))
       {
-        constant.dataType = PrimitiveType{typeSizes.longSize, typeSizes.longSize};
-        std::copy((uint8_t*)(&constVal), (uint8_t*)(&constVal)+constant.dataType.size, constant.value);
+        return PrimitiveType{
+          typeSizes.longSize,
+          typeSizes.longSize,
+          false,
+          false
+        };
       } else if (constVal == (constVal & 0xFFFFFFFFFFFFFFFF))
       {
-        constant.dataType = PrimitiveType{typeSizes.longLongSize, typeSizes.longLongSize};
-        std::copy((uint8_t*)(&constVal), (uint8_t*)(&constVal)+constant.dataType.size, constant.value);
+        return PrimitiveType{
+          typeSizes.longLongSize,
+          typeSizes.longLongSize,
+          false,
+          false
+        };
       }
     } else
     { // signed int
@@ -103,37 +146,144 @@ Constant Constant::parseFromString(
       {
         if (-constVal == -(constVal & 0xFF))
         {
-          constant.dataType = PrimitiveType{typeSizes.charSize, typeSizes.charSize, false, true};
+          return PrimitiveType{
+            typeSizes.charSize,
+            typeSizes.charSize,
+            false,
+            true
+          };
         } else if (-constVal == -(constVal & 0xFFFF))
         {
-          constant.dataType = PrimitiveType{typeSizes.shortSize, typeSizes.shortSize, false, true};
+          return PrimitiveType{
+            typeSizes.shortSize,
+            typeSizes.shortSize,
+            false,
+            true
+          };
         } else if (-constVal == -(constVal & 0xFFFFFFFF))
         {
-          constant.dataType = PrimitiveType{typeSizes.longSize, typeSizes.longSize, false, true};
+          return PrimitiveType{
+            typeSizes.longSize,
+            typeSizes.longSize,
+            false,
+            true
+          };
         } else if (-constVal == -(constVal & 0xFFFFFFFFFFFFFFFF))
         {
-          constant.dataType = PrimitiveType{typeSizes.longLongSize, typeSizes.longLongSize, false, true};
+          return PrimitiveType{
+            typeSizes.longLongSize,
+            typeSizes.longLongSize,
+            false,
+            true
+          };
         }
       } else
       {
         if (constVal == (constVal & 0xFF))
         {
-          constant.dataType = PrimitiveType{typeSizes.charSize, typeSizes.charSize};
+          return PrimitiveType{
+            typeSizes.charSize,
+            typeSizes.charSize,
+            false,
+            false
+          };
         } else if (constVal == (constVal & 0xFFFF))
         {
-          constant.dataType = PrimitiveType{typeSizes.shortSize, typeSizes.shortSize};
+          return PrimitiveType{
+            typeSizes.shortSize,
+            typeSizes.shortSize,
+            false,
+            false
+          };
         } else if (constVal == (constVal & 0xFFFFFFFF))
         {
-          constant.dataType = PrimitiveType{typeSizes.longSize, typeSizes.longSize};
+          return PrimitiveType{
+            typeSizes.longSize,
+            typeSizes.longSize,
+            false,
+            false
+          };
         } else if (constVal == (constVal & 0xFFFFFFFFFFFFFFFF))
         {
-          constant.dataType = PrimitiveType{typeSizes.longLongSize, typeSizes.longLongSize};
+          return PrimitiveType{
+            typeSizes.longLongSize,
+            typeSizes.longLongSize,
+            false,
+            false
+          };
         }
       }
-
-      std::copy((uint8_t*)(&constVal), (uint8_t*)(&constVal)+constant.dataType.size, constant.value);
     }
   }
 
-  return constant;
+  std::cout << "Parse error: Invalid constant\n";
+  throw ParseError();
+  //return dataType;
+}
+
+std::array<uint8_t, 16> Constant::parseValue(
+  const std::map<std::string, ENUM_TYPE>& enums,
+  PrimitiveType dataType,
+  const std::string& token)
+{
+  std::array<uint8_t, 16> value;
+
+  if (enums.contains(token))
+  {
+    ENUM_TYPE constVal = enums.at(token);
+    uint8_t* begin = (uint8_t*)&constVal;
+    
+    std::copy(begin, begin+dataType.size, value.begin());
+  } else if (token.front() == '\'' && token.back() == '\'')
+  { // char constant
+    value[0] = token[1];
+  } else if (token.front() == '\"' && token.back() == '\"')
+  { // str constant
+
+  } else if (dataType.isFloating)
+  { // float constant
+    switch (dataType.size)
+    {
+      case 4:
+      {
+        float constVal = std::stof(token);
+        uint8_t* begin = (uint8_t*)&constVal;
+
+        std::copy(begin, begin+dataType.size, value.begin());
+        break;
+      } case 8:
+      {
+        double constVal = std::stod(token);
+        uint8_t* begin = (uint8_t*)&constVal;
+
+        std::copy(begin, begin+dataType.size, value.begin());
+        break;
+      } case 10:
+      case 16:
+      {
+        if (sizeof(dataType) == dataType.size)
+        {
+          long double constVal = std::stold(token);
+          uint8_t* begin = (uint8_t*)&constVal;
+
+          std::copy(begin, begin+dataType.size, value.begin());
+        }
+        break;
+      }
+    }
+  } else if (dataType.isSigned)
+  { // signed int
+    int64_t constVal = std::stoll(token);
+    uint8_t* begin = (uint8_t*)&constVal;
+
+    std::copy(begin, begin+dataType.size, value.begin());
+  } else
+  { // unsigned int
+    uint64_t constVal = std::stoull(token);
+    uint8_t* begin = (uint8_t*)&constVal;
+
+    std::copy(begin, begin+dataType.size, value.begin());
+  }
+
+  return value;
 }
