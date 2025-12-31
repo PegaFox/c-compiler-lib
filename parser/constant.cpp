@@ -10,118 +10,128 @@ Constant* Constant::parse(CommonParseData& data)
   Constant* constant;
   constant = data.program->arenaAlloc(constant);
 
-  if (data.program->enums.contains(data.code.front().data))
-  {
-    constant->dataType.isFloating = (ENUM_TYPE(0.5f) == 0.5f);
-    constant->dataType.isSigned = (ENUM_TYPE(-1) < ENUM_TYPE(0));
-    constant->dataType.size = sizeof(ENUM_TYPE);
+  *constant = parseFromString(
+    data.program->enums,
+    data.typeSizes,
+    data.code.front().data);
 
-    long int constVal = data.program->enums.contains(data.code.front().data);
-    std::copy((uint8_t*)(&constVal), (uint8_t*)(&constVal)+constant->dataType.size, constant->value);
-    data.code.pop_front();
-  } else if (data.code.front().data.front() == '\'' && data.code.front().data.back() == '\'')
+  data.code.pop_front();
+
+  return constant;
+}
+
+Constant Constant::parseFromString(
+  const std::map<std::string, ENUM_TYPE>& enums,
+  Compiler::TypeSizes typeSizes,
+  const std::string& token)
+{
+  Constant constant;
+
+  if (enums.contains(token))
+  {
+    constant.dataType.isFloating = (ENUM_TYPE(0.5f) == 0.5f);
+    constant.dataType.isSigned = (ENUM_TYPE(-1) < ENUM_TYPE(0));
+    constant.dataType.size = sizeof(ENUM_TYPE);
+
+    long int constVal = enums.contains(token);
+    std::copy((uint8_t*)(&constVal), (uint8_t*)(&constVal)+constant.dataType.size, constant.value);
+  } else if (token.front() == '\'' && token.back() == '\'')
   { // char constant
-    constant->dataType = PrimitiveType{data.typeSizes.charSize, data.typeSizes.charSize, false, true};
-    constant->value[0] = data.code.front().data[1];
-    data.code.pop_front();
-  } else if (data.code.front().data.front() == '\"' && data.code.front().data.back() == '\"')
+    constant.dataType = PrimitiveType{typeSizes.charSize, typeSizes.charSize, false, true};
+    constant.value[0] = token[1];
+  } else if (token.front() == '\"' && token.back() == '\"')
   { // str constant
 
-  } else if (data.code.front().data.front() >= '0' && data.code.front().data.front() <= '9')
+  } else if (token.front() >= '0' && token.front() <= '9')
   { // number constant
-    if (data.code.front().data.find('.') != std::string::npos)
+    if (token.find('.') != std::string::npos)
     { // float constant
-      if (data.code.front().data.back() == 'f' || data.code.front().data.back() == 'F')
+      if (token.back() == 'f' || token.back() == 'F')
       { // float
-        float constVal = std::stof(data.code.front().data);
-        data.code.pop_front();
+        float constVal = std::stof(token);
 
-        constant->dataType = PrimitiveType{data.typeSizes.floatSize, data.typeSizes.floatSize, true, true};
-        std::copy((uint8_t*)(&constVal), (uint8_t*)(&constVal)+constant->dataType.size, constant->value);
-      } else if (data.code.front().data.back() == 'l' || data.code.front().data.back() == 'L')
+        constant.dataType = PrimitiveType{typeSizes.floatSize, typeSizes.floatSize, true, true};
+        std::copy((uint8_t*)(&constVal), (uint8_t*)(&constVal)+constant.dataType.size, constant.value);
+      } else if (token.back() == 'l' || token.back() == 'L')
       { // long double
-        long double constVal = std::stold(data.code.front().data);
-        data.code.pop_front();
+        long double constVal = std::stold(token);
 
-        constant->dataType = PrimitiveType{data.typeSizes.longDoubleSize, data.typeSizes.longDoubleSize, true, true};
-        std::copy((uint8_t*)(&constVal), (uint8_t*)(&constVal)+constant->dataType.size, constant->value);
+        constant.dataType = PrimitiveType{typeSizes.longDoubleSize, typeSizes.longDoubleSize, true, true};
+        std::copy((uint8_t*)(&constVal), (uint8_t*)(&constVal)+constant.dataType.size, constant.value);
       } else
       { // double
-        double constVal = std::stod(data.code.front().data);
-        data.code.pop_front();
+        double constVal = std::stod(token);
 
-        constant->dataType = PrimitiveType{data.typeSizes.doubleSize, data.typeSizes.doubleSize, true, true};
-        std::copy((uint8_t*)(&constVal), (uint8_t*)(&constVal)+constant->dataType.size, constant->value);
+        constant.dataType = PrimitiveType{typeSizes.doubleSize, typeSizes.doubleSize, true, true};
+        std::copy((uint8_t*)(&constVal), (uint8_t*)(&constVal)+constant.dataType.size, constant.value);
       }
-    } else if (data.code.front().data.back() == 'L')
+    } else if (token.back() == 'L')
     { // long int
-      if (data.code.front().data[data.code.front().data.size()-2] == 'U')
+      if (token[token.size()-2] == 'U')
       { // unsigned long int
 
       } else
       { // long int
 
       }
-    } else if (data.code.front().data.back() == 'U')
+    } else if (token.back() == 'U')
     { // unsigned int
-      long int constVal = std::stol(data.code.front().data);
-      data.code.pop_front();
+      long int constVal = std::stol(token);
 
       if (constVal == (constVal & 0xFF))
       {
-        constant->dataType = PrimitiveType{data.typeSizes.charSize, data.typeSizes.charSize};
-        std::copy((uint8_t*)(&constVal), (uint8_t*)(&constVal)+constant->dataType.size, constant->value);
+        constant.dataType = PrimitiveType{typeSizes.charSize, typeSizes.charSize};
+        std::copy((uint8_t*)(&constVal), (uint8_t*)(&constVal)+constant.dataType.size, constant.value);
       } else if (constVal == (constVal & 0xFFFF))
       {
-        constant->dataType = PrimitiveType{data.typeSizes.shortSize, data.typeSizes.shortSize};
-        std::copy((uint8_t*)(&constVal), (uint8_t*)(&constVal)+constant->dataType.size, constant->value);
+        constant.dataType = PrimitiveType{typeSizes.shortSize, typeSizes.shortSize};
+        std::copy((uint8_t*)(&constVal), (uint8_t*)(&constVal)+constant.dataType.size, constant.value);
       } else if (constVal == (constVal & 0xFFFFFFFF))
       {
-        constant->dataType = PrimitiveType{data.typeSizes.longSize, data.typeSizes.longSize};
-        std::copy((uint8_t*)(&constVal), (uint8_t*)(&constVal)+constant->dataType.size, constant->value);
+        constant.dataType = PrimitiveType{typeSizes.longSize, typeSizes.longSize};
+        std::copy((uint8_t*)(&constVal), (uint8_t*)(&constVal)+constant.dataType.size, constant.value);
       } else if (constVal == (constVal & 0xFFFFFFFFFFFFFFFF))
       {
-        constant->dataType = PrimitiveType{data.typeSizes.longLongSize, data.typeSizes.longLongSize};
-        std::copy((uint8_t*)(&constVal), (uint8_t*)(&constVal)+constant->dataType.size, constant->value);
+        constant.dataType = PrimitiveType{typeSizes.longLongSize, typeSizes.longLongSize};
+        std::copy((uint8_t*)(&constVal), (uint8_t*)(&constVal)+constant.dataType.size, constant.value);
       }
     } else
     { // signed int
-      int constVal = std::stoi(data.code.front().data);
-      data.code.pop_front();
+      int constVal = std::stoi(token);
 
       if (constVal < 0)
       {
         if (-constVal == -(constVal & 0xFF))
         {
-          constant->dataType = PrimitiveType{data.typeSizes.charSize, data.typeSizes.charSize, false, true};
+          constant.dataType = PrimitiveType{typeSizes.charSize, typeSizes.charSize, false, true};
         } else if (-constVal == -(constVal & 0xFFFF))
         {
-          constant->dataType = PrimitiveType{data.typeSizes.shortSize, data.typeSizes.shortSize, false, true};
+          constant.dataType = PrimitiveType{typeSizes.shortSize, typeSizes.shortSize, false, true};
         } else if (-constVal == -(constVal & 0xFFFFFFFF))
         {
-          constant->dataType = PrimitiveType{data.typeSizes.longSize, data.typeSizes.longSize, false, true};
+          constant.dataType = PrimitiveType{typeSizes.longSize, typeSizes.longSize, false, true};
         } else if (-constVal == -(constVal & 0xFFFFFFFFFFFFFFFF))
         {
-          constant->dataType = PrimitiveType{data.typeSizes.longLongSize, data.typeSizes.longLongSize, false, true};
+          constant.dataType = PrimitiveType{typeSizes.longLongSize, typeSizes.longLongSize, false, true};
         }
       } else
       {
         if (constVal == (constVal & 0xFF))
         {
-          constant->dataType = PrimitiveType{data.typeSizes.charSize, data.typeSizes.charSize};
+          constant.dataType = PrimitiveType{typeSizes.charSize, typeSizes.charSize};
         } else if (constVal == (constVal & 0xFFFF))
         {
-          constant->dataType = PrimitiveType{data.typeSizes.shortSize, data.typeSizes.shortSize};
+          constant.dataType = PrimitiveType{typeSizes.shortSize, typeSizes.shortSize};
         } else if (constVal == (constVal & 0xFFFFFFFF))
         {
-          constant->dataType = PrimitiveType{data.typeSizes.longSize, data.typeSizes.longSize};
+          constant.dataType = PrimitiveType{typeSizes.longSize, typeSizes.longSize};
         } else if (constVal == (constVal & 0xFFFFFFFFFFFFFFFF))
         {
-          constant->dataType = PrimitiveType{data.typeSizes.longLongSize, data.typeSizes.longLongSize};
+          constant.dataType = PrimitiveType{typeSizes.longLongSize, typeSizes.longLongSize};
         }
       }
 
-      std::copy((uint8_t*)(&constVal), (uint8_t*)(&constVal)+constant->dataType.size, constant->value);
+      std::copy((uint8_t*)(&constVal), (uint8_t*)(&constVal)+constant.dataType.size, constant.value);
     }
   }
 
