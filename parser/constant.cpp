@@ -2,7 +2,7 @@
 
 #include <array>
 
-#include "parser/parse_error.hpp"
+#include "parse_error.hpp"
 
 Constant::Constant()
 {
