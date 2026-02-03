@@ -57,6 +57,7 @@ IRprogram GenerateIR::generateIR(const Program& AST, const Compiler::TypeSizes& 
   data.instrArray = &data.irProgram.program[0].body;
 
   dynamicData.first.reset(new uint8_t[65535]);
+  uid.reset();
 
   for (const ASTnode* node: AST.nodes)
   {
@@ -163,9 +164,9 @@ std::map<std::string, DataType*>::iterator GenerateIR::getIdentifier(const std::
   std::map<std::string, DataType*>::iterator parentVar = declarations.end();
   for (std::vector<const CompoundStatement*>::const_reverse_iterator scope = scopes.crbegin(); scope != scopes.crend(); scope++)
   {
-    if (declarations.contains("Scope_" + std::to_string((std::uintptr_t)*scope) + "_" + identifier))
+    if (declarations.contains(uid.get("Scope_", *scope) + "_" + identifier))
     {
-      parentVar = declarations.find("Scope_" + std::to_string((std::uintptr_t)*scope) + "_" + identifier);
+      parentVar = declarations.find(uid.get("Scope_", *scope) + "_" + identifier);
       break;
     }
   }
@@ -276,7 +277,7 @@ std::pair<std::string, PrimitiveType> GenerateIR::generateExpression(CommonIRDat
   switch (expression->expressionType)
   {
     case Expression::ExpressionType::Null:
-      result = {std::to_string((uintptr_t)expression) + "_NullExpression", {}};   
+      result = {uid.get("_NullExpression", expression), {}};   
       break;
     case Expression::ExpressionType::Constant:
       result = generateConstant(data, (Constant*)expression);
@@ -313,9 +314,9 @@ std::pair<std::string, PrimitiveType> GenerateIR::generateExpression(CommonIRDat
     Pointer* addressType;
     addressType = arenaAlloc(addressType);
     addressType->dataType = ((Array*)declarations[result.first])->dataType;
-    declarations[std::to_string((uintptr_t)expression) + "_Decayed"] = addressType;
+    declarations[uid.get("_Decayed", expression)] = addressType;
 
-    data.instrArray->emplace_back(Operation{{data.typeSizes.pointerSize, data.typeSizes.pointerSize}, Operation::GetAddress, {std::to_string((uintptr_t)expression) + "_Decayed", result.first}});
+    data.instrArray->emplace_back(Operation{{data.typeSizes.pointerSize, data.typeSizes.pointerSize}, Operation::GetAddress, {uid.get("_Decayed", expression), result.first}});
 
     result = {data.instrArray->back().operands[0], data.instrArray->back().type};
   }
@@ -325,10 +326,10 @@ std::pair<std::string, PrimitiveType> GenerateIR::generateExpression(CommonIRDat
 
 std::pair<std::string, PrimitiveType> GenerateIR::generateConstant(CommonIRData& data, Constant* constant)
 {
-  declarations[std::to_string((uintptr_t)constant) + "_Constant"] = &constant->dataType;
+  declarations[uid.get("_Constant", constant)] = &constant->dataType;
 
   // number comes first to ensure that the variable name is unique (identifiers can't start with numbers in C)
-  data.instrArray->emplace_back(Operation{ASTTypeToIRType(data, &constant->dataType), Operation::Set, {std::to_string((uintptr_t)constant) + "_Constant", "NaN"}});
+  data.instrArray->emplace_back(Operation{ASTTypeToIRType(data, &constant->dataType), Operation::Set, {uid.get("_Constant", constant), "NaN"}});
 
   if (constant->dataType.isFloating)
   {
@@ -487,7 +488,7 @@ void GenerateIR::generateDeclaration(CommonIRData& data, const Declaration* decl
     std::string name = std::string(declaration->identifier);
     if (!scopes.empty())
     {
-      name = "Scope_" + std::to_string((std::uintptr_t)scopes.back()) + "_" + name;
+      name = uid.get("Scope_", scopes.back()) + "_" + name;
     }
     
     if (declaration->value && declarations.contains(name))
@@ -565,7 +566,7 @@ void GenerateIR::generateIfConditional(CommonIRData& data, const IfConditional* 
   // conditional jump to end of if conditional
   std::pair<std::string, PrimitiveType> name = generateExpression(data, ifConditional->condition);
 
-  data.instrArray->emplace_back(Operation{name.second, Operation::JumpIfZero, {std::to_string((std::uintptr_t)ifConditional) + "_IfConditionalEnd", name.first}});
+  data.instrArray->emplace_back(Operation{name.second, Operation::JumpIfZero, {uid.get("_IfConditionalEnd", ifConditional), name.first}});
 
   // if conditional body
   generateStatement(data, ifConditional->body);
@@ -573,17 +574,17 @@ void GenerateIR::generateIfConditional(CommonIRData& data, const IfConditional* 
   if (ifConditional->elseStatement)
   {
     // unconditional jump to end of else conditional
-    data.instrArray->emplace_back(Operation{{}, Operation::Jump, {std::to_string((std::uintptr_t)ifConditional) + "_ElseConditionalEnd"}});
+    data.instrArray->emplace_back(Operation{{}, Operation::Jump, {uid.get("_ElseConditionalEnd", ifConditional)}});
   }
 
-  data.instrArray->emplace_back(Operation{{}, Operation::Label, {std::to_string((std::uintptr_t)ifConditional) + "_IfConditionalEnd"}});
+  data.instrArray->emplace_back(Operation{{}, Operation::Label, {uid.get("_IfConditionalEnd", ifConditional)}});
   
   if (ifConditional->elseStatement)
   {
     // else body
     generateStatement(data, ifConditional->elseStatement);
 
-    data.instrArray->emplace_back(Operation{{}, Operation::Label, {std::to_string((std::uintptr_t)ifConditional) + "_ElseConditionalEnd"}});
+    data.instrArray->emplace_back(Operation{{}, Operation::Label, {uid.get("_ElseConditionalEnd", ifConditional)}});
   }
 
   scopes.pop_back();
@@ -591,12 +592,12 @@ void GenerateIR::generateIfConditional(CommonIRData& data, const IfConditional* 
 
 void GenerateIR::generateSwitchCase(CommonIRData& data, const SwitchCase* switchCase)
 {
-  data.instrArray->emplace_back(Operation{{}, Operation::Label, {std::to_string((std::uintptr_t)switchCase) + "_SwitchCase"}});
+  data.instrArray->emplace_back(Operation{{}, Operation::Label, {uid.get("_SwitchCase", switchCase)}});
 }
 
 void GenerateIR::generateSwitchDefault(CommonIRData& data, const SwitchDefault* switchDefault)
 {
-  data.instrArray->emplace_back(Operation{{}, Operation::Label, {std::to_string((std::uintptr_t)switchDefault) + "_SwitchDefault"}});
+  data.instrArray->emplace_back(Operation{{}, Operation::Label, {uid.get("_SwitchDefault", switchDefault)}});
 }
 
 void GenerateIR::generateSwitchConditional(CommonIRData& data, const SwitchConditional* switchConditional)
@@ -616,7 +617,7 @@ void GenerateIR::generateSwitchConditional(CommonIRData& data, const SwitchCondi
   scopes.emplace_back((CompoundStatement*)switchConditional);
 
   // this label is never actually jumped to, it just tells the break statement what it's inside of
-  data.instrArray->emplace_back(Operation{{}, Operation::Label, {std::to_string((std::uintptr_t)switchConditional) + "_SwitchConditionalBegin"}});
+  data.instrArray->emplace_back(Operation{{}, Operation::Label, {uid.get("_SwitchConditionalBegin", switchConditional)}});
 
   std::pair<std::string, PrimitiveType> name = generateExpression(data, switchConditional->value);
 
@@ -644,8 +645,8 @@ void GenerateIR::generateSwitchConditional(CommonIRData& data, const SwitchCondi
         } case Statement::StatementType::SwitchCase: {
           std::pair<std::string, PrimitiveType> caseName = generateExpression(data, ((SwitchCase*)statement)->requirement);
 
-          data.instrArray->emplace_back(Operation{name.second, Operation::SetSubtraction, {std::to_string((std::uintptr_t)statement) + "_Subtracted", name.first, caseName.first}});
-          data.instrArray->emplace_back(Operation{name.second, Operation::JumpIfZero, {std::to_string((std::uintptr_t)statement) + "_SwitchCase", std::to_string((std::uintptr_t)statement) + "_Subtracted"}});
+          data.instrArray->emplace_back(Operation{name.second, Operation::SetSubtraction, {uid.get("_Subtracted", statement), name.first, caseName.first}});
+          data.instrArray->emplace_back(Operation{name.second, Operation::JumpIfZero, {uid.get("_SwitchCase", statement), uid.get("_Subtracted", statement)}});
           break;
         } case Statement::StatementType::SwitchDefault:
           defaultCase = (SwitchDefault*)statement;
@@ -659,49 +660,49 @@ void GenerateIR::generateSwitchConditional(CommonIRData& data, const SwitchCondi
   // handle default case here
   if (defaultCase)
   {
-    data.instrArray->emplace_back(Operation{{}, Operation::Jump, {std::to_string((std::uintptr_t)defaultCase) + "_SwitchDefault"}});
+    data.instrArray->emplace_back(Operation{{}, Operation::Jump, {uid.get("_SwitchDefault", defaultCase)}});
   } else
   {
-    data.instrArray->emplace_back(Operation{{}, Operation::Jump, {std::to_string((std::uintptr_t)switchConditional) + "_SwitchConditionalEnd"}});
+    data.instrArray->emplace_back(Operation{{}, Operation::Jump, {uid.get("_SwitchConditionalEnd", switchConditional)}});
   }
 
   generateStatement(data, switchConditional->body);
 
-  data.instrArray->emplace_back(Operation{{}, Operation::Label, {std::to_string((std::uintptr_t)switchConditional) + "_SwitchConditionalEnd"}});
+  data.instrArray->emplace_back(Operation{{}, Operation::Label, {uid.get("_SwitchConditionalEnd", switchConditional)}});
 
   scopes.pop_back();
 }
 
 void GenerateIR::generateDoWhileLoop(CommonIRData& data, const DoWhileLoop* doWhileLoop)
 {
-  data.instrArray->emplace_back(Operation{{}, Operation::Label, {std::to_string((std::uintptr_t)doWhileLoop) + "_DoWhileLoopBegin"}});
+  data.instrArray->emplace_back(Operation{{}, Operation::Label, {uid.get("_DoWhileLoopBegin", doWhileLoop)}});
 
   generateStatement(data, doWhileLoop->body);
 
   std::pair<std::string, PrimitiveType> name = generateExpression(data, doWhileLoop->condition);
 
-  data.instrArray->emplace_back(Operation{name.second, Operation::JumpIfNotZero, {std::to_string((std::uintptr_t)doWhileLoop) + "_DoWhileLoopBegin", name.first}});
+  data.instrArray->emplace_back(Operation{name.second, Operation::JumpIfNotZero, {uid.get("_DoWhileLoopBegin", doWhileLoop), name.first}});
 
-  data.instrArray->emplace_back(Operation{{}, Operation::Label, {std::to_string((std::uintptr_t)doWhileLoop) + "_DoWhileLoopEnd"}});
+  data.instrArray->emplace_back(Operation{{}, Operation::Label, {uid.get("_DoWhileLoopEnd", doWhileLoop)}});
 }
 
 void GenerateIR::generateWhileLoop(CommonIRData& data, const WhileLoop* whileLoop)
 {
   scopes.emplace_back((CompoundStatement*)whileLoop);
 
-  data.instrArray->emplace_back(Operation{{}, Operation::Jump, {std::to_string((std::uintptr_t)whileLoop) + "_WhileLoopCondition"}});
+  data.instrArray->emplace_back(Operation{{}, Operation::Jump, {uid.get("_WhileLoopCondition", whileLoop)}});
 
-  data.instrArray->emplace_back(Operation{{}, Operation::Label, {std::to_string((std::uintptr_t)whileLoop) + "_WhileLoopBegin"}});
+  data.instrArray->emplace_back(Operation{{}, Operation::Label, {uid.get("_WhileLoopBegin", whileLoop)}});
 
   generateStatement(data, whileLoop->body);
 
-  data.instrArray->emplace_back(Operation{{}, Operation::Label, {std::to_string((std::uintptr_t)whileLoop) + "_WhileLoopCondition"}});
+  data.instrArray->emplace_back(Operation{{}, Operation::Label, {uid.get("_WhileLoopCondition", whileLoop)}});
 
   std::pair<std::string, PrimitiveType> name = generateExpression(data, whileLoop->condition);
 
-  data.instrArray->emplace_back(Operation{name.second, Operation::JumpIfNotZero, {std::to_string((std::uintptr_t)whileLoop) + "_WhileLoopBegin", name.first}});
+  data.instrArray->emplace_back(Operation{name.second, Operation::JumpIfNotZero, {uid.get("_WhileLoopBegin", whileLoop), name.first}});
 
-  data.instrArray->emplace_back(Operation{{}, Operation::Label, {std::to_string((std::uintptr_t)whileLoop) + "_WhileLoopEnd"}});
+  data.instrArray->emplace_back(Operation{{}, Operation::Label, {uid.get("_WhileLoopEnd", whileLoop)}});
 
   scopes.pop_back();
 }
@@ -714,9 +715,9 @@ void GenerateIR::generateForLoop(CommonIRData& data, const ForLoop* forLoop)
     generateStatement(data, forLoop->initialization);
   }
 
-  data.instrArray->emplace_back(Operation{{}, Operation::Jump, {std::to_string((std::uintptr_t)forLoop) + "_ForLoopCondition"}});
+  data.instrArray->emplace_back(Operation{{}, Operation::Jump, {uid.get("_ForLoopCondition", forLoop)}});
 
-  data.instrArray->emplace_back(Operation{{}, Operation::Label, {std::to_string((std::uintptr_t)forLoop) + "_ForLoopBegin"}});
+  data.instrArray->emplace_back(Operation{{}, Operation::Label, {uid.get("_ForLoopBegin", forLoop)}});
 
   generateStatement(data, forLoop->body);
 
@@ -725,19 +726,19 @@ void GenerateIR::generateForLoop(CommonIRData& data, const ForLoop* forLoop)
     generateStatement(data, forLoop->update);
   }
 
-  data.instrArray->emplace_back(Operation{{}, Operation::Label, {std::to_string((std::uintptr_t)forLoop) + "_ForLoopCondition"}});
+  data.instrArray->emplace_back(Operation{{}, Operation::Label, {uid.get("_ForLoopCondition", forLoop)}});
 
   if (forLoop->condition) // condition defaults to constant 1 if not specified
   {
     std::pair<std::string, PrimitiveType> name = generateExpression(data, forLoop->condition);
 
-    data.instrArray->emplace_back(Operation{name.second, Operation::JumpIfNotZero, {std::to_string((std::uintptr_t)forLoop) + "_ForLoopBegin", name.first}});
+    data.instrArray->emplace_back(Operation{name.second, Operation::JumpIfNotZero, {uid.get("_ForLoopBegin", forLoop), name.first}});
   } else
   {
-    data.instrArray->emplace_back(Operation{{}, Operation::Jump, {std::to_string((std::uintptr_t)forLoop) + "_ForLoopBegin"}});
+    data.instrArray->emplace_back(Operation{{}, Operation::Jump, {uid.get("_ForLoopBegin", forLoop)}});
   }
 
-  data.instrArray->emplace_back(Operation{{}, Operation::Label, {std::to_string((std::uintptr_t)forLoop) + "_ForLoopEnd"}});
+  data.instrArray->emplace_back(Operation{{}, Operation::Label, {uid.get("_ForLoopEnd", forLoop)}});
 
   scopes.pop_back();
 }
@@ -757,7 +758,7 @@ std::pair<std::string, PrimitiveType> GenerateIR::generateVariableAccess(CommonI
 
 std::pair<std::string, PrimitiveType> GenerateIR::generateStringLiteral(CommonIRData& data, const StringLiteral* stringLiteral)
 {
-  data.irProgram.staticVariables[std::to_string((uintptr_t)stringLiteral) + "_Literal"] = data.irProgram.staticData.size();
+  data.irProgram.staticVariables[uid.get("_Literal", stringLiteral)] = data.irProgram.staticData.size();
   data.irProgram.staticData.insert(data.irProgram.staticData.end(), stringLiteral->value.begin(), stringLiteral->value.end()+1);
 
   // ensure null termination
@@ -771,9 +772,9 @@ std::pair<std::string, PrimitiveType> GenerateIR::generateStringLiteral(CommonIR
   ((Constant*)astType->size)->dataType.size = data.typeSizes.pointerSize;
   *(uint16_t*)((Constant*)astType->size)->value = uint16_t(stringLiteral->value.size()+1);
 
-  declarations[std::to_string((uintptr_t)stringLiteral) + "_Literal"] = astType;
+  declarations[uid.get("_Literal", stringLiteral)] = astType;
 
-  return {std::to_string((uintptr_t)stringLiteral) + "_Literal", {uint16_t(stringLiteral->value.size()+1), 1, false, true, true, false}};
+  return {uid.get("_Literal", stringLiteral), {uint16_t(stringLiteral->value.size()+1), 1, false, true, true, false}};
 }
 
 std::pair<std::string, PrimitiveType> GenerateIR::generateFunctionCall(CommonIRData& data, const FunctionCall* functionCall)
@@ -792,12 +793,12 @@ std::pair<std::string, PrimitiveType> GenerateIR::generateFunctionCall(CommonIRD
       data.instrArray->emplace_back(Operation{name.second, Operation::AddArg, {name.first}});
     }
 
-    declarations[std::to_string((uintptr_t)functionCall) + "_ReturnValue"] = ((Function*)declarations[std::string(functionCall->identifier)])->returnType;
+    declarations[uid.get("_ReturnValue", functionCall)] = ((Function*)declarations[std::string(functionCall->identifier)])->returnType;
 
     PrimitiveType returnType = ASTTypeToIRType(data, ((Function*)declarations[std::string(functionCall->identifier)])->returnType);
 
-    data.instrArray->emplace_back(Operation{returnType, Operation::Call, {std::string(functionCall->identifier), std::to_string((uintptr_t)functionCall) + "_ReturnValue"}});
-    return {std::to_string((uintptr_t)functionCall) + "_ReturnValue", returnType};
+    data.instrArray->emplace_back(Operation{returnType, Operation::Call, {std::string(functionCall->identifier), uid.get("_ReturnValue", functionCall)}});
+    return {uid.get("_ReturnValue", functionCall), returnType};
   } else
   {
     std::cout << "IR generation error: Function \"" << functionCall->identifier << "\" is not defined\n";
@@ -818,16 +819,16 @@ std::pair<std::string, PrimitiveType> GenerateIR::generatePreUnaryOperator(Commo
         Pointer* addressType;
         addressType = arenaAlloc(addressType);
         addressType->dataType = declarations[name.first];
-        declarations[std::to_string((uintptr_t)preUnary) + "_Address"] = addressType;
+        declarations[uid.get("_Address", preUnary)] = addressType;
 
         if (!data.instrArray->empty() && data.instrArray->back().code == Operation::DereferenceRValue)
         {
           data.instrArray->back().code = Operation::Set;
           data.instrArray->back().type = {data.typeSizes.pointerSize, data.typeSizes.pointerSize};
-          data.instrArray->back().operands[0] = std::to_string((uintptr_t)preUnary) + "_Address";
+          data.instrArray->back().operands[0] = uid.get("_Address", preUnary);
         } else
         {
-          data.instrArray->emplace_back(Operation{{data.typeSizes.pointerSize, data.typeSizes.pointerSize}, Operation::GetAddress, {std::to_string((uintptr_t)preUnary) + "_Address", name.first}});
+          data.instrArray->emplace_back(Operation{{data.typeSizes.pointerSize, data.typeSizes.pointerSize}, Operation::GetAddress, {uid.get("_Address", preUnary), name.first}});
         }
       } else
       {
@@ -848,9 +849,9 @@ std::pair<std::string, PrimitiveType> GenerateIR::generatePreUnaryOperator(Commo
           resultType = ((Array*)declarations[name.first])->dataType;
         }
 
-        declarations[std::to_string((uintptr_t)preUnary) + "_Dereference"] = resultType;
+        declarations[uid.get("_Dereference", preUnary)] = resultType;
 
-        data.instrArray->emplace_back(Operation{ASTTypeToIRType(data, resultType), Operation::DereferenceRValue, {std::to_string((uintptr_t)preUnary) + "_Dereference", name.first}});
+        data.instrArray->emplace_back(Operation{ASTTypeToIRType(data, resultType), Operation::DereferenceRValue, {uid.get("_Dereference", preUnary), name.first}});
       } else
       {
         std::cout << "IR generation error: Cannot dereference non-pointer type\n";
@@ -858,41 +859,41 @@ std::pair<std::string, PrimitiveType> GenerateIR::generatePreUnaryOperator(Commo
       }
       break;
     case PreUnaryOperator::PreUnaryType::Sizeof:
-      declarations[std::to_string((uintptr_t)preUnary) + "_Size"] = (PrimitiveType*)arenaAlloc((PrimitiveType*)declarations[std::to_string((uintptr_t)preUnary) + "_Size"]);
-      ((PrimitiveType*)declarations[std::to_string((uintptr_t)preUnary) + "_Size"])->size = data.typeSizes.pointerSize;
-      ((PrimitiveType*)declarations[std::to_string((uintptr_t)preUnary) + "_Size"])->alignment = data.typeSizes.pointerSize;
+      declarations[uid.get("_Size", preUnary)] = (PrimitiveType*)arenaAlloc((PrimitiveType*)declarations[uid.get("_Size", preUnary)]);
+      ((PrimitiveType*)declarations[uid.get("_Size", preUnary)])->size = data.typeSizes.pointerSize;
+      ((PrimitiveType*)declarations[uid.get("_Size", preUnary)])->alignment = data.typeSizes.pointerSize;
 
-      data.instrArray->emplace_back(Operation{{data.typeSizes.pointerSize, data.typeSizes.pointerSize}, Operation::Set, {std::to_string((uintptr_t)preUnary) + "_Size", std::to_string(name.second.size)}});
+      data.instrArray->emplace_back(Operation{{data.typeSizes.pointerSize, data.typeSizes.pointerSize}, Operation::Set, {uid.get("_Size", preUnary), std::to_string(name.second.size)}});
       break;
     case PreUnaryOperator::PreUnaryType::TypeCast: {
       TypeCast* typeCast = (TypeCast*)preUnary;
       
-      declarations[std::to_string((uintptr_t)preUnary) + "_Casted"] = typeCast->dataType;
+      declarations[uid.get("_Casted", preUnary)] = typeCast->dataType;
 
-      data.instrArray->emplace_back(Operation{ASTTypeToIRType(data, typeCast->dataType), Operation::Set, {std::to_string((uintptr_t)preUnary) + "_Casted", name.first}});
+      data.instrArray->emplace_back(Operation{ASTTypeToIRType(data, typeCast->dataType), Operation::Set, {uid.get("_Casted", preUnary), name.first}});
       break;
     } case PreUnaryOperator::PreUnaryType::MathematicNegate:
-      declarations[std::to_string((uintptr_t)preUnary) + "_Negated"] = declarations[name.first];
+      declarations[uid.get("_Negated", preUnary)] = declarations[name.first];
 
-      data.instrArray->emplace_back(Operation{name.second, Operation::Negate, {std::to_string((uintptr_t)preUnary) + "_Negated", name.first}});
+      data.instrArray->emplace_back(Operation{name.second, Operation::Negate, {uid.get("_Negated", preUnary), name.first}});
       break;
     case PreUnaryOperator::PreUnaryType::BitwiseNOT:
-      declarations[std::to_string((uintptr_t)preUnary) + "_BitwiseNegated"] = declarations[name.first];
+      declarations[uid.get("_BitwiseNegated", preUnary)] = declarations[name.first];
 
-      data.instrArray->emplace_back(Operation{name.second, Operation::BitwiseNOT, {std::to_string((uintptr_t)preUnary) + "_BitwiseNegated", name.first}});
+      data.instrArray->emplace_back(Operation{name.second, Operation::BitwiseNOT, {uid.get("_BitwiseNegated", preUnary), name.first}});
       break;
     case PreUnaryOperator::PreUnaryType::LogicalNegate:
-      declarations[std::to_string((uintptr_t)preUnary) + "_LogicalNegated"] = declarations[name.first];
+      declarations[uid.get("_LogicalNegated", preUnary)] = declarations[name.first];
 
-      data.instrArray->emplace_back(Operation{name.second, Operation::LogicalNOT, {std::to_string((uintptr_t)preUnary) + "_LogicalNegated", name.first}});
+      data.instrArray->emplace_back(Operation{name.second, Operation::LogicalNOT, {uid.get("_LogicalNegated", preUnary), name.first}});
       break;
     case PreUnaryOperator::PreUnaryType::Increment: {
       if (name.first[0] < '0' || name.first[0] > '9')
       {
-        declarations[std::to_string((uintptr_t)preUnary) + "_Incremented"] = declarations[name.first];
+        declarations[uid.get("_Incremented", preUnary)] = declarations[name.first];
 
         data.instrArray->emplace_back(Operation{name.second, Operation::SetAddition, {name.first, name.first, "1"}});
-        data.instrArray->emplace_back(Operation{name.second, Operation::Set, {std::to_string((uintptr_t)preUnary) + "_Incremented", name.first}});
+        data.instrArray->emplace_back(Operation{name.second, Operation::Set, {uid.get("_Incremented", preUnary), name.first}});
       } else
       {
         std::cout << "IR generation error: Incrementing rvalue is illegal\n";
@@ -902,10 +903,10 @@ std::pair<std::string, PrimitiveType> GenerateIR::generatePreUnaryOperator(Commo
     } case PreUnaryOperator::PreUnaryType::Decrement:
       if (name.first[0] < '0' || name.first[0] > '9')
       {
-        declarations[std::to_string((uintptr_t)preUnary) + "_Decremented"] = declarations[name.first];
+        declarations[uid.get("_Decremented", preUnary)] = declarations[name.first];
 
         data.instrArray->emplace_back(Operation{name.second, Operation::SetSubtraction, {name.first, name.first, "1"}});
-        data.instrArray->emplace_back(Operation{name.second, Operation::Set, {std::to_string((uintptr_t)preUnary) + "_Decremented", name.first}});
+        data.instrArray->emplace_back(Operation{name.second, Operation::Set, {uid.get("_Decremented", preUnary), name.first}});
       } else
       {
         std::cout << "IR generation error: Decrementing rvalue is illegal\n";
@@ -926,9 +927,9 @@ std::pair<std::string, PrimitiveType> GenerateIR::generatePostUnaryOperator(Comm
     case PostUnaryOperator::PostUnaryType::Increment: {
       if (name.first[0] < '0' || name.first[0] > '9')
       {
-        declarations[std::to_string((uintptr_t)postUnary) + "_PostIncremented"] = declarations[name.first];
+        declarations[uid.get("_PostIncremented", postUnary)] = declarations[name.first];
 
-        data.instrArray->emplace_back(Operation{name.second, Operation::Set, {std::to_string((uintptr_t)postUnary) + "_PostIncremented", name.first}});
+        data.instrArray->emplace_back(Operation{name.second, Operation::Set, {uid.get("_PostIncremented", postUnary), name.first}});
         data.instrArray->emplace_back(Operation{name.second, Operation::SetAddition, {name.first, name.first, "1"}});
       } else
       {
@@ -939,9 +940,9 @@ std::pair<std::string, PrimitiveType> GenerateIR::generatePostUnaryOperator(Comm
     } case PostUnaryOperator::PostUnaryType::Decrement:
       if (name.first[0] < '0' || name.first[0] > '9')
       {
-        declarations[std::to_string((uintptr_t)postUnary) + "_PostDecremented"] = declarations[name.first];
+        declarations[uid.get("_PostDecremented", postUnary)] = declarations[name.first];
 
-        data.instrArray->emplace_back(Operation{name.second, Operation::Set, {std::to_string((uintptr_t)postUnary) + "_PostDecremented", name.first}});
+        data.instrArray->emplace_back(Operation{name.second, Operation::Set, {uid.get("_PostDecremented", postUnary), name.first}});
         data.instrArray->emplace_back(Operation{name.second, Operation::SetSubtraction, {name.first, name.first, "1"}});
       } else
       {
@@ -988,7 +989,7 @@ std::pair<std::string, PrimitiveType> GenerateIR::generateBinaryOperator(CommonI
         {
           if (member.first->identifier == identifier->identifier)
           {
-            declarations[std::to_string((uintptr_t)binary) + "_Member"] = member.first->dataType;
+            declarations[uid.get("_Member", binary)] = member.first->dataType;
           }
         }
         break;
@@ -1015,7 +1016,7 @@ std::pair<std::string, PrimitiveType> GenerateIR::generateBinaryOperator(CommonI
         {
           if (member.first->identifier == identifier->identifier)
           {
-            declarations[std::to_string((uintptr_t)binary) + "_Member"] = member.first->dataType;
+            declarations[uid.get("_Member", binary)] = member.first->dataType;
             break;
           }
         }
@@ -1025,11 +1026,11 @@ std::pair<std::string, PrimitiveType> GenerateIR::generateBinaryOperator(CommonI
 
     std::pair<PrimitiveType, uint8_t> memberData = memberOffsets[std::string(typeName)].second[std::string(identifier->identifier)];
 
-    data.instrArray->emplace_back(Operation{{data.typeSizes.pointerSize, data.typeSizes.pointerSize}, Operation::Set, {std::to_string((uintptr_t)binary) + "_Casted", leftOperandName.first}});
+    data.instrArray->emplace_back(Operation{{data.typeSizes.pointerSize, data.typeSizes.pointerSize}, Operation::Set, {uid.get("_Casted", binary), leftOperandName.first}});
 
-    data.instrArray->emplace_back(Operation{{data.typeSizes.pointerSize, data.typeSizes.pointerSize}, Operation::SetAddition, {std::to_string((uintptr_t)binary) + "_Pointer", std::to_string((uintptr_t)binary) + "_Casted", std::to_string(memberData.second)}});
+    data.instrArray->emplace_back(Operation{{data.typeSizes.pointerSize, data.typeSizes.pointerSize}, Operation::SetAddition, {uid.get("_Pointer", binary), uid.get("_Casted", binary), std::to_string(memberData.second)}});
 
-    data.instrArray->emplace_back(Operation{memberData.first, Operation::DereferenceRValue, {std::to_string((uintptr_t)binary) + "_Member", std::to_string((uintptr_t)binary) + "_Pointer"}});
+    data.instrArray->emplace_back(Operation{memberData.first, Operation::DereferenceRValue, {uid.get("_Member", binary), uid.get("_Pointer", binary)}});
   }
 
   if (binary->binaryType >= BinaryOperator::BinaryType::VariableAssignment &&
@@ -1061,7 +1062,7 @@ std::pair<std::string, PrimitiveType> GenerateIR::generateBinaryOperator(CommonI
         leftOperandName = generateExpression(data, ((BinaryOperator*)binary->leftOperand)->leftOperand);
         std::pair<std::string, PrimitiveType> childRightOperandName = generateExpression(data, ((BinaryOperator*)binary->leftOperand)->rightOperand);
 
-        data.instrArray->emplace_back(Operation{{data.typeSizes.pointerSize, data.typeSizes.pointerSize}, Operation::SetAddition, {std::to_string((uintptr_t)binary) + "_Added", leftOperandName.first, childRightOperandName.first}});
+        data.instrArray->emplace_back(Operation{{data.typeSizes.pointerSize, data.typeSizes.pointerSize}, Operation::SetAddition, {uid.get("_Added", binary), leftOperandName.first, childRightOperandName.first}});
 
         DataType* resultType;
         if (declarations[leftOperandName.first]->generalType == DataType::GeneralType::Pointer)
@@ -1072,7 +1073,7 @@ std::pair<std::string, PrimitiveType> GenerateIR::generateBinaryOperator(CommonI
           resultType = ((Array*)declarations[leftOperandName.first])->dataType;
         }
 
-        data.instrArray->emplace_back(Operation{ASTTypeToIRType(data, resultType), Operation::DereferenceLValue, {std::to_string((uintptr_t)binary) + "_Added", rightOperandName.first}});
+        data.instrArray->emplace_back(Operation{ASTTypeToIRType(data, resultType), Operation::DereferenceLValue, {uid.get("_Added", binary), rightOperandName.first}});
       } else if (((BinaryOperator*)binary->leftOperand)->binaryType == BinaryOperator::BinaryType::DereferenceMemberAccess)
       {
         leftOperandName = generateExpression(data, ((BinaryOperator*)binary->leftOperand)->leftOperand);
@@ -1101,7 +1102,7 @@ std::pair<std::string, PrimitiveType> GenerateIR::generateBinaryOperator(CommonI
             {
               if (member.first->identifier == identifier->identifier)
               {
-                declarations[std::to_string((uintptr_t)binary) + "_Member"] = member.first->dataType;
+                declarations[uid.get("_Member", binary)] = member.first->dataType;
                 break;
               }
             }
@@ -1111,11 +1112,11 @@ std::pair<std::string, PrimitiveType> GenerateIR::generateBinaryOperator(CommonI
 
         std::pair<PrimitiveType, uint8_t> memberData = memberOffsets[std::string(typeName)].second[std::string(identifier->identifier)];
 
-        data.instrArray->emplace_back(Operation{{data.typeSizes.pointerSize, data.typeSizes.pointerSize}, Operation::Set, {std::to_string((uintptr_t)binary) + "_Casted", leftOperandName.first}});
+        data.instrArray->emplace_back(Operation{{data.typeSizes.pointerSize, data.typeSizes.pointerSize}, Operation::Set, {uid.get("_Casted", binary), leftOperandName.first}});
 
-        data.instrArray->emplace_back(Operation{{data.typeSizes.pointerSize, data.typeSizes.pointerSize}, Operation::SetAddition, {std::to_string((uintptr_t)binary) + "_Pointer", std::to_string((uintptr_t)binary) + "_Casted", std::to_string(memberData.second)}});
+        data.instrArray->emplace_back(Operation{{data.typeSizes.pointerSize, data.typeSizes.pointerSize}, Operation::SetAddition, {uid.get("_Pointer", binary), uid.get("_Casted", binary), std::to_string(memberData.second)}});
 
-        leftOperandName = {std::to_string((uintptr_t)binary) + "_Pointer", memberData.first};
+        leftOperandName = {uid.get("_Pointer", binary), memberData.first};
 
         data.instrArray->emplace_back(Operation{leftOperandName.second, Operation::DereferenceLValue, {leftOperandName.first, rightOperandName.first}});
       } else
@@ -1129,8 +1130,8 @@ std::pair<std::string, PrimitiveType> GenerateIR::generateBinaryOperator(CommonI
 
     if (gotPointer)
     {
-      declarations[std::to_string((uintptr_t)binary) + "_Assigned"] = declarations[rightOperandName.first];
-      data.instrArray->emplace_back(Operation{rightOperandName.second, Operation::Set, {std::to_string((uintptr_t)binary) + "_Assigned", rightOperandName.first}});
+      declarations[uid.get("_Assigned", binary)] = declarations[rightOperandName.first];
+      data.instrArray->emplace_back(Operation{rightOperandName.second, Operation::Set, {uid.get("_Assigned", binary), rightOperandName.first}});
       return {data.instrArray->back().operands[0], data.instrArray->back().type};
     }
   }
@@ -1140,10 +1141,10 @@ std::pair<std::string, PrimitiveType> GenerateIR::generateBinaryOperator(CommonI
     case BinaryOperator::BinaryType::VariableAssignment:
       if (leftOperandName.first[0] < '0' || leftOperandName.first[0] > '9' || leftOperandName.first.find("_Member") != std::string::npos)
       {
-        declarations[std::to_string((uintptr_t)binary) + "_Assigned"] = declarations[rightOperandName.first];
+        declarations[uid.get("_Assigned", binary)] = declarations[rightOperandName.first];
 
         data.instrArray->emplace_back(Operation{leftOperandName.second, Operation::Set, {leftOperandName.first, rightOperandName.first}});
-        data.instrArray->emplace_back(Operation{rightOperandName.second, Operation::Set, {std::to_string((uintptr_t)binary) + "_Assigned", rightOperandName.first}});
+        data.instrArray->emplace_back(Operation{rightOperandName.second, Operation::Set, {uid.get("_Assigned", binary), rightOperandName.first}});
       } else
       {
         std::cout << "IR generation error: Assigning rvalue is illegal\n";
@@ -1164,10 +1165,10 @@ std::pair<std::string, PrimitiveType> GenerateIR::generateBinaryOperator(CommonI
       {
         Operation::Opcode operationType = Operation::Opcode((int)Operation::SetAddition + ((int)binary->binaryType - (int)BinaryOperator::BinaryType::AddEqual));
 
-        declarations[std::to_string((uintptr_t)binary) + "_Assigned"] = declarations[rightOperandName.first];
+        declarations[uid.get("_Assigned", binary)] = declarations[rightOperandName.first];
 
         data.instrArray->emplace_back(Operation{leftOperandName.second, operationType, {leftOperandName.first, leftOperandName.first, rightOperandName.first}});
-        data.instrArray->emplace_back(Operation{rightOperandName.second, Operation::Set, {std::to_string((uintptr_t)binary) + "_Assigned", leftOperandName.first}});
+        data.instrArray->emplace_back(Operation{rightOperandName.second, Operation::Set, {uid.get("_Assigned", binary), leftOperandName.first}});
       } else
       {
         std::cout << "IR generation error: Modifying rvalue is illegal\n";
@@ -1175,68 +1176,68 @@ std::pair<std::string, PrimitiveType> GenerateIR::generateBinaryOperator(CommonI
       }
       break;
     case BinaryOperator::BinaryType::Add:
-      declarations[std::to_string((uintptr_t)binary) + "_Added"] = declarations[leftOperandName.first];
+      declarations[uid.get("_Added", binary)] = declarations[leftOperandName.first];
 
-      data.instrArray->emplace_back(Operation{leftOperandName.second, Operation::SetAddition, {std::to_string((uintptr_t)binary) + "_Added", leftOperandName.first, rightOperandName.first}});
+      data.instrArray->emplace_back(Operation{leftOperandName.second, Operation::SetAddition, {uid.get("_Added", binary), leftOperandName.first, rightOperandName.first}});
       break;
     case BinaryOperator::BinaryType::Subtract:
-      declarations[std::to_string((uintptr_t)binary) + "_Subtracted"] = declarations[leftOperandName.first];
+      declarations[uid.get("_Subtracted", binary)] = declarations[leftOperandName.first];
 
-      data.instrArray->emplace_back(Operation{leftOperandName.second, Operation::SetSubtraction, {std::to_string((uintptr_t)binary) + "_Subtracted", leftOperandName.first, rightOperandName.first}});
+      data.instrArray->emplace_back(Operation{leftOperandName.second, Operation::SetSubtraction, {uid.get("_Subtracted", binary), leftOperandName.first, rightOperandName.first}});
       break;
     case BinaryOperator::BinaryType::Multiply:
-      declarations[std::to_string((uintptr_t)binary) + "_Multiplied"] = declarations[leftOperandName.first];
+      declarations[uid.get("_Multiplied", binary)] = declarations[leftOperandName.first];
 
-      data.instrArray->emplace_back(Operation{leftOperandName.second, Operation::SetMultiplication, {std::to_string((uintptr_t)binary) + "_Multiplied", leftOperandName.first, rightOperandName.first}});
+      data.instrArray->emplace_back(Operation{leftOperandName.second, Operation::SetMultiplication, {uid.get("_Multiplied", binary), leftOperandName.first, rightOperandName.first}});
       break;
     case BinaryOperator::BinaryType::Divide:
-      declarations[std::to_string((uintptr_t)binary) + "_Divided"] = declarations[leftOperandName.first];
+      declarations[uid.get("_Divided", binary)] = declarations[leftOperandName.first];
 
-      data.instrArray->emplace_back(Operation{leftOperandName.second, Operation::SetDivision, {std::to_string((uintptr_t)binary) + "_Divided", leftOperandName.first, rightOperandName.first}});
+      data.instrArray->emplace_back(Operation{leftOperandName.second, Operation::SetDivision, {uid.get("_Divided", binary), leftOperandName.first, rightOperandName.first}});
       break;
     case BinaryOperator::BinaryType::Modulo:
-      declarations[std::to_string((uintptr_t)binary) + "_Modulus"] = declarations[leftOperandName.first];
+      declarations[uid.get("_Modulus", binary)] = declarations[leftOperandName.first];
 
-      data.instrArray->emplace_back(Operation{leftOperandName.second, Operation::SetModulo, {std::to_string((uintptr_t)binary) + "_Modulus", leftOperandName.first, rightOperandName.first}});
+      data.instrArray->emplace_back(Operation{leftOperandName.second, Operation::SetModulo, {uid.get("_Modulus", binary), leftOperandName.first, rightOperandName.first}});
       break;
     case BinaryOperator::BinaryType::LeftShift:
-      declarations[std::to_string((uintptr_t)binary) + "_LeftShifted"] = declarations[leftOperandName.first];
+      declarations[uid.get("_LeftShifted", binary)] = declarations[leftOperandName.first];
 
-      data.instrArray->emplace_back(Operation{leftOperandName.second, Operation::SetLeftShift, {std::to_string((uintptr_t)binary) + "_LeftShifted", leftOperandName.first, rightOperandName.first}});
+      data.instrArray->emplace_back(Operation{leftOperandName.second, Operation::SetLeftShift, {uid.get("_LeftShifted", binary), leftOperandName.first, rightOperandName.first}});
       break;
     case BinaryOperator::BinaryType::RightShift:
-      declarations[std::to_string((uintptr_t)binary) + "_RightShifted"] = declarations[leftOperandName.first];
+      declarations[uid.get("_RightShifted", binary)] = declarations[leftOperandName.first];
 
-      data.instrArray->emplace_back(Operation{leftOperandName.second, Operation::SetRightShift, {std::to_string((uintptr_t)binary) + "_RightShifted", leftOperandName.first, rightOperandName.first}});
+      data.instrArray->emplace_back(Operation{leftOperandName.second, Operation::SetRightShift, {uid.get("_RightShifted", binary), leftOperandName.first, rightOperandName.first}});
       break;
     case BinaryOperator::BinaryType::BitwiseOR:
-      declarations[std::to_string((uintptr_t)binary) + "_BitwiseOred"] = declarations[leftOperandName.first];
+      declarations[uid.get("_BitwiseOred", binary)] = declarations[leftOperandName.first];
 
-      data.instrArray->emplace_back(Operation{leftOperandName.second, Operation::SetBitwiseOR, {std::to_string((uintptr_t)binary) + "_BitwiseOred", leftOperandName.first, rightOperandName.first}});
+      data.instrArray->emplace_back(Operation{leftOperandName.second, Operation::SetBitwiseOR, {uid.get("_BitwiseOred", binary), leftOperandName.first, rightOperandName.first}});
       break;
     case BinaryOperator::BinaryType::BitwiseAND:
-      declarations[std::to_string((uintptr_t)binary) + "_BitwiseAnded"] = declarations[leftOperandName.first];
+      declarations[uid.get("_BitwiseAnded", binary)] = declarations[leftOperandName.first];
 
-      data.instrArray->emplace_back(Operation{leftOperandName.second, Operation::SetBitwiseAND, {std::to_string((uintptr_t)binary) + "_BitwiseAnded", leftOperandName.first, rightOperandName.first}});
+      data.instrArray->emplace_back(Operation{leftOperandName.second, Operation::SetBitwiseAND, {uid.get("_BitwiseAnded", binary), leftOperandName.first, rightOperandName.first}});
       break;
     case BinaryOperator::BinaryType::BitwiseXOR:
-      declarations[std::to_string((uintptr_t)binary) + "_BitwiseXored"] = declarations[leftOperandName.first];
+      declarations[uid.get("_BitwiseXored", binary)] = declarations[leftOperandName.first];
 
-      data.instrArray->emplace_back(Operation{leftOperandName.second, Operation::SetBitwiseXOR, {std::to_string((uintptr_t)binary) + "_BitwiseXored", leftOperandName.first, rightOperandName.first}});
+      data.instrArray->emplace_back(Operation{leftOperandName.second, Operation::SetBitwiseXOR, {uid.get("_BitwiseXored", binary), leftOperandName.first, rightOperandName.first}});
       break;
     case BinaryOperator::BinaryType::LogicalOR:
-      declarations[std::to_string((uintptr_t)binary) + "_LogicalOred"] = arenaAlloc((PrimitiveType*)declarations[std::to_string((uintptr_t)binary) + "_LogicalOred"]);
-      ((PrimitiveType*)declarations[std::to_string((uintptr_t)binary) + "_LogicalOred"])->size = 1;
-      ((PrimitiveType*)declarations[std::to_string((uintptr_t)binary) + "_LogicalOred"])->alignment = 1;
+      declarations[uid.get("_LogicalOred", binary)] = arenaAlloc((PrimitiveType*)declarations[uid.get("_LogicalOred", binary)]);
+      ((PrimitiveType*)declarations[uid.get("_LogicalOred", binary)])->size = 1;
+      ((PrimitiveType*)declarations[uid.get("_LogicalOred", binary)])->alignment = 1;
 
-      data.instrArray->emplace_back(Operation{{1, 1}, Operation::SetLogicalOR, {std::to_string((uintptr_t)binary) + "_LogicalOred", leftOperandName.first, rightOperandName.first}});
+      data.instrArray->emplace_back(Operation{{1, 1}, Operation::SetLogicalOR, {uid.get("_LogicalOred", binary), leftOperandName.first, rightOperandName.first}});
       break;
     case BinaryOperator::BinaryType::LogicalAND:
-      declarations[std::to_string((uintptr_t)binary) + "_LogicalAnded"] = arenaAlloc((PrimitiveType*)declarations[std::to_string((uintptr_t)binary) + "_LogicalAnded"]);
-      ((PrimitiveType*)declarations[std::to_string((uintptr_t)binary) + "_LogicalAnded"])->size = 1;
-      ((PrimitiveType*)declarations[std::to_string((uintptr_t)binary) + "_LogicalAnded"])->alignment = 1;
+      declarations[uid.get("_LogicalAnded", binary)] = arenaAlloc((PrimitiveType*)declarations[uid.get("_LogicalAnded", binary)]);
+      ((PrimitiveType*)declarations[uid.get("_LogicalAnded", binary)])->size = 1;
+      ((PrimitiveType*)declarations[uid.get("_LogicalAnded", binary)])->alignment = 1;
 
-      data.instrArray->emplace_back(Operation{{1, 1}, Operation::SetLogicalAND, {std::to_string((uintptr_t)binary) + "_LogicalAnded", leftOperandName.first, rightOperandName.first}});
+      data.instrArray->emplace_back(Operation{{1, 1}, Operation::SetLogicalAND, {uid.get("_LogicalAnded", binary), leftOperandName.first, rightOperandName.first}});
       break;
     case BinaryOperator::BinaryType::Subscript:
       DataType* resultType;
@@ -1247,53 +1248,53 @@ std::pair<std::string, PrimitiveType> GenerateIR::generateBinaryOperator(CommonI
       {
         resultType = ((Array*)declarations[leftOperandName.first])->dataType;
       }
-      declarations[std::to_string((uintptr_t)binary) + "_Dereference"] = resultType;
+      declarations[uid.get("_Dereference", binary)] = resultType;
 
-      data.instrArray->emplace_back(Operation{{data.typeSizes.pointerSize, data.typeSizes.pointerSize}, Operation::SetAddition, {std::to_string((uintptr_t)binary) + "_Added", leftOperandName.first, rightOperandName.first}});
+      data.instrArray->emplace_back(Operation{{data.typeSizes.pointerSize, data.typeSizes.pointerSize}, Operation::SetAddition, {uid.get("_Added", binary), leftOperandName.first, rightOperandName.first}});
 
-      data.instrArray->emplace_back(Operation{ASTTypeToIRType(data, resultType), Operation::DereferenceRValue, {std::to_string((uintptr_t)binary) + "_Dereference", data.instrArray->back().operands[0]}});
+      data.instrArray->emplace_back(Operation{ASTTypeToIRType(data, resultType), Operation::DereferenceRValue, {uid.get("_Dereference", binary), data.instrArray->back().operands[0]}});
       break;
     case BinaryOperator::BinaryType::Equal:
-      declarations[std::to_string((uintptr_t)binary) + "_Equaled"] = arenaAlloc((PrimitiveType*)declarations[std::to_string((uintptr_t)binary) + "_Equaled"]);
-      ((PrimitiveType*)declarations[std::to_string((uintptr_t)binary) + "_Equaled"])->size = 1;
-      ((PrimitiveType*)declarations[std::to_string((uintptr_t)binary) + "_Equaled"])->alignment = 1;
+      declarations[uid.get("_Equaled", binary)] = arenaAlloc((PrimitiveType*)declarations[uid.get("_Equaled", binary)]);
+      ((PrimitiveType*)declarations[uid.get("_Equaled", binary)])->size = 1;
+      ((PrimitiveType*)declarations[uid.get("_Equaled", binary)])->alignment = 1;
 
-      data.instrArray->emplace_back(Operation{{1, 1}, Operation::SetEqual, {std::to_string((uintptr_t)binary) + "_Equaled", leftOperandName.first, rightOperandName.first}});
+      data.instrArray->emplace_back(Operation{{1, 1}, Operation::SetEqual, {uid.get("_Equaled", binary), leftOperandName.first, rightOperandName.first}});
       break;
     case BinaryOperator::BinaryType::NotEqual:
-      declarations[std::to_string((uintptr_t)binary) + "_NotEqualed"] = arenaAlloc((PrimitiveType*)declarations[std::to_string((uintptr_t)binary) + "_NotEqualed"]);
-      ((PrimitiveType*)declarations[std::to_string((uintptr_t)binary) + "_NotEqualed"])->size = 1;
-      ((PrimitiveType*)declarations[std::to_string((uintptr_t)binary) + "_NotEqualed"])->alignment = 1;
+      declarations[uid.get("_NotEqualed", binary)] = arenaAlloc((PrimitiveType*)declarations[uid.get("_NotEqualed", binary)]);
+      ((PrimitiveType*)declarations[uid.get("_NotEqualed", binary)])->size = 1;
+      ((PrimitiveType*)declarations[uid.get("_NotEqualed", binary)])->alignment = 1;
 
-      data.instrArray->emplace_back(Operation{{1, 1}, Operation::SetNotEqual, {std::to_string((uintptr_t)binary) + "_NotEqualed", leftOperandName.first, rightOperandName.first}});
+      data.instrArray->emplace_back(Operation{{1, 1}, Operation::SetNotEqual, {uid.get("_NotEqualed", binary), leftOperandName.first, rightOperandName.first}});
       break;
     case BinaryOperator::BinaryType::Greater:
-      declarations[std::to_string((uintptr_t)binary) + "_Large"] = arenaAlloc((PrimitiveType*)declarations[std::to_string((uintptr_t)binary) + "_Large"]);
-      ((PrimitiveType*)declarations[std::to_string((uintptr_t)binary) + "_Large"])->size = 1;
-      ((PrimitiveType*)declarations[std::to_string((uintptr_t)binary) + "_Large"])->alignment = 1;
+      declarations[uid.get("_Large", binary)] = arenaAlloc((PrimitiveType*)declarations[uid.get("_Large", binary)]);
+      ((PrimitiveType*)declarations[uid.get("_Large", binary)])->size = 1;
+      ((PrimitiveType*)declarations[uid.get("_Large", binary)])->alignment = 1;
 
-      data.instrArray->emplace_back(Operation{{1, 1}, Operation::SetGreater, {std::to_string((uintptr_t)binary) + "_Large", leftOperandName.first, rightOperandName.first}});
+      data.instrArray->emplace_back(Operation{{1, 1}, Operation::SetGreater, {uid.get("_Large", binary), leftOperandName.first, rightOperandName.first}});
       break;
     case BinaryOperator::BinaryType::Lesser:
-      declarations[std::to_string((uintptr_t)binary) + "_Small"] = arenaAlloc((PrimitiveType*)declarations[std::to_string((uintptr_t)binary) + "_Small"]);
-      ((PrimitiveType*)declarations[std::to_string((uintptr_t)binary) + "_Small"])->size = 1;
-      ((PrimitiveType*)declarations[std::to_string((uintptr_t)binary) + "_Small"])->alignment = 1;
+      declarations[uid.get("_Small", binary)] = arenaAlloc((PrimitiveType*)declarations[uid.get("_Small", binary)]);
+      ((PrimitiveType*)declarations[uid.get("_Small", binary)])->size = 1;
+      ((PrimitiveType*)declarations[uid.get("_Small", binary)])->alignment = 1;
 
-      data.instrArray->emplace_back(Operation{{1, 1}, Operation::SetLesser, {std::to_string((uintptr_t)binary) + "_Small", leftOperandName.first, rightOperandName.first}});
+      data.instrArray->emplace_back(Operation{{1, 1}, Operation::SetLesser, {uid.get("_Small", binary), leftOperandName.first, rightOperandName.first}});
       break;
     case BinaryOperator::BinaryType::GreaterOrEqual:
-      declarations[std::to_string((uintptr_t)binary) + "_Largeish"] = arenaAlloc((PrimitiveType*)declarations[std::to_string((uintptr_t)binary) + "_Largeish"]);
-      ((PrimitiveType*)declarations[std::to_string((uintptr_t)binary) + "_Largeish"])->size = 1;
-      ((PrimitiveType*)declarations[std::to_string((uintptr_t)binary) + "_Largeish"])->alignment = 1;
+      declarations[uid.get("_Largeish", binary)] = arenaAlloc((PrimitiveType*)declarations[uid.get("_Largeish", binary)]);
+      ((PrimitiveType*)declarations[uid.get("_Largeish", binary)])->size = 1;
+      ((PrimitiveType*)declarations[uid.get("_Largeish", binary)])->alignment = 1;
 
-      data.instrArray->emplace_back(Operation{{1, 1}, Operation::SetGreaterOrEqual, {std::to_string((uintptr_t)binary) + "_Largeish", leftOperandName.first, rightOperandName.first}});
+      data.instrArray->emplace_back(Operation{{1, 1}, Operation::SetGreaterOrEqual, {uid.get("_Largeish", binary), leftOperandName.first, rightOperandName.first}});
       break;
     case BinaryOperator::BinaryType::LesserOrEqual:
-      declarations[std::to_string((uintptr_t)binary) + "_Smallish"] = arenaAlloc((PrimitiveType*)declarations[std::to_string((uintptr_t)binary) + "_Smallish"]);
-      ((PrimitiveType*)declarations[std::to_string((uintptr_t)binary) + "_Smallish"])->size = 1;
-      ((PrimitiveType*)declarations[std::to_string((uintptr_t)binary) + "_Smallish"])->alignment = 1;
+      declarations[uid.get("_Smallish", binary)] = arenaAlloc((PrimitiveType*)declarations[uid.get("_Smallish", binary)]);
+      ((PrimitiveType*)declarations[uid.get("_Smallish", binary)])->size = 1;
+      ((PrimitiveType*)declarations[uid.get("_Smallish", binary)])->alignment = 1;
 
-      data.instrArray->emplace_back(Operation{{1, 1}, Operation::SetLesserOrEqual, {std::to_string((uintptr_t)binary) + "_Smallish", leftOperandName.first, rightOperandName.first}});
+      data.instrArray->emplace_back(Operation{{1, 1}, Operation::SetLesserOrEqual, {uid.get("_Smallish", binary), leftOperandName.first, rightOperandName.first}});
       break;
   }
 
@@ -1305,22 +1306,22 @@ std::pair<std::string, PrimitiveType> GenerateIR::generateTernaryOperator(Common
   // conditional jump to end of if conditional
   std::pair<std::string, PrimitiveType> name = generateExpression(data, ternary->condition);
 
-  data.instrArray->emplace_back(Operation{name.second, Operation::JumpIfZero, {std::to_string((std::uintptr_t)ternary) + "_TernaryOperatorFalse", name.first}});
+  data.instrArray->emplace_back(Operation{name.second, Operation::JumpIfZero, {uid.get("_TernaryOperatorFalse", ternary), name.first}});
 
   // if conditional body
   std::pair<std::string, PrimitiveType> trueName = generateExpression(data, ternary->trueOperand);
   data.instrArray->emplace_back(Operation{trueName.second, Operation::Set, {name.first, trueName.first}});
 
   // unconditional jump to end of else conditional
-  data.instrArray->emplace_back(Operation{{}, Operation::Jump, {std::to_string((std::uintptr_t)ternary) + "_TernaryOperatorEnd"}});
+  data.instrArray->emplace_back(Operation{{}, Operation::Jump, {uid.get("_TernaryOperatorEnd", ternary)}});
 
-  data.instrArray->emplace_back(Operation{{}, Operation::Label, {std::to_string((std::uintptr_t)ternary) + "_TernaryOperatorFalse"}});
+  data.instrArray->emplace_back(Operation{{}, Operation::Label, {uid.get("_TernaryOperatorFalse", ternary)}});
 
   // else body
   std::pair<std::string, PrimitiveType> falseName = generateExpression(data, ternary->falseOperand);
   data.instrArray->emplace_back(Operation{falseName.second, Operation::Set, {name.first, falseName.first}});
 
-  data.instrArray->emplace_back(Operation{{}, Operation::Label, {std::to_string((std::uintptr_t)ternary) + "_TernaryOperatorEnd"}});
+  data.instrArray->emplace_back(Operation{{}, Operation::Label, {uid.get("_TernaryOperatorEnd", ternary)}});
 
   return name;
 }

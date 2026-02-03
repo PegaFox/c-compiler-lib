@@ -226,7 +226,7 @@ std::array<uint8_t, 16> Constant::parseValue(
   PrimitiveType dataType,
   const std::string& token)
 {
-  std::array<uint8_t, 16> value;
+  std::array<uint8_t, 16> value = {0};
 
   if (enums.contains(token))
   {

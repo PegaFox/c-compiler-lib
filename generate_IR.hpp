@@ -122,6 +122,49 @@ class GenerateIR
       Compiler::TypeSizes typeSizes;
     };
 
+    class UID
+    {
+      public:
+        void reset()
+        {
+          this->ids.clear();
+          this->maxIds.clear();
+        }
+
+        std::string get(std::string identifier, const void* const pointer)
+        {
+          uintptr_t intPtr = (uintptr_t)pointer;
+
+          if (!this->ids.contains(intPtr))
+          {
+            if (maxIds.contains(identifier))
+            {
+              maxIds[identifier]++;
+              ids[intPtr] = maxIds[identifier];
+            } else
+            {
+              maxIds[identifier] = 0;
+              ids[intPtr] = maxIds[identifier];
+            }
+          }
+
+          if (identifier.front() == '_')
+          {
+            return std::to_string(ids[intPtr]) + identifier;
+          } else if (identifier.back() == '_')
+          {
+            return identifier + std::to_string(ids[intPtr]);
+          } else
+          {
+            return std::to_string(ids[intPtr]) + "_" + identifier;
+          }
+        }
+
+      private:
+        std::map<uintptr_t, uint32_t> ids;
+        std::map<std::string, uint32_t> maxIds;
+    } uid;
+
     std::pair<std::unique_ptr<uint8_t[]>, std::size_t> dynamicData;
 
     //std::map<std::string, const Declaration*> declarations;
