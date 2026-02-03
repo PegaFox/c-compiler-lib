@@ -17,12 +17,12 @@ Compiler::Compiler()
 
 }
 
-Compiler::Compiler(int argc, char* argv[], IRprogram& irCode)
+Compiler::Compiler(int argc, char* argv[], std::variant<IRprogram, std::string>& irCode)
 {
   irCode = compileFromArgs(argc, argv);
 }
 
-IRprogram Compiler::compileFromArgs(int argc, char* argv[])
+std::variant<IRprogram, std::string> Compiler::compileFromArgs(int argc, char* argv[])
 {
   handleArgs(argc, argv);
 
@@ -68,6 +68,9 @@ IRprogram Compiler::compileFromArgs(int argc, char* argv[])
 
       //fileText = printIR(irCode);
       //std::cout << "Intermediate Representation:\n" << fileText << '\n';
+    } else
+    {
+      return fileText;
     }
   }
 

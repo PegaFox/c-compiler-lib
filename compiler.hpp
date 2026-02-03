@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <string>
+#include <variant>
 #include <vector>
 
 struct PrimitiveType;
@@ -44,9 +45,9 @@ class Compiler
     Compiler();
 
     // Populates an empty program (provided by reference) with IR
-    Compiler(int argc, char* argv[], IRprogram& irCode);
+    Compiler(int argc, char* argv[], std::variant<IRprogram, std::string>& irCode);
 
-    IRprogram compileFromArgs(int argc, char* argv[]);
+    std::variant<IRprogram, std::string> compileFromArgs(int argc, char* argv[]);
 
     int handleArgs(int argc, char* argv[]);
 

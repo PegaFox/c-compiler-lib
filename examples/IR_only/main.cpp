@@ -17,11 +17,17 @@ int main(int argc, char* argv[])
   
   compiler.includeDirs.emplace_back("./include/");
 
-  IRprogram irCode = compiler.compileFromArgs(argc, argv);
+  std::variant<IRprogram, std::string> irCode = compiler.compileFromArgs(argc, argv);
 
   std::ofstream outFile(compiler.outputFilename);
 
-  outFile << compiler.printIR(irCode);
+  if (IRprogram* ir = std::get_if<IRprogram>(&irCode))
+  {
+    outFile << compiler.printIR(*ir);
+  } else if (std::string* text = std::get_if<std::string>(&irCode))
+  {
+    outFile << *text;
+  }
 
   outFile.close();
 
