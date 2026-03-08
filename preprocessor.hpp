@@ -1,10 +1,8 @@
 #ifndef PF_PREPROCESSOR_HPP
 #define PF_PREPROCESSOR_HPP
 
-#include <array>
 #include <string>
 #include <vector>
-#include <list>
 
 class Preprocessor
 {
@@ -17,7 +15,7 @@ class Preprocessor
     std::string preprocess(std::string workingDir, std::string code, const std::vector<std::string>& includeDirs);
 
   private:
-    std::list<std::array<std::string, 2>> definitions;
+    std::vector<std::pair<std::string, std::string>> definitions;
 
     std::vector<std::size_t> conditionalDirectives;
 

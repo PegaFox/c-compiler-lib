@@ -180,11 +180,16 @@ bool Preprocessor::handleConditionalDirective(std::string& directiveStr)
       invert = !invert;
     } else if (directiveStr.substr(0, sizeof("defined(")-1) == "defined(")
     {
-      directiveStr.erase(0, sizeof("defined("));
+      directiveStr.erase(0, sizeof("defined(")-1);
 
       std::string varName = directiveStr.substr(0, directiveStr.find(')'));
 
-      if (std::find(definitions.begin(), definitions.end(), std::array<std::string, 2>{varName, ""}) != definitions.end())
+      if (std::find_if(
+        definitions.begin(), definitions.end(),
+        [varName](const std::pair<std::string, std::string>& d)
+        {
+          return d.first == varName;
+        }) != definitions.end())
       {
         directiveStr.replace(0, varName.size()+1, "1");
       } else
@@ -221,25 +226,39 @@ void Preprocessor::handlePreprocessingDirectives(std::string& workingDir, std::s
     // erase directive now so that pos can be reused
     code.erase(pos, end-pos);
 
+    //if (directiveStr.find("if") != directiveStr.npos ||
+    //  directiveStr.find("else") != directiveStr.npos)
+    //{
+    //  std::cout << "Getting condition \"" << directiveStr << "\"\n";
+    //  for (std::pair<std::string, std::string> def: definitions)
+    //  {
+    //    if (def.first.find("_H") != def.first.npos)
+    //    {
+    //      std::cout << "  " << def.first << ": " << def.second << "\n";
+    //    }
+    //  }
+    //  std::cout << "\n";
+    //}
+
     if (directiveStr.find("include") != directiveStr.npos)
     {
       code.insert(pos, handleIncludeDirective(workingDir, directiveStr, includeDirs));
     } else if (directiveStr.find("define") != directiveStr.npos)
     {
-      definitions.push_front(std::array<std::string, 2>());
+      definitions.emplace_back();
 
       directiveStr.erase(0, directiveStr.find_first_not_of(' ', sizeof("define")));
 
       std::size_t nameEnd = directiveStr.find_first_of(' ');
 
-      definitions.front()[0] = directiveStr.substr(0, nameEnd);
+      definitions.back().first = directiveStr.substr(0, nameEnd);
 
       directiveStr.erase(0, nameEnd);
 
       if (directiveStr.find_first_not_of(' ') != directiveStr.npos)
       {
-        definitions.front()[1] = directiveStr.substr(directiveStr.find_first_not_of(' '));
-      }
+        definitions.back().second = directiveStr.substr(directiveStr.find_first_not_of(' '));
+      } 
       
     } else if (directiveStr.find("else") != directiveStr.npos)
     {
@@ -292,24 +311,24 @@ void Preprocessor::handlePreprocessingDirectives(std::string& workingDir, std::s
 void Preprocessor::resolveDefinitions(std::string& code)
 {
   // make sure definitions are ordered by longest to shortest
-  definitions.sort([](const std::array<std::string, 2>& a, const std::array<std::string, 2>& b)
-  {
-    return a[0].size() > b[0].size();
-  });
+  //definitions.sort([](const std::array<std::string, 2>& a, const std::array<std::string, 2>& b)
+  //{
+  //  return a[0].size() > b[0].size();
+  //});
 
   bool changed = true;
 
   while (changed)
   {
     changed = false;
-    for (const std::array<std::string, 2>& definition: definitions)
+    for (const std::pair<std::string, std::string>& definition: definitions)
     {
-      std::size_t pos = code.find(definition[0]);
+      std::size_t pos = code.find(definition.first);
       while (pos != code.npos)
       {
-        code.replace(pos, definition[0].size(), definition[1]);
+        code.replace(pos, definition.first.size(), definition.second);
         changed = true;
-        pos = code.find(definition[0]);
+        pos = code.find(definition.first);
       }
     }
   }
