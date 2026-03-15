@@ -128,7 +128,7 @@ class GenerateIR
         void reset()
         {
           this->ids.clear();
-          this->maxIds.clear();
+          this->maxId = 0;
         }
 
         std::string get(std::string identifier, const void* const pointer)
@@ -137,15 +137,8 @@ class GenerateIR
 
           if (!this->ids.contains(intPtr))
           {
-            if (maxIds.contains(identifier))
-            {
-              maxIds[identifier]++;
-              ids[intPtr] = maxIds[identifier];
-            } else
-            {
-              maxIds[identifier] = 0;
-              ids[intPtr] = maxIds[identifier];
-            }
+            ids[intPtr] = maxId;
+            maxId++;
           }
 
           if (identifier.front() == '_')
@@ -162,7 +155,7 @@ class GenerateIR
 
       private:
         std::map<uintptr_t, uint32_t> ids;
-        std::map<std::string, uint32_t> maxIds;
+        uint32_t maxId;
     } uid;
 
     std::pair<std::unique_ptr<uint8_t[]>, std::size_t> dynamicData;

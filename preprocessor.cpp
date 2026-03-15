@@ -311,10 +311,14 @@ void Preprocessor::handlePreprocessingDirectives(std::string& workingDir, std::s
 void Preprocessor::resolveDefinitions(std::string& code)
 {
   // make sure definitions are ordered by longest to shortest
-  //definitions.sort([](const std::array<std::string, 2>& a, const std::array<std::string, 2>& b)
-  //{
-  //  return a[0].size() > b[0].size();
-  //});
+  std::sort(
+    definitions.begin(), definitions.end(),
+    [](
+      const std::pair<std::string, std::string>& a,
+      const std::pair<std::string, std::string>& b)
+  {
+    return a.first.size() > b.first.size();
+  });
 
   bool changed = true;
 
